@@ -6,15 +6,25 @@ import './AddDiscPage.css'
 
 const ALL_FORMATS = ['DVD', 'Blu-ray', '4K UHD', 'VHS', 'Digital']
 
+const ALL_CATEGORIES = ['', 'Filme', 'Série', 'Mini-série', 'Documentário', 'Animação', 'Anime', 'Show/Stand-up', 'Musical', 'Esporte', 'Outro']
+
 const EMPTY = {
   title: '', original_title: '', year: '', format: 'DVD', formats: '',
   watched_at: '', genre: '', director: '', cast: '', runtime: '',
   imdb_rating: '', synopsis: '', poster_url: '', language: '', country: '', cover_path: null,
+  category: '',
 }
 
 const TMDB_IMG = 'https://image.tmdb.org/t/p/w500'
 
 // ─── OMDb helper ─────────────────────────────────────────────────────────────
+
+function omdbTypeToCategory(type) {
+  if (type === 'series')  return 'Série'
+  if (type === 'episode') return 'Série'
+  if (type === 'movie')   return 'Filme'
+  return ''
+}
 
 function omdbToFilme(data, formats) {
   return {
@@ -35,6 +45,7 @@ function omdbToFilme(data, formats) {
     country:        data.Country !== 'N/A' ? data.Country : '',
     cover_path:     null,
     watched_at:     '',
+    category:       omdbTypeToCategory(data.Type),
   }
 }
 
@@ -65,6 +76,45 @@ function tmdbToFilme(data, formats) {
     country,
     cover_path:     null,
     watched_at:     '',
+    category:       'Filme',
+  }
+}
+
+function tmdbTvTypeToCategory(type) {
+  if (type === 'Miniseries')   return 'Mini-série'
+  if (type === 'Documentary')  return 'Documentário'
+  if (type === 'Animation')    return 'Animação'
+  if (type === 'Talk Show')    return 'Show/Stand-up'
+  return 'Série'
+}
+
+function tmdbToFilmeTv(data, formats) {
+  const year     = data.first_air_date ? parseInt(data.first_air_date.split('-')[0]) : null
+  const director = data.created_by?.[0]?.name || data.credits?.crew?.find(c => c.job === 'Director')?.name || ''
+  const cast     = (data.credits?.cast || []).slice(0, 5).map(a => a.name).join(', ')
+  const genres   = (data.genres || []).map(g => g.name).join(', ')
+  const language = data.spoken_languages?.[0]?.name || ''
+  const country  = data.production_countries?.[0]?.name || ''
+  const runtime  = data.episode_run_time?.[0] ? `${data.episode_run_time[0]} min/ep` : ''
+  return {
+    title:          data.name || data.original_name || '',
+    original_title: data.original_name || '',
+    year,
+    format:         formats.split(',')[0]?.trim() || 'DVD',
+    formats,
+    genre:          genres,
+    director,
+    cast,
+    runtime,
+    imdb_rating:    data.vote_average ? Number(data.vote_average).toFixed(1) : '',
+    imdb_id:        '',
+    synopsis:       data.overview || '',
+    poster_url:     data.poster_path ? `${TMDB_IMG}${data.poster_path}` : '',
+    language,
+    country,
+    cover_path:     null,
+    watched_at:     '',
+    category:       tmdbTvTypeToCategory(data.type),
   }
 }
 
@@ -164,14 +214,21 @@ export default function AddDiscPage({ settings, editFilme, onSaved, showToast })
           ]
         })().catch(() => []) : [],
 
-        tmdbApiKey ? window.api.tmdbSearch({ query: q, year: y, apiKey: tmdbApiKey })
-          .then(res => (res.results || []).slice(0, 8).map(r => ({ ...r, _source: 'tmdb' })))
-          .catch(() => []) : [],
+        tmdbApiKey ? Promise.all([
+          window.api.tmdbSearch({ query: q, year: y, apiKey: tmdbApiKey })
+            .then(res => (res.results || []).slice(0, 5).map(r => ({ ...r, _source: 'tmdb', _tmdbType: 'movie' }))),
+          window.api.tmdbSearchTv({ query: q, year: y, apiKey: tmdbApiKey })
+            .then(res => (res.results || []).slice(0, 3).map(r => ({ ...r, _source: 'tmdb', _tmdbType: 'tv' }))),
+        ]).then(([movies, tvs]) => [...movies, ...tvs]).catch(() => []) : [],
       ])
 
       // TMDB primeiro; remove OMDb que sejam duplicatas por título original + ano
       const tmdbKeys = new Set(
-        tmdbResults.map(r => `${(r.original_title || '').toLowerCase()}_${r.release_date?.slice(0, 4)}`)
+        tmdbResults.map(r => {
+          const orig = r._tmdbType === 'tv' ? r.original_name : r.original_title
+          const year = r._tmdbType === 'tv' ? r.first_air_date?.slice(0, 4) : r.release_date?.slice(0, 4)
+          return `${(orig || '').toLowerCase()}_${year}`
+        })
       )
       const dedupedOmdb = omdbResults.filter(r => {
         const key = `${(r.Title || '').toLowerCase()}_${(r.Year || '').slice(0, 4)}`
@@ -206,8 +263,13 @@ export default function AddDiscPage({ settings, editFilme, onSaved, showToast })
       let filled
 
       if (item._source === 'tmdb' && settings.tmdbApiKey) {
-        const data = await window.api.tmdbDetails({ id: item.id, apiKey: settings.tmdbApiKey })
-        filled = tmdbToFilme(data, formats)
+        if (item._tmdbType === 'tv') {
+          const data = await window.api.tmdbTvDetails({ id: item.id, apiKey: settings.tmdbApiKey })
+          filled = tmdbToFilmeTv(data, formats)
+        } else {
+          const data = await window.api.tmdbDetails({ id: item.id, apiKey: settings.tmdbApiKey })
+          filled = tmdbToFilme(data, formats)
+        }
       } else if (settings.omdbApiKey) {
         const data = await window.api.omdbSearch({ imdbId: item.imdbID, apiKey: settings.omdbApiKey })
         if (data.Response !== 'True') throw new Error('not found')
@@ -383,6 +445,16 @@ export default function AddDiscPage({ settings, editFilme, onSaved, showToast })
             </div>
           </div>
 
+          {/* Categoria */}
+          <div className="field" style={{ marginTop: 8 }}>
+            <label>Categoria</label>
+            <select value={filme.category || ''} onChange={e => setField('category', e.target.value)}
+              style={{ padding: '8px 10px', background: 'var(--bg3)', border: '1px solid var(--border)', borderRadius: 8, color: filme.category ? 'var(--text)' : 'var(--text3)', fontSize: 13, outline: 'none', width: '100%' }}>
+              <option value="">— Selecionar —</option>
+              {ALL_CATEGORIES.filter(Boolean).map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+          </div>
+
           {/* Data assistido */}
           <div className="field" style={{ marginTop: 8 }}>
             <label>Assistido em</label>
@@ -449,18 +521,19 @@ export default function AddDiscPage({ settings, editFilme, onSaved, showToast })
                 <div className="search-results">
                   {searchResults.map(r => {
                     const isTmdb   = r._source === 'tmdb'
+                    const isTv     = isTmdb && r._tmdbType === 'tv'
                     const poster   = isTmdb
                       ? (r.poster_path ? `${TMDB_IMG}${r.poster_path}` : null)
                       : (r.Poster && r.Poster !== 'N/A' ? r.Poster : null)
-                    const title    = isTmdb ? r.title    : r.Title
-                    const origTitle = isTmdb ? r.original_title : null
-                    const year     = isTmdb ? r.release_date?.slice(0, 4) : r.Year
+                    const title    = isTmdb ? (isTv ? r.name    : r.title)          : r.Title
+                    const origTitle = isTmdb ? (isTv ? r.original_name : r.original_title) : null
+                    const year     = isTmdb ? (isTv ? r.first_air_date?.slice(0, 4) : r.release_date?.slice(0, 4)) : r.Year
                     const rating   = isTmdb
                       ? (r.vote_average ? `★ ${Number(r.vote_average).toFixed(1)}` : null)
                       : (r.imdbRating && r.imdbRating !== 'N/A' ? `★ ${r.imdbRating} IMDb` : null)
-                    const typeLabel = isTmdb ? 'Filme' : (r.Type === 'movie' ? 'Filme' : r.Type === 'series' ? 'Série' : r.Type)
+                    const typeLabel = isTmdb ? (isTv ? 'Série' : 'Filme') : (r.Type === 'movie' ? 'Filme' : r.Type === 'series' ? 'Série' : r.Type)
                     return (
-                      <div key={isTmdb ? r.id : r.imdbID} className="search-result-item"
+                      <div key={isTmdb ? `${r._tmdbType}-${r.id}` : r.imdbID} className="search-result-item"
                         onClick={() => !searching && selectResult(r)}
                         style={{ opacity: searching ? 0.5 : 1, cursor: searching ? 'wait' : 'pointer' }}>
                         {poster

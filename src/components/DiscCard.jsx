@@ -35,6 +35,7 @@ export default function DiscCard({ filme, viewMode, onClick, onEdit, onDelete })
             <div className="list-original">{filme.original_title}</div>
           )}
           <div className="list-meta">
+            {filme.category && <span style={{ fontSize: 10, fontWeight: 600, background: 'rgba(140,100,255,0.15)', color: '#a78bfa', padding: '1px 6px', borderRadius: 3 }}>{filme.category}</span>}
             {filme.year && <span>{filme.year}</span>}
             {filme.director && <><span className="dot">·</span><span>{filme.director}</span></>}
             {filme.genre && <><span className="dot">·</span><span>{filme.genre}</span></>}
@@ -71,7 +72,7 @@ export default function DiscCard({ filme, viewMode, onClick, onEdit, onDelete })
       <div className="disc-cover">
         {coverSrc ? <img src={coverSrc} alt={filme.title} /> : <DiscPlaceholder />}
         <span className="format-badge-overlay">
-          {formats.join(' · ') || '—'}
+          {[filme.category, ...formats].filter(Boolean).join(' · ') || '—'}
         </span>
         {filme.watched_at && <span className="watched-overlay">✓</span>}
         {filme.imdb_rating && filme.imdb_rating !== 'N/A' && (

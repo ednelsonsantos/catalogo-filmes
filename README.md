@@ -1,2 +1,117 @@
-# catalogo-filmes
+# Catálogo de Filmes
 
+Aplicativo desktop para catalogar sua coleção pessoal de filmes em DVD, Blu-ray, 4K UHD e outros formatos. Desenvolvido com Electron + React.
+
+---
+
+## Funcionalidades
+
+- **Adicionar filmes** por foto da capa (OCR local), busca por título ou preenchimento manual
+- **OCR local** via Tesseract.js — lê o texto da capa sem internet e sem conta
+- **Busca automática** em OMDb e TMDB simultaneamente — retorna título em PT-BR, sinopse, elenco, nota IMDb, pôster e categoria
+- **Categorias automáticas** — Filme, Série, Mini-série, Documentário, Animação, etc. preenchidas direto da API
+- **Múltiplos formatos** por título — DVD, Blu-ray, 4K UHD, VHS, Digital
+- **Marcar como assistido** com ou sem data
+- **Catálogo** com visualização em grade ou lista, filtros por formato, categoria e busca por texto
+- **Exportar** coleção para CSV ou Excel
+- **Banco de dados local** SQLite — seus dados ficam no computador, sem nuvem
+
+---
+
+## Tecnologias
+
+| Camada | Tecnologia |
+|---|---|
+| Interface | React 18 + Vite 5 |
+| Desktop | Electron 32 |
+| Banco de dados | better-sqlite3 (SQLite local) |
+| OCR | Tesseract.js 5 (local, sem internet) |
+| Metadados | OMDb API + TMDB API |
+| Exportação | xlsx |
+
+---
+
+## APIs utilizadas
+
+O aplicativo funciona sem APIs — você pode preencher filmes manualmente. As chaves desbloqueiam a busca automática de metadados.
+
+### OMDb API
+Fornece: sinopse (inglês), elenco, nota IMDb, pôster, duração, país, idioma, tipo (filme/série).
+
+**Como obter (gratuito, 1.000 buscas/dia):**
+1. Acesse [omdbapi.com/apikey.aspx](https://www.omdbapi.com/apikey.aspx)
+2. Escolha o plano **Free**
+3. Preencha seu e-mail e clique em *Submit*
+4. Confirme o e-mail recebido — a chave vem na mensagem
+5. Cole a chave em **Configurações → OMDb API**
+
+### TMDB API
+Fornece: título em português, sinopse traduzida, elenco, pôster de alta qualidade, tipo detalhado da obra (Miniseries, Documentary, Animation, Talk Show…).
+
+**Como obter (gratuito, sem limite diário):**
+1. Crie uma conta em [themoviedb.org](https://www.themoviedb.org)
+2. Acesse **Configurações → API** no seu perfil
+3. Solicite uma chave de API (tipo *Developer*)
+4. Copie a **API Key (v3 auth)**
+5. Cole a chave em **Configurações → TMDB API**
+
+> Quando ambas as chaves estão configuradas, a busca roda as duas APIs em paralelo e combina os resultados — título PT-BR do TMDB com nota IMDb do OMDb.
+
+---
+
+## Instalação para desenvolvimento
+
+### Pré-requisitos
+- Node.js 18+
+- npm
+
+### Passos
+
+```bash
+# Clonar o repositório
+git clone https://github.com/ednelsonsantos/catalogo-filmes.git
+cd catalogo-filmes
+
+# Instalar dependências (já faz o rebuild do módulo nativo)
+npm install
+
+# Iniciar em modo desenvolvimento
+npm run dev
+```
+
+> O `postinstall` executa `electron-rebuild` automaticamente para compilar o `better-sqlite3` contra a versão correta do Electron.
+
+### Build para distribuição
+
+```bash
+npm run build
+```
+
+O instalador Windows (`.exe`) é gerado na pasta `dist-electron/`.
+
+---
+
+## Estrutura do projeto
+
+```
+catalogo-filmes/
+├── electron/
+│   ├── main.js          # Processo principal: banco de dados, IPC, APIs
+│   └── preload.js       # Bridge segura entre Electron e React
+├── src/
+│   ├── pages/
+│   │   ├── AddDiscPage.jsx    # Adicionar / editar filme (OCR, busca, formulário)
+│   │   ├── CatalogPage.jsx    # Catálogo com filtros e exportação
+│   │   └── SettingsPage.jsx   # Configuração das chaves de API
+│   └── components/
+│       ├── DiscCard.jsx        # Card do filme (grade e lista)
+│       └── DiscDetailModal.jsx # Modal de detalhes
+├── dev-runner.js        # Script de desenvolvimento (evita conflito de env vars)
+└── package.json
+```
+
+---
+
+## Licença
+
+GPL-3.0-or-later — © Ednelson Santos

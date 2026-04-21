@@ -16,9 +16,12 @@ const FILTERS = [
   { id: 'assistidos', label: '✓ Assistidos' },
 ]
 
+const ALL_CATEGORIES = ['Filme', 'Série', 'Mini-série', 'Documentário', 'Animação', 'Anime', 'Show/Stand-up', 'Musical', 'Esporte', 'Outro']
+
 export default function CatalogPage({ filmes, onEdit, onDelete, showToast }) {
   const [search, setSearch] = useState('')
   const [format, setFormat] = useState('all')
+  const [category, setCategory] = useState('all')
   const [sort, setSort] = useState('title')
   const [viewMode, setViewMode] = useState('grid')
   const [detail, setDetail] = useState(null)
@@ -41,6 +44,9 @@ export default function CatalogPage({ filmes, onEdit, onDelete, showToast }) {
     } else if (format !== 'all') {
       items = items.filter(f => (f.formats || f.format || '').split(',').map(x => x.trim()).includes(format))
     }
+    if (category !== 'all') {
+      items = items.filter(f => (f.category || '') === category)
+    }
     items.sort((a, b) => {
       if (sort === 'title')  return (a.title || '').localeCompare(b.title || '', 'pt-BR')
       if (sort === 'year')   return (b.year || 0) - (a.year || 0)
@@ -50,7 +56,7 @@ export default function CatalogPage({ filmes, onEdit, onDelete, showToast }) {
       return 0
     })
     return items
-  }, [filmes, search, format, sort])
+  }, [filmes, search, format, category, sort])
 
   const handleDelete = useCallback(async (filme) => {
     if (!confirm(`Remover "${filme.title}" da coleção?`)) return
@@ -106,6 +112,10 @@ export default function CatalogPage({ filmes, onEdit, onDelete, showToast }) {
               <button key={f.id} className={`filter-btn ${format === f.id ? 'active' : ''}`} onClick={() => setFormat(f.id)}>{f.label}</button>
             ))}
           </div>
+          <select className="sort-select" value={category} onChange={e => setCategory(e.target.value)}>
+            <option value="all">Todas as categorias</option>
+            {ALL_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
           <select className="sort-select" value={sort} onChange={e => setSort(e.target.value)}>
             <option value="title">A → Z</option>
             <option value="year">Mais recente</option>
@@ -125,7 +135,7 @@ export default function CatalogPage({ filmes, onEdit, onDelete, showToast }) {
         <div className="empty-state">
           {filmes.length === 0
             ? <><div className="empty-icon">🎬</div><p>Sua coleção está vazia.</p><span>Clique em "Adicionar Filme" para começar!</span></>
-            : <><div className="empty-icon">🔍</div><p>Nenhum resultado para "{search}"</p></>
+            : <><div className="empty-icon">🔍</div><p>Nenhum resultado{search ? ` para "${search}"` : category !== 'all' ? ` na categoria "${category}"` : ''}</p></>
           }
         </div>
       ) : (

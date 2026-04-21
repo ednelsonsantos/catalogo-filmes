@@ -50,8 +50,9 @@ export default function DiscDetailModal({ filme, onClose, onEdit, onDelete }) {
             )}
           </div>
 
-          {/* Badges: ano + formatos + duração + nota */}
+          {/* Badges: categoria + ano + formatos + duração + nota */}
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+            {filme.category && <span style={{ fontSize: 11, fontWeight: 600, background: 'rgba(140,100,255,0.15)', color: '#a78bfa', padding: '2px 8px', borderRadius: 4 }}>{filme.category}</span>}
             {filme.year && <span style={{ fontSize: 12, background: 'var(--bg4)', color: 'var(--text2)', padding: '2px 8px', borderRadius: 4 }}>{filme.year}</span>}
             {formats.map(f => (
               <span key={f} style={{ fontSize: 11, fontWeight: 600, background: 'rgba(74,158,255,0.12)', color: '#4a9eff', padding: '2px 8px', borderRadius: 4 }}>{f}</span>

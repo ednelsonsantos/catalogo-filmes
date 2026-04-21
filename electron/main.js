@@ -40,6 +40,7 @@ function createDatabase() {
   const columns = db.prepare('PRAGMA table_info(filmes)').all().map(c => c.name)
   if (!columns.includes('formats'))    db.exec("ALTER TABLE filmes ADD COLUMN formats TEXT DEFAULT ''")
   if (!columns.includes('watched_at')) db.exec('ALTER TABLE filmes ADD COLUMN watched_at TEXT')
+  if (!columns.includes('category'))   db.exec("ALTER TABLE filmes ADD COLUMN category TEXT DEFAULT ''")
 }
 
 function createWindow() {
@@ -89,10 +90,10 @@ ipcMain.handle('db:insert', (_, filme) => {
   const stmt = db.prepare(`
     INSERT INTO filmes (title, original_title, year, format, formats, watched_at,
       genre, director, cast, runtime, imdb_rating, imdb_id, synopsis,
-      poster_url, cover_path, language, country)
+      poster_url, cover_path, language, country, category)
     VALUES (@title, @original_title, @year, @format, @formats, @watched_at,
       @genre, @director, @cast, @runtime, @imdb_rating, @imdb_id, @synopsis,
-      @poster_url, @cover_path, @language, @country)
+      @poster_url, @cover_path, @language, @country, @category)
   `)
   const result = stmt.run(filme)
   return db.prepare('SELECT * FROM filmes WHERE id = ?').get(result.lastInsertRowid)
@@ -104,7 +105,7 @@ ipcMain.handle('db:update', (_, filme) => {
       format=@format, formats=@formats, watched_at=@watched_at,
       genre=@genre, director=@director, cast=@cast, runtime=@runtime,
       imdb_rating=@imdb_rating, imdb_id=@imdb_id, synopsis=@synopsis, poster_url=@poster_url,
-      language=@language, country=@country
+      language=@language, country=@country, category=@category
     WHERE id=@id
   `).run(filme)
   return db.prepare('SELECT * FROM filmes WHERE id = ?').get(filme.id)
@@ -156,6 +157,15 @@ ipcMain.handle('tmdb:search', async (_, { query, year, apiKey }) => {
 
 ipcMain.handle('tmdb:details', async (_, { id, apiKey }) => {
   return omdbFetch(`https://api.themoviedb.org/3/movie/${id}?append_to_response=credits&language=pt-BR&api_key=${apiKey}`)
+})
+
+ipcMain.handle('tmdb:searchTv', async (_, { query, year, apiKey }) => {
+  const y = year ? `&first_air_date_year=${encodeURIComponent(year)}` : ''
+  return omdbFetch(`https://api.themoviedb.org/3/search/tv?query=${encodeURIComponent(query)}${y}&language=pt-BR&api_key=${apiKey}`)
+})
+
+ipcMain.handle('tmdb:tvDetails', async (_, { id, apiKey }) => {
+  return omdbFetch(`https://api.themoviedb.org/3/tv/${id}?append_to_response=credits&language=pt-BR&api_key=${apiKey}`)
 })
 
 // ─── IPC: CAPA ────────────────────────────────────────────────────────────────
