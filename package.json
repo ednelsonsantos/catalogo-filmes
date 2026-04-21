@@ -1,0 +1,81 @@
+{
+  "name": "catalogo-filmes",
+  "version": "1.0.0",
+  "description": "Catálogo pessoal de filmes em DVD, Blu-ray e outros formatos",
+  "main": "electron/main.js",
+  "scripts": {
+    "dev": "node dev-runner.js",
+    "build": "vite build && electron-builder",
+    "preview": "vite preview",
+    "postinstall": "electron-builder install-app-deps",
+    "rebuild": "electron-builder install-app-deps"
+  },
+  "dependencies": {
+    "better-sqlite3": "^12.6.2",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "tesseract.js": "^5.0.5",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.2.0",
+    "concurrently": "^8.2.0",
+    "electron": "^32.3.3",
+    "electron-builder": "^25.1.8",
+    "electron-rebuild": "^3.2.9",
+    "vite": "^5.0.0",
+    "wait-on": "^7.2.0"
+  },
+  "build": {
+    "appId": "com.ednelson.catalogo-filmes",
+    "productName": "Catálogo de Filmes",
+    "asar": true,
+    "asarUnpack": [
+      "**/better-sqlite3/**"
+    ],
+    "directories": {
+      "output": "dist-electron"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "node_modules/better-sqlite3/build/**/*",
+      "node_modules/better-sqlite3/lib/**/*",
+      "node_modules/better-sqlite3/package.json"
+    ],
+    "npmRebuild": true,
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "installerLanguages": [
+        "pt_BR"
+      ],
+      "language": "1046"
+    },
+    "mac": {
+      "target": "dmg"
+    },
+    "linux": {
+      "target": "AppImage"
+    }
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "author": {
+    "name": "Ednelson Santos",
+    "url": "https://github.com/ednelsonsantos"
+  },
+  "license": "GPL-3.0-or-later"
+}

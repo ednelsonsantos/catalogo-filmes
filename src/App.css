@@ -1,0 +1,56 @@
+.app-layout { display: flex; height: 100vh; overflow: hidden; }
+.app-main { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
+
+.spinner {
+  width: 28px; height: 28px;
+  border: 2px solid var(--border2); border-top-color: var(--accent);
+  border-radius: 50%; animation: spin 0.7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.page { flex: 1; overflow-y: auto; padding: 28px 32px; }
+.page-title { font-size: 22px; font-weight: 600; color: var(--text); margin-bottom: 24px; letter-spacing: -0.3px; }
+.section-label { font-size: 11px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 12px; }
+
+.btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 16px; border-radius: var(--radius);
+  border: 1px solid var(--border2); background: var(--bg3);
+  color: var(--text); font-size: 13px; font-weight: 500;
+  transition: all 0.15s; cursor: pointer;
+}
+.btn:hover { background: var(--bg4); border-color: #444; }
+.btn:active { transform: scale(0.98); }
+.btn-primary { background: var(--accent); border-color: var(--accent); color: #1a1000; }
+.btn-primary:hover { background: var(--accent2); border-color: var(--accent2); }
+.btn-danger { color: var(--red); border-color: #3a2020; }
+.btn-danger:hover { background: #2a1414; }
+.btn-ghost { background: transparent; border-color: transparent; }
+.btn-ghost:hover { background: var(--bg3); border-color: var(--border); }
+.btn-sm { padding: 5px 10px; font-size: 12px; }
+.btn-icon { padding: 7px; width: 32px; height: 32px; justify-content: center; }
+
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field label { font-size: 12px; font-weight: 500; color: var(--text2); }
+.field input, .field textarea, .field select {
+  padding: 9px 12px; background: var(--bg3);
+  border: 1px solid var(--border); border-radius: var(--radius);
+  color: var(--text); font-size: 13px; transition: border-color 0.15s; outline: none;
+}
+.field input:focus, .field textarea:focus, .field select:focus { border-color: var(--accent); }
+.field textarea { resize: vertical; min-height: 80px; line-height: 1.5; }
+.field select option { background: var(--bg3); }
+
+.card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 20px; }
+
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 100; backdrop-filter: blur(4px);
+}
+.modal {
+  background: var(--bg2); border: 1px solid var(--border2);
+  border-radius: var(--radius-lg); padding: 24px;
+  width: 90%; max-width: 560px; max-height: 85vh; overflow-y: auto;
+  box-shadow: var(--shadow);
+}

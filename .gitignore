@@ -1,0 +1,41 @@
+# Dependências
+node_modules/
+
+# Build outputs
+dist/
+dist-electron/
+out/
+
+# Cache do Vite
+.vite/
+
+# Módulos nativos compilados (reconstruídos via electron-rebuild)
+**/*.node
+
+# Electron
+*.log
+
+# Variáveis de ambiente
+.env
+.env.local
+.env.*.local
+
+# Imagens soltas na raiz (fotos de teste OCR, etc.)
+/*.jpg
+/*.jpeg
+/*.png
+/*.gif
+/*.webp
+
+# Editor
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+
+# Sistema operacional
+Thumbs.db
+.DS_Store
+desktop.ini
