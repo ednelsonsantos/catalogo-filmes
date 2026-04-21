@@ -3,6 +3,7 @@ import React, { useState } from 'react'
 export default function SettingsPage({ settings, onSave }) {
   const [form, setForm] = useState({ ...settings })
   const [showKey, setShowKey] = useState(false)
+  const [showTmdbKey, setShowTmdbKey] = useState(false)
 
   return (
     <div className="page" style={{ maxWidth: 620 }}>
@@ -59,6 +60,44 @@ export default function SettingsPage({ settings, onSave }) {
             <p style={{ fontSize: 12, color: 'var(--text2)', lineHeight: 1.6 }}>
               Plano gratuito: <strong style={{ color: 'var(--text)' }}>1.000 buscas/dia</strong> — mais que suficiente para uso pessoal.
               A chave fica salva localmente no seu computador.
+            </p>
+          </div>
+        </div>
+
+        {/* TMDB */}
+        <div className="card">
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 16 }}>
+            <div>
+              <h2 style={{ fontSize: 15, fontWeight: 600 }}>TMDB API</h2>
+              <p style={{ fontSize: 12, color: 'var(--text3)', marginTop: 4 }}>
+                Títulos em português, sinopse traduzida, elenco e pôster de alta qualidade.
+              </p>
+            </div>
+            <a href="https://www.themoviedb.org/settings/api" target="_blank" rel="noreferrer"
+              style={{ fontSize: 12, color: 'var(--blue)', textDecoration: 'none', whiteSpace: 'nowrap' }}>
+              Obter chave grátis ↗
+            </a>
+          </div>
+          <div className="field">
+            <label>Chave de API (v3)</label>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <input
+                type={showTmdbKey ? 'text' : 'password'}
+                value={form.tmdbApiKey || ''}
+                onChange={e => setForm(f => ({ ...f, tmdbApiKey: e.target.value }))}
+                placeholder="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                style={{ flex: 1 }}
+              />
+              <button className="btn btn-sm" onClick={() => setShowTmdbKey(v => !v)}>
+                {showTmdbKey ? 'Ocultar' : 'Mostrar'}
+              </button>
+            </div>
+          </div>
+          <div style={{ marginTop: 12, padding: 10, background: 'rgba(1,180,228,0.06)', border: '1px solid rgba(1,180,228,0.2)', borderRadius: 6 }}>
+            <p style={{ fontSize: 12, color: 'var(--text2)', lineHeight: 1.6 }}>
+              Completamente gratuito e sem limite diário. Quando configurado junto com OMDb,
+              a busca usa <strong style={{ color: 'var(--text)' }}>ambas as APIs em paralelo</strong> e
+              combina os resultados — títulos em PT‑BR do TMDB e notas IMDb do OMDb.
             </p>
           </div>
         </div>

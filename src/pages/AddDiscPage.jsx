@@ -12,6 +12,8 @@ const EMPTY = {
   imdb_rating: '', synopsis: '', poster_url: '', language: '', country: '', cover_path: null,
 }
 
+const TMDB_IMG = 'https://image.tmdb.org/t/p/w500'
+
 // ─── OMDb helper ─────────────────────────────────────────────────────────────
 
 function omdbToFilme(data, formats) {
@@ -31,6 +33,36 @@ function omdbToFilme(data, formats) {
     poster_url:     data.Poster !== 'N/A' ? data.Poster : '',
     language:       data.Language !== 'N/A' ? data.Language : '',
     country:        data.Country !== 'N/A' ? data.Country : '',
+    cover_path:     null,
+    watched_at:     '',
+  }
+}
+
+// ─── TMDB helper ─────────────────────────────────────────────────────────────
+
+function tmdbToFilme(data, formats) {
+  const year      = data.release_date ? parseInt(data.release_date.split('-')[0]) : null
+  const director  = data.credits?.crew?.find(c => c.job === 'Director')?.name || ''
+  const cast      = (data.credits?.cast || []).slice(0, 5).map(a => a.name).join(', ')
+  const genres    = (data.genres || []).map(g => g.name).join(', ')
+  const language  = data.spoken_languages?.[0]?.name || ''
+  const country   = data.production_countries?.[0]?.name || ''
+  return {
+    title:          data.title || data.original_title || '',
+    original_title: data.original_title || '',
+    year,
+    format:         formats.split(',')[0]?.trim() || 'DVD',
+    formats,
+    genre:          genres,
+    director,
+    cast,
+    runtime:        data.runtime ? `${data.runtime} min` : '',
+    imdb_rating:    data.vote_average ? Number(data.vote_average).toFixed(1) : '',
+    imdb_id:        data.imdb_id || '',
+    synopsis:       data.overview || '',
+    poster_url:     data.poster_path ? `${TMDB_IMG}${data.poster_path}` : '',
+    language,
+    country,
     cover_path:     null,
     watched_at:     '',
   }
@@ -111,24 +143,41 @@ export default function AddDiscPage({ settings, editFilme, onSaved, showToast })
 
   const doSearch = useCallback(async (query, year = searchYear) => {
     if (!query?.trim()) return
-    if (!settings.omdbApiKey) { showToast('Configure a chave OMDb nas configurações.', 'error'); return }
+    const { omdbApiKey, tmdbApiKey } = settings
+    if (!omdbApiKey && !tmdbApiKey) { showToast('Configure ao menos uma chave de API nas configurações.', 'error'); return }
     setSearching(true); setSearchResults([])
 
-    const apiKey = settings.omdbApiKey
-
     async function fetchCombined(q, y) {
-      // Busca paralela: ?t= (melhor resultado exato) + ?s= (lista)
-      const [exactRes, listRes] = await Promise.all([
-        window.api.omdbSearch({ title: q, year: y, apiKey }),
-        window.api.omdbSearchByTitle({ title: q, year: y, apiKey }),
+      // Busca paralela: OMDb (?t= + ?s=) e TMDB ao mesmo tempo
+      const [omdbResults, tmdbResults] = await Promise.all([
+        omdbApiKey ? (async () => {
+          const [exactRes, listRes] = await Promise.all([
+            window.api.omdbSearch({ title: q, year: y, apiKey: omdbApiKey }),
+            window.api.omdbSearchByTitle({ title: q, year: y, apiKey: omdbApiKey }),
+          ])
+          const exact = exactRes?.Response === 'True' ? exactRes : null
+          const list  = listRes?.Search || []
+          const seen  = new Set(exact ? [exact.imdbID] : [])
+          return [
+            ...(exact ? [{ ...exact, _exact: true, _source: 'omdb' }] : []),
+            ...list.filter(r => !seen.has(r.imdbID)).map(r => ({ ...r, _source: 'omdb' })),
+          ]
+        })().catch(() => []) : [],
+
+        tmdbApiKey ? window.api.tmdbSearch({ query: q, year: y, apiKey: tmdbApiKey })
+          .then(res => (res.results || []).slice(0, 8).map(r => ({ ...r, _source: 'tmdb' })))
+          .catch(() => []) : [],
       ])
-      const exact = exactRes?.Response === 'True' ? exactRes : null
-      const list  = listRes?.Search || []
-      const seen  = new Set(exact ? [exact.imdbID] : [])
-      return [
-        ...(exact ? [{ ...exact, _exact: true }] : []),
-        ...list.filter(r => !seen.has(r.imdbID)),
-      ]
+
+      // TMDB primeiro; remove OMDb que sejam duplicatas por título original + ano
+      const tmdbKeys = new Set(
+        tmdbResults.map(r => `${(r.original_title || '').toLowerCase()}_${r.release_date?.slice(0, 4)}`)
+      )
+      const dedupedOmdb = omdbResults.filter(r => {
+        const key = `${(r.Title || '').toLowerCase()}_${(r.Year || '').slice(0, 4)}`
+        return !tmdbKeys.has(key)
+      })
+      return [...tmdbResults, ...dedupedOmdb]
     }
 
     try {
@@ -151,18 +200,24 @@ export default function AddDiscPage({ settings, editFilme, onSaved, showToast })
   const handleSearch = useCallback(() => doSearch(searchQuery, searchYear), [doSearch, searchQuery, searchYear])
 
   const selectResult = useCallback(async (item) => {
-    if (!settings.omdbApiKey) return
     setSearching(true)
     try {
-      // Usa imdbID para busca precisa — evita pegar filme errado com mesmo título
-      const data = await window.api.omdbSearch({ imdbId: item.imdbID, apiKey: settings.omdbApiKey })
-      if (data.Response === 'True') {
-        const filled = omdbToFilme(data, filme.formats || filme.format || 'DVD')
-        setFilme(f => ({ ...f, ...filled, cover_path: f.cover_path, watched_at: f.watched_at }))
-        if (filled.poster_url) setCoverPreview(filled.poster_url)
-        setSearchResults([]); setMode('manual')
-        showToast(`"${data.Title}" carregado!`, 'success')
-      }
+      const formats = filme.formats || filme.format || 'DVD'
+      let filled
+
+      if (item._source === 'tmdb' && settings.tmdbApiKey) {
+        const data = await window.api.tmdbDetails({ id: item.id, apiKey: settings.tmdbApiKey })
+        filled = tmdbToFilme(data, formats)
+      } else if (settings.omdbApiKey) {
+        const data = await window.api.omdbSearch({ imdbId: item.imdbID, apiKey: settings.omdbApiKey })
+        if (data.Response !== 'True') throw new Error('not found')
+        filled = omdbToFilme(data, formats)
+      } else return
+
+      setFilme(f => ({ ...f, ...filled, cover_path: f.cover_path, watched_at: f.watched_at }))
+      if (filled.poster_url) setCoverPreview(filled.poster_url)
+      setSearchResults([]); setMode('manual')
+      showToast(`"${filled.title}" carregado!`, 'success')
     } catch { showToast('Erro ao carregar dados.', 'error') }
     finally { setSearching(false) }
   }, [settings, filme.formats, filme.format, showToast])
@@ -379,25 +434,44 @@ export default function AddDiscPage({ settings, editFilme, onSaved, showToast })
               </div>
               {searchResults.length > 0 && (
                 <div className="search-results">
-                  {searchResults.map(r => (
-                    <div key={r.imdbID} className="search-result-item" onClick={() => !searching && selectResult(r)}
-                      style={{ opacity: searching ? 0.5 : 1, cursor: searching ? 'wait' : 'pointer' }}>
-                      {r.Poster && r.Poster !== 'N/A'
-                        ? <img src={r.Poster} alt={r.Title} />
-                        : <div className="result-no-poster">?</div>
-                      }
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontWeight: 500, fontSize: 13, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                          {r.Title}
-                          {r._exact && <span style={{ fontSize: 10, background: 'rgba(74,158,255,0.15)', color: 'var(--blue)', padding: '2px 6px', borderRadius: 3, fontWeight: 600 }}>Melhor resultado</span>}
-                        </div>
-                        <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 2 }}>
-                          {r.Year} · {r.Type === 'movie' ? 'Filme' : r.Type === 'series' ? 'Série' : r.Type}
-                          {r.imdbRating && r.imdbRating !== 'N/A' && <> · ★ {r.imdbRating}</>}
+                  {searchResults.map(r => {
+                    const isTmdb   = r._source === 'tmdb'
+                    const poster   = isTmdb
+                      ? (r.poster_path ? `${TMDB_IMG}${r.poster_path}` : null)
+                      : (r.Poster && r.Poster !== 'N/A' ? r.Poster : null)
+                    const title    = isTmdb ? r.title    : r.Title
+                    const origTitle = isTmdb ? r.original_title : null
+                    const year     = isTmdb ? r.release_date?.slice(0, 4) : r.Year
+                    const rating   = isTmdb
+                      ? (r.vote_average ? `★ ${Number(r.vote_average).toFixed(1)}` : null)
+                      : (r.imdbRating && r.imdbRating !== 'N/A' ? `★ ${r.imdbRating} IMDb` : null)
+                    const typeLabel = isTmdb ? 'Filme' : (r.Type === 'movie' ? 'Filme' : r.Type === 'series' ? 'Série' : r.Type)
+                    return (
+                      <div key={isTmdb ? r.id : r.imdbID} className="search-result-item"
+                        onClick={() => !searching && selectResult(r)}
+                        style={{ opacity: searching ? 0.5 : 1, cursor: searching ? 'wait' : 'pointer' }}>
+                        {poster
+                          ? <img src={poster} alt={title} />
+                          : <div className="result-no-poster">?</div>
+                        }
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontWeight: 500, fontSize: 13, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{title}</span>
+                            {isTmdb
+                              ? <span style={{ fontSize: 10, background: 'rgba(1,180,228,0.15)', color: '#01b4e4', padding: '2px 6px', borderRadius: 3, fontWeight: 600, flexShrink: 0 }}>TMDB</span>
+                              : r._exact && <span style={{ fontSize: 10, background: 'rgba(74,158,255,0.15)', color: 'var(--blue)', padding: '2px 6px', borderRadius: 3, fontWeight: 600, flexShrink: 0 }}>OMDb</span>
+                            }
+                          </div>
+                          {origTitle && origTitle !== title && (
+                            <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 1 }}>{origTitle}</div>
+                          )}
+                          <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 2 }}>
+                            {year} · {typeLabel}{rating && <> · {rating}</>}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
               )}
               {!searching && searchResults.length === 0 && searchQuery && (

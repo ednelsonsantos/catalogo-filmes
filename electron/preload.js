@@ -10,6 +10,8 @@ contextBridge.exposeInMainWorld('api', {
   omdbSearchByTitle: (p)      => ipcRenderer.invoke('omdb:searchByTitle', p),
   saveCover:         (p)      => ipcRenderer.invoke('cover:save', p),
   readCover:         (path)   => ipcRenderer.invoke('cover:read', path),
+  tmdbSearch:        (p)      => ipcRenderer.invoke('tmdb:search', p),
+  tmdbDetails:       (p)      => ipcRenderer.invoke('tmdb:details', p),
   exportCsv:         ()       => ipcRenderer.invoke('export:csv'),
   exportXlsx:        ()       => ipcRenderer.invoke('export:xlsx'),
   getSettings:       ()       => ipcRenderer.invoke('settings:get'),

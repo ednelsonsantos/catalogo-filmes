@@ -147,6 +147,17 @@ ipcMain.handle('omdb:searchByTitle', async (_, { title, year, apiKey }) => {
   return omdbFetch(`https://www.omdbapi.com/?s=${encodeURIComponent(title)}${y}&apikey=${apiKey}`)
 })
 
+// ─── IPC: TMDB ────────────────────────────────────────────────────────────────
+
+ipcMain.handle('tmdb:search', async (_, { query, year, apiKey }) => {
+  const y = year ? `&year=${encodeURIComponent(year)}` : ''
+  return omdbFetch(`https://api.themoviedb.org/3/search/movie?query=${encodeURIComponent(query)}${y}&language=pt-BR&api_key=${apiKey}`)
+})
+
+ipcMain.handle('tmdb:details', async (_, { id, apiKey }) => {
+  return omdbFetch(`https://api.themoviedb.org/3/movie/${id}?append_to_response=credits&language=pt-BR&api_key=${apiKey}`)
+})
+
 // ─── IPC: CAPA ────────────────────────────────────────────────────────────────
 
 ipcMain.handle('cover:save', async (_, { id, base64, ext }) => {
