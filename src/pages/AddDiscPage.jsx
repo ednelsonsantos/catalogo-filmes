@@ -386,8 +386,21 @@ export default function AddDiscPage({ settings, editFilme, onSaved, showToast })
           {/* Data assistido */}
           <div className="field" style={{ marginTop: 8 }}>
             <label>Assistido em</label>
-            <input type="date" value={filme.watched_at || ''} onChange={e => setField('watched_at', e.target.value)}
-              style={{ padding: '8px 10px', background: 'var(--bg3)', border: '1px solid var(--border)', borderRadius: '8px', color: 'var(--text)', fontSize: 13, outline: 'none', colorScheme: 'dark' }} />
+            <input
+              type="date"
+              value={filme.watched_at && filme.watched_at !== 'watched' ? filme.watched_at : ''}
+              onChange={e => setField('watched_at', e.target.value || (filme.watched_at ? 'watched' : ''))}
+              style={{ padding: '8px 10px', background: 'var(--bg3)', border: '1px solid var(--border)', borderRadius: '8px', color: 'var(--text)', fontSize: 13, outline: 'none', colorScheme: 'dark' }}
+            />
+          </div>
+          <div style={{ marginTop: 8 }}>
+            <label
+              className={`format-check ${filme.watched_at ? 'active' : ''}`}
+              style={{ cursor: 'pointer' }}
+              onClick={() => setField('watched_at', filme.watched_at ? '' : 'watched')}
+            >
+              ✓ Assistido
+            </label>
           </div>
         </div>
 

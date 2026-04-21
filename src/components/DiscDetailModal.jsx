@@ -64,7 +64,12 @@ export default function DiscDetailModal({ filme, onClose, onEdit, onDelete }) {
           {filme.watched_at && (
             <div style={{ fontSize: 12, color: 'var(--green)', display: 'flex', alignItems: 'center', gap: 5 }}>
               <span>✓</span>
-              <span>Assistido em {new Date(filme.watched_at + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })}</span>
+              <span>
+                {filme.watched_at === 'watched'
+                  ? 'Assistido'
+                  : `Assistido em ${new Date(filme.watched_at + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })}`
+                }
+              </span>
             </div>
           )}
 
