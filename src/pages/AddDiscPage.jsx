@@ -12,7 +12,7 @@ const EMPTY = {
   title: '', original_title: '', year: '', format: 'DVD', formats: '',
   watched_at: '', genre: '', director: '', cast: '', runtime: '',
   imdb_rating: '', synopsis: '', poster_url: '', language: '', country: '', cover_path: null,
-  category: '',
+  category: '', tmdb_id: '',
 }
 
 const TMDB_IMG = 'https://image.tmdb.org/t/p/w500'
@@ -46,6 +46,7 @@ function omdbToFilme(data, formats) {
     cover_path:     null,
     watched_at:     '',
     category:       omdbTypeToCategory(data.Type),
+    tmdb_id:        '',
   }
 }
 
@@ -77,6 +78,7 @@ function tmdbToFilme(data, formats) {
     cover_path:     null,
     watched_at:     '',
     category:       'Filme',
+    tmdb_id:        String(data.id || ''),
   }
 }
 
@@ -115,6 +117,7 @@ function tmdbToFilmeTv(data, formats) {
     cover_path:     null,
     watched_at:     '',
     category:       tmdbTvTypeToCategory(data.type),
+    tmdb_id:        String(data.id || ''),
   }
 }
 

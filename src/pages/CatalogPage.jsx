@@ -68,7 +68,7 @@ export default function CatalogPage({ filmes, onEdit, onDelete, showToast }) {
   const handleExport = useCallback(async (type) => {
     setExporting(true)
     try {
-      const result = type === 'csv' ? await window.api.exportCsv() : await window.api.exportXlsx()
+      const result = type === 'csv' ? await window.api.exportCsv() : type === 'xlsx' ? await window.api.exportXlsx() : await window.api.exportSiteJson()
       if (result.success) showToast('Exportado com sucesso!')
     } catch { showToast('Erro ao exportar.', 'error') }
     finally { setExporting(false) }
@@ -96,6 +96,7 @@ export default function CatalogPage({ filmes, onEdit, onDelete, showToast }) {
         <div className="export-group">
           <button className="btn btn-sm" onClick={() => handleExport('csv')} disabled={exporting}><IconExport /> CSV</button>
           <button className="btn btn-sm" onClick={() => handleExport('xlsx')} disabled={exporting}><IconExport /> Excel</button>
+          <button className="btn btn-sm" onClick={() => handleExport('site')} disabled={exporting}><IconExport /> Site</button>
         </div>
       </div>
 

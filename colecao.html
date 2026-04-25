@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Minha Coleção</title>
+  <style>
+    :root {
+      --bg:      #0f0f0f;
+      --bg2:     #1a1a1a;
+      --bg3:     #222;
+      --text:    #e8e8e8;
+      --text2:   #aaa;
+      --text3:   #555;
+      --blue:    #4a9eff;
+      --green:   #4caf7d;
+      --purple:  #a78bfa;
+      --yellow:  #f5c518;
+      --border:  rgba(255,255,255,0.07);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; min-height: 100vh; }
+
+    /* ── Header ── */
+    .header { max-width: 1400px; margin: 0 auto; padding: 36px 24px 0; }
+    h1 { font-size: 26px; font-weight: 700; letter-spacing: -0.5px; }
+    .subtitle { font-size: 13px; color: var(--text3); margin-top: 4px; margin-bottom: 28px; }
+
+    /* ── Stats ── */
+    .stats { display: flex; gap: 28px; flex-wrap: wrap; padding-bottom: 24px; border-bottom: 1px solid var(--border); margin-bottom: 20px; }
+    .stat-value { font-size: 22px; font-weight: 700; display: block; }
+    .stat-label { font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.6px; margin-top: 1px; }
+
+    /* ── Toolbar ── */
+    .toolbar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 28px; }
+    .filter-btn {
+      padding: 5px 14px; border-radius: 20px; border: 1px solid var(--border);
+      background: transparent; color: var(--text2); cursor: pointer; font-size: 12px;
+      font-weight: 500; transition: all 0.15s; white-space: nowrap;
+    }
+    .filter-btn:hover { border-color: var(--blue); color: var(--text); }
+    .filter-btn.active { background: var(--blue); border-color: var(--blue); color: #fff; }
+    .search-box {
+      margin-left: auto; padding: 6px 14px; border-radius: 20px;
+      border: 1px solid var(--border); background: var(--bg2); color: var(--text);
+      font-size: 13px; outline: none; min-width: 180px;
+    }
+    .search-box:focus { border-color: var(--blue); }
+
+    /* ── Grid ── */
+    .main { max-width: 1400px; margin: 0 auto; padding: 0 24px 60px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(155px, 1fr)); gap: 16px; }
+
+    /* ── Card ── */
+    .card {
+      background: var(--bg2); border-radius: 10px; overflow: hidden;
+      border: 1px solid var(--border); transition: transform 0.15s, border-color 0.15s;
+    }
+    .card:hover { transform: translateY(-4px); border-color: rgba(74,158,255,0.3); }
+
+    .poster {
+      position: relative; aspect-ratio: 2/3; background: var(--bg3); overflow: hidden;
+    }
+    .poster img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .poster-placeholder {
+      width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;
+      font-size: 12px; color: var(--text3); padding: 16px; text-align: center; line-height: 1.5;
+    }
+
+    .watched-dot {
+      position: absolute; top: 8px; right: 8px; width: 22px; height: 22px;
+      border-radius: 50%; background: var(--green); display: flex;
+      align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: #fff;
+    }
+    .format-bar {
+      position: absolute; bottom: 0; left: 0; right: 0;
+      padding: 5px 8px; background: rgba(0,0,0,0.78);
+      font-size: 10px; font-weight: 600; color: var(--blue); text-align: center;
+    }
+
+    .info { padding: 10px 10px 12px; }
+    .card-title {
+      font-size: 13px; font-weight: 600; line-height: 1.35; margin-bottom: 3px;
+      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+    }
+    .card-year { font-size: 11px; color: var(--text3); margin-bottom: 8px; }
+
+    .badge {
+      display: inline-block; font-size: 10px; font-weight: 600;
+      padding: 2px 7px; border-radius: 4px; margin-bottom: 8px;
+    }
+    .badge-cat { background: rgba(167,139,250,0.15); color: var(--purple); }
+
+    .links { display: flex; gap: 5px; flex-wrap: wrap; }
+    .link-btn {
+      font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 4px;
+      text-decoration: none; transition: opacity 0.15s; display: inline-block;
+    }
+    .link-btn:hover { opacity: 0.75; }
+    .link-imdb { background: var(--yellow); color: #000; }
+    .link-tmdb { background: #01b4e4; color: #fff; }
+
+    /* ── Empty ── */
+    .empty { grid-column: 1/-1; text-align: center; color: var(--text3); padding: 64px 0; font-size: 15px; }
+
+    /* ── Responsive ── */
+    @media (max-width: 600px) {
+      .header, .main { padding-left: 16px; padding-right: 16px; }
+      .grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 12px; }
+      .search-box { min-width: 130px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Minha Coleção</h1>
+  <p class="subtitle" id="subtitle">Carregando...</p>
+  <div class="stats" id="stats"></div>
+  <div class="toolbar" id="toolbar"></div>
+</div>
+
+<div class="main">
+  <div class="grid" id="grid"><div class="empty">Carregando...</div></div>
+</div>
+
+<script>
+  let all = [], activeFilter = 'all', query = ''
+
+  async function load() {
+    try {
+      const res = await fetch('./colecao.json')
+      if (!res.ok) throw new Error(res.status)
+      all = await res.json()
+      buildUI()
+      render()
+    } catch {
+      document.getElementById('grid').innerHTML = '<div class="empty">Não foi possível carregar o arquivo colecao.json.</div>'
+      document.getElementById('subtitle').textContent = 'Erro ao carregar'
+    }
+  }
+
+  function buildUI() {
+    // Stats
+    const watched = all.filter(f => f.watched).length
+    const bluray  = all.filter(f => f.formats.includes('Blu-ray')).length
+    const dvd     = all.filter(f => f.formats.includes('DVD')).length
+    const k4      = all.filter(f => f.formats.includes('4K')).length
+    const statsItems = [
+      { v: all.length, l: 'Total' },
+      { v: watched,    l: 'Assistidos' },
+      bluray ? { v: bluray, l: 'Blu-ray' } : null,
+      dvd    ? { v: dvd,    l: 'DVD' }     : null,
+      k4     ? { v: k4,     l: '4K UHD' }  : null,
+    ].filter(Boolean)
+    document.getElementById('stats').innerHTML =
+      statsItems.map(s => `<div><span class="stat-value">${s.v}</span><span class="stat-label">${s.l}</span></div>`).join('')
+
+    // Filter buttons
+    const categories = [...new Set(all.map(f => f.category).filter(Boolean))].sort()
+    const toolbar = document.getElementById('toolbar')
+    toolbar.innerHTML = ['all', ...categories].map(c =>
+      `<button class="filter-btn ${c === 'all' ? 'active' : ''}" data-cat="${esc(c)}">${c === 'all' ? 'Todos' : esc(c)}</button>`
+    ).join('')
+    toolbar.querySelectorAll('.filter-btn').forEach(btn =>
+      btn.addEventListener('click', () => { activeFilter = btn.dataset.cat; updateButtons(); render() })
+    )
+
+    // Search
+    const input = document.createElement('input')
+    input.className = 'search-box'
+    input.placeholder = 'Buscar título...'
+    input.addEventListener('input', e => { query = e.target.value.toLowerCase(); render() })
+    toolbar.appendChild(input)
+  }
+
+  function updateButtons() {
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b.dataset.cat === activeFilter))
+  }
+
+  function render() {
+    let items = all
+    if (activeFilter !== 'all') items = items.filter(f => f.category === activeFilter)
+    if (query) items = items.filter(f =>
+      f.title.toLowerCase().includes(query) ||
+      (f.original_title || '').toLowerCase().includes(query)
+    )
+
+    document.getElementById('subtitle').textContent =
+      `${items.length} de ${all.length} item${all.length !== 1 ? 's' : ''}`
+
+    if (!items.length) {
+      document.getElementById('grid').innerHTML = '<div class="empty">Nenhum item encontrado.</div>'
+      return
+    }
+
+    document.getElementById('grid').innerHTML = items.map(f => {
+      const formats    = f.formats.split(',').map(s => s.trim()).filter(Boolean)
+      const formatText = formats.join(' · ')
+      const isTv       = f.category === 'Série' || f.category === 'Mini-série'
+      const imdbHref   = f.imdb_id  ? `https://www.imdb.com/title/${f.imdb_id}/` : ''
+      const tmdbHref   = f.tmdb_id  ? `https://www.themoviedb.org/${isTv ? 'tv' : 'movie'}/${f.tmdb_id}` : ''
+
+      const posterContent = f.poster_url
+        ? `<img src="${esc(f.poster_url)}" alt="${esc(f.title)}" loading="lazy"
+             onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'poster-placeholder',textContent:'${esc(f.title).replace(/'/g, "\\'")}'}))">`
+        : `<div class="poster-placeholder">${esc(f.title)}</div>`
+
+      return `
+        <div class="card">
+          <div class="poster">
+            ${posterContent}
+            ${f.watched ? '<div class="watched-dot">✓</div>' : ''}
+            ${formatText ? `<div class="format-bar">${esc(formatText)}</div>` : ''}
+          </div>
+          <div class="info">
+            <div class="card-title">${esc(f.title)}</div>
+            ${f.year ? `<div class="card-year">${f.year}</div>` : ''}
+            ${f.category ? `<span class="badge badge-cat">${esc(f.category)}</span>` : ''}
+            <div class="links">
+              ${imdbHref ? `<a class="link-btn link-imdb" href="${imdbHref}" target="_blank" rel="noreferrer">IMDb</a>` : ''}
+              ${tmdbHref ? `<a class="link-btn link-tmdb" href="${tmdbHref}" target="_blank" rel="noreferrer">TMDB</a>` : ''}
+            </div>
+          </div>
+        </div>`
+    }).join('')
+  }
+
+  function esc(s) {
+    return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')
+  }
+
+  load()
+</script>
+</body>
+</html>

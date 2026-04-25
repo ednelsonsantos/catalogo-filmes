@@ -41,6 +41,7 @@ function createDatabase() {
   if (!columns.includes('formats'))    db.exec("ALTER TABLE filmes ADD COLUMN formats TEXT DEFAULT ''")
   if (!columns.includes('watched_at')) db.exec('ALTER TABLE filmes ADD COLUMN watched_at TEXT')
   if (!columns.includes('category'))   db.exec("ALTER TABLE filmes ADD COLUMN category TEXT DEFAULT ''")
+  if (!columns.includes('tmdb_id'))    db.exec("ALTER TABLE filmes ADD COLUMN tmdb_id TEXT DEFAULT ''")
 }
 
 function createWindow() {
@@ -90,10 +91,10 @@ ipcMain.handle('db:insert', (_, filme) => {
   const stmt = db.prepare(`
     INSERT INTO filmes (title, original_title, year, format, formats, watched_at,
       genre, director, cast, runtime, imdb_rating, imdb_id, synopsis,
-      poster_url, cover_path, language, country, category)
+      poster_url, cover_path, language, country, category, tmdb_id)
     VALUES (@title, @original_title, @year, @format, @formats, @watched_at,
       @genre, @director, @cast, @runtime, @imdb_rating, @imdb_id, @synopsis,
-      @poster_url, @cover_path, @language, @country, @category)
+      @poster_url, @cover_path, @language, @country, @category, @tmdb_id)
   `)
   const result = stmt.run(filme)
   return db.prepare('SELECT * FROM filmes WHERE id = ?').get(result.lastInsertRowid)
@@ -105,7 +106,7 @@ ipcMain.handle('db:update', (_, filme) => {
       format=@format, formats=@formats, watched_at=@watched_at,
       genre=@genre, director=@director, cast=@cast, runtime=@runtime,
       imdb_rating=@imdb_rating, imdb_id=@imdb_id, synopsis=@synopsis, poster_url=@poster_url,
-      language=@language, country=@country, category=@category
+      language=@language, country=@country, category=@category, tmdb_id=@tmdb_id
     WHERE id=@id
   `).run(filme)
   return db.prepare('SELECT * FROM filmes WHERE id = ?').get(filme.id)
@@ -227,6 +228,28 @@ ipcMain.handle('export:xlsx', async () => {
     filters: [{ name: 'Excel', extensions: ['xlsx'] }],
   })
   if (filePath) { XLSX.writeFile(wb, filePath); return { success: true } }
+  return { success: false }
+})
+
+ipcMain.handle('export:siteJson', async () => {
+  const filmes = db.prepare('SELECT * FROM filmes ORDER BY title COLLATE NOCASE').all()
+  const data = filmes.map(f => ({
+    title:          f.title,
+    original_title: f.original_title || '',
+    year:           f.year || null,
+    category:       f.category || '',
+    formats:        f.formats || f.format || '',
+    watched:        !!f.watched_at,
+    poster_url:     f.poster_url || '',
+    imdb_id:        f.imdb_id || '',
+    tmdb_id:        f.tmdb_id || '',
+  }))
+  const { filePath } = await dialog.showSaveDialog(mainWindow, {
+    title: 'Exportar para site',
+    defaultPath: 'colecao.json',
+    filters: [{ name: 'JSON', extensions: ['json'] }],
+  })
+  if (filePath) { fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf8'); return { success: true } }
   return { success: false }
 })
 
