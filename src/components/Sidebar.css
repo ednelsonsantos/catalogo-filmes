@@ -4,6 +4,7 @@
   display: flex; flex-direction: column;
   padding: 20px 12px; gap: 8px;
   -webkit-app-region: drag;
+  overflow-y: auto;
 }
 .sidebar * { -webkit-app-region: no-drag; }
 
@@ -16,8 +17,14 @@
 .logo-text { font-size: 14px; font-weight: 600; color: var(--text); letter-spacing: -0.3px; }
 
 .add-btn { width: 100%; justify-content: center; margin-bottom: 8px; }
+
 .sidebar-nav { flex: 1; display: flex; flex-direction: column; gap: 2px; }
 .sidebar-bottom { border-top: 1px solid var(--border); padding-top: 8px; display: flex; flex-direction: column; gap: 2px; }
+
+.section-label {
+  font-size: 10px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.6px; color: var(--text3); padding: 0 12px; margin-bottom: 2px;
+}
 
 .nav-item {
   display: flex; align-items: center; gap: 10px;
@@ -32,5 +39,49 @@
 .nav-count {
   margin-left: auto; background: var(--bg4);
   color: var(--text3); font-size: 11px; padding: 1px 7px; border-radius: 99px;
+  flex-shrink: 0;
 }
 .nav-item.active .nav-count { background: rgba(232,184,75,0.15); color: var(--accent); }
+
+/* ── Coleções ── */
+
+.col-add-btn {
+  display: flex; align-items: center; justify-content: center;
+  width: 18px; height: 18px; border-radius: 4px;
+  border: none; background: transparent; color: var(--text3);
+  cursor: pointer; padding: 0; transition: all 0.12s;
+}
+.col-add-btn:hover { background: var(--bg3); color: var(--text); }
+.col-add-btn svg { width: 12px; height: 12px; }
+
+.col-item-wrap { position: relative; }
+
+.col-nav-item { padding-right: 8px; }
+.col-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.col-actions {
+  display: none; align-items: center; gap: 2px; margin-left: 4px; flex-shrink: 0;
+}
+.col-item-wrap:hover .col-actions { display: flex; }
+.col-item-wrap:hover .nav-count { display: none; }
+
+.col-action-btn {
+  display: flex; align-items: center; justify-content: center;
+  width: 20px; height: 20px; border-radius: 4px;
+  border: none; background: transparent; color: var(--text3);
+  cursor: pointer; padding: 0; transition: all 0.12s;
+}
+.col-action-btn:hover { background: var(--bg4); color: var(--text); }
+.col-action-del:hover { color: #ff6b6b; }
+
+.col-create-row { padding: 2px 4px; }
+.col-input {
+  width: 100%; padding: 6px 10px; border-radius: 6px;
+  border: 1px solid var(--blue); background: var(--bg3);
+  color: var(--text); font-size: 13px; outline: none;
+}
+
+.col-empty {
+  font-size: 12px; color: var(--text3); padding: 6px 12px;
+  font-style: italic;
+}

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import Sidebar from './components/Sidebar.jsx'
 import CatalogPage from './pages/CatalogPage.jsx'
 import AddDiscPage from './pages/AddDiscPage.jsx'
@@ -9,6 +9,9 @@ import './App.css'
 export default function App() {
   const [page, setPage] = useState('catalog')
   const [filmes, setFilmes] = useState([])
+  const [collections, setCollections] = useState([])
+  const [selectedCollection, setSelectedCollection] = useState(null)
+  const [collectionFilmeIds, setCollectionFilmeIds] = useState(null)
   const [settings, setSettings] = useState({ omdbApiKey: '' })
   const [toast, setToast] = useState(null)
   const [editFilme, setEditFilme] = useState(null)
@@ -21,8 +24,13 @@ export default function App() {
   useEffect(() => {
     const init = async () => {
       try {
-        const [all, saved] = await Promise.all([window.api.getAll(), window.api.getSettings()])
+        const [all, cols, saved] = await Promise.all([
+          window.api.getAll(),
+          window.api.colecoesGetAll(),
+          window.api.getSettings(),
+        ])
         setFilmes(all)
+        setCollections(cols)
         if (saved) setSettings(s => ({ ...s, ...saved }))
       } catch (e) { console.error(e) }
       finally { setLoading(false) }
@@ -35,8 +43,43 @@ export default function App() {
     setFilmes(all)
   }, [])
 
+  const refreshCollections = useCallback(async () => {
+    const cols = await window.api.colecoesGetAll()
+    setCollections(cols)
+  }, [])
+
+  const handleSelectCollection = useCallback(async (col) => {
+    if (!col) {
+      setSelectedCollection(null)
+      setCollectionFilmeIds(null)
+      return
+    }
+    setSelectedCollection(col)
+    const ids = await window.api.colecoesGetFilmeIds(col.id)
+    setCollectionFilmeIds(ids)
+  }, [])
+
+  const catalogFilmes = useMemo(() => {
+    if (!collectionFilmeIds) return filmes
+    return filmes.filter(f => collectionFilmeIds.includes(f.id))
+  }, [filmes, collectionFilmeIds])
+
   const handleEdit = useCallback((filme) => { setEditFilme(filme); setPage('add') }, [])
   const handleAddNew = useCallback(() => { setEditFilme(null); setPage('add') }, [])
+
+  const handleSavedFilme = useCallback(async (savedId, colecaoIds) => {
+    if (savedId && colecaoIds) {
+      await window.api.colecoesSetForFilme({ filmeId: savedId, colecaoIds })
+    }
+    await refresh()
+    await refreshCollections()
+    if (selectedCollection) {
+      const ids = await window.api.colecoesGetFilmeIds(selectedCollection.id)
+      setCollectionFilmeIds(ids)
+    }
+    setPage('catalog')
+    setEditFilme(null)
+  }, [refresh, refreshCollections, selectedCollection])
 
   if (loading) return (
     <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:'100vh', color:'var(--text3)', flexDirection:'column', gap:12 }}>
@@ -52,15 +95,28 @@ export default function App() {
         setPage={(p) => { setPage(p); if (p !== 'add') setEditFilme(null) }}
         count={filmes.length}
         onAddNew={handleAddNew}
+        collections={collections}
+        selectedCollection={selectedCollection}
+        onSelectCollection={handleSelectCollection}
+        onCollectionsChange={refreshCollections}
+        showToast={showToast}
       />
       <main className="app-main">
         {page === 'catalog' && (
-          <CatalogPage filmes={filmes} onEdit={handleEdit} onDelete={refresh} showToast={showToast} />
+          <CatalogPage
+            filmes={catalogFilmes}
+            onEdit={handleEdit}
+            onDelete={async () => { await refresh(); await refreshCollections(); if (selectedCollection) { const ids = await window.api.colecoesGetFilmeIds(selectedCollection.id); setCollectionFilmeIds(ids) } }}
+            showToast={showToast}
+            selectedCollection={selectedCollection}
+          />
         )}
         {page === 'add' && (
           <AddDiscPage
-            settings={settings} editFilme={editFilme}
-            onSaved={() => { refresh(); setPage('catalog'); setEditFilme(null) }}
+            settings={settings}
+            editFilme={editFilme}
+            collections={collections}
+            onSaved={handleSavedFilme}
             showToast={showToast}
           />
         )}

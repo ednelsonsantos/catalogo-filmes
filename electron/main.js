@@ -42,6 +42,21 @@ function createDatabase() {
   if (!columns.includes('watched_at')) db.exec('ALTER TABLE filmes ADD COLUMN watched_at TEXT')
   if (!columns.includes('category'))   db.exec("ALTER TABLE filmes ADD COLUMN category TEXT DEFAULT ''")
   if (!columns.includes('tmdb_id'))    db.exec("ALTER TABLE filmes ADD COLUMN tmdb_id TEXT DEFAULT ''")
+
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS colecoes (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      created_at TEXT DEFAULT (datetime('now','localtime'))
+    )
+  `)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS filme_colecao (
+      filme_id INTEGER NOT NULL,
+      colecao_id INTEGER NOT NULL,
+      PRIMARY KEY (filme_id, colecao_id)
+    )
+  `)
 }
 
 function createWindow() {
@@ -113,7 +128,49 @@ ipcMain.handle('db:update', (_, filme) => {
 })
 
 ipcMain.handle('db:delete', (_, id) => {
+  db.prepare('DELETE FROM filme_colecao WHERE filme_id = ?').run(id)
   db.prepare('DELETE FROM filmes WHERE id = ?').run(id)
+  return true
+})
+
+// ─── IPC: COLEÇÕES ────────────────────────────────────────────────────────────
+
+ipcMain.handle('colecoes:getAll', () =>
+  db.prepare(`
+    SELECT c.id, c.name, COUNT(fc.filme_id) AS count
+    FROM colecoes c LEFT JOIN filme_colecao fc ON fc.colecao_id = c.id
+    GROUP BY c.id ORDER BY c.name COLLATE NOCASE
+  `).all()
+)
+
+ipcMain.handle('colecoes:insert', (_, name) => {
+  const r = db.prepare('INSERT INTO colecoes (name) VALUES (?)').run(name.trim())
+  return db.prepare('SELECT * FROM colecoes WHERE id = ?').get(r.lastInsertRowid)
+})
+
+ipcMain.handle('colecoes:rename', (_, { id, name }) => {
+  db.prepare('UPDATE colecoes SET name = ? WHERE id = ?').run(name.trim(), id)
+  return true
+})
+
+ipcMain.handle('colecoes:delete', (_, id) => {
+  db.prepare('DELETE FROM filme_colecao WHERE colecao_id = ?').run(id)
+  db.prepare('DELETE FROM colecoes WHERE id = ?').run(id)
+  return true
+})
+
+ipcMain.handle('colecoes:getFilmeIds', (_, colecaoId) =>
+  db.prepare('SELECT filme_id FROM filme_colecao WHERE colecao_id = ?').all(colecaoId).map(r => r.filme_id)
+)
+
+ipcMain.handle('colecoes:getByFilme', (_, filmeId) =>
+  db.prepare('SELECT colecao_id FROM filme_colecao WHERE filme_id = ?').all(filmeId).map(r => r.colecao_id)
+)
+
+ipcMain.handle('colecoes:setForFilme', (_, { filmeId, colecaoIds }) => {
+  db.prepare('DELETE FROM filme_colecao WHERE filme_id = ?').run(filmeId)
+  const ins = db.prepare('INSERT INTO filme_colecao (filme_id, colecao_id) VALUES (?, ?)')
+  for (const cid of colecaoIds) ins.run(filmeId, cid)
   return true
 })
 

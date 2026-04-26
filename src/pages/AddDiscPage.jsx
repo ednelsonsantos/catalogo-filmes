@@ -165,9 +165,10 @@ function fileToBase64(file) {
 
 // ─── Componente principal ─────────────────────────────────────────────────────
 
-export default function AddDiscPage({ settings, editFilme, onSaved, showToast }) {
+export default function AddDiscPage({ settings, editFilme, collections = [], onSaved, showToast }) {
   const [mode, setMode] = useState('photo')
   const [filme, setFilme] = useState(editFilme ? { ...editFilme } : { ...EMPTY })
+  const [selectedCollections, setSelectedCollections] = useState([])
   const [coverPreview, setCoverPreview] = useState(null)
   const [coverFile, setCoverFile] = useState(null)
   const [ocrStatus, setOcrStatus] = useState(null)
@@ -187,6 +188,9 @@ export default function AddDiscPage({ settings, editFilme, onSaved, showToast })
       window.api.readCover(editFilme.cover_path).then(data => { if (data) setCoverPreview(data) })
     } else if (editFilme?.poster_url && editFilme.poster_url !== 'N/A') {
       setCoverPreview(editFilme.poster_url)
+    }
+    if (editFilme?.id) {
+      window.api.colecoesGetByFilme(editFilme.id).then(ids => setSelectedCollections(ids))
     }
   }, [editFilme])
 
@@ -355,7 +359,7 @@ export default function AddDiscPage({ settings, editFilme, onSaved, showToast })
       }
 
       showToast(isEditing ? 'Atualizado!' : `"${filme.title}" adicionado!`, 'success')
-      onSaved()
+      onSaved(saved.id, selectedCollections)
     } catch (e) {
       console.error(e); showToast('Erro ao salvar.', 'error')
     } finally { setSaving(false) }
@@ -477,6 +481,28 @@ export default function AddDiscPage({ settings, editFilme, onSaved, showToast })
               ✓ Assistido
             </label>
           </div>
+
+          {/* Coleções */}
+          {collections.length > 0 && (
+            <div className="field" style={{ marginTop: 12 }}>
+              <label>Coleções</label>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 4 }}>
+                {collections.map(c => {
+                  const checked = selectedCollections.includes(c.id)
+                  return (
+                    <label key={c.id} className={`format-check ${checked ? 'active' : ''}`}
+                      style={{ cursor: 'pointer', justifyContent: 'space-between' }}
+                      onClick={() => setSelectedCollections(prev =>
+                        checked ? prev.filter(id => id !== c.id) : [...prev, c.id]
+                      )}>
+                      <span>{c.name}</span>
+                      {checked && <span style={{ fontSize: 10, opacity: 0.7 }}>✓</span>}
+                    </label>
+                  )
+                })}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Direita: modo ativo */}
