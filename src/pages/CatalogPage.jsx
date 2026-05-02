@@ -18,7 +18,7 @@ const FILTERS = [
 
 const ALL_CATEGORIES = ['Filme', 'Série', 'Mini-série', 'Documentário', 'Animação', 'Anime', 'Show/Stand-up', 'Musical', 'Esporte', 'Outro']
 
-export default function CatalogPage({ filmes, onEdit, onDelete, onToggleWatched, showToast }) {
+export default function CatalogPage({ filmes, onEdit, onDelete, onToggleWatched, showToast, selectedCollection }) {
   const [search, setSearch] = useState('')
   const [format, setFormat] = useState('all')
   const [category, setCategory] = useState('all')
@@ -88,11 +88,16 @@ export default function CatalogPage({ filmes, onEdit, onDelete, onToggleWatched,
   const handleExport = useCallback(async (type) => {
     setExporting(true)
     try {
-      const result = type === 'csv' ? await window.api.exportCsv() : type === 'xlsx' ? await window.api.exportXlsx() : await window.api.exportSiteJson()
+      const opts = selectedCollection ? { filmeIds: filmes.map(f => f.id) } : undefined
+      const result = type === 'csv'
+        ? await window.api.exportCsv(opts)
+        : type === 'xlsx'
+          ? await window.api.exportXlsx(opts)
+          : await window.api.exportSiteJson(opts)
       if (result.success) showToast('Exportado com sucesso!')
     } catch { showToast('Erro ao exportar.', 'error') }
     finally { setExporting(false) }
-  }, [showToast])
+  }, [showToast, selectedCollection, filmes])
 
   const stats = useMemo(() => {
     const categoryCounts = {}
@@ -141,9 +146,14 @@ export default function CatalogPage({ filmes, onEdit, onDelete, onToggleWatched,
         )}
         <div style={{ flex: 1 }}/>
         <div className="export-group">
-          <button className="btn btn-sm" onClick={() => handleExport('csv')} disabled={exporting}><IconExport /> CSV</button>
-          <button className="btn btn-sm" onClick={() => handleExport('xlsx')} disabled={exporting}><IconExport /> Excel</button>
-          <button className="btn btn-sm" onClick={() => handleExport('site')} disabled={exporting}><IconExport /> Site</button>
+          {selectedCollection && (
+            <span style={{ fontSize: 10, color: 'var(--accent)', alignSelf: 'center', whiteSpace: 'nowrap' }}>
+              ↳ {selectedCollection.name}
+            </span>
+          )}
+          <button className="btn btn-sm" onClick={() => handleExport('csv')} disabled={exporting} title={selectedCollection ? `Exportar coleção "${selectedCollection.name}"` : 'Exportar tudo'}><IconExport /> CSV</button>
+          <button className="btn btn-sm" onClick={() => handleExport('xlsx')} disabled={exporting} title={selectedCollection ? `Exportar coleção "${selectedCollection.name}"` : 'Exportar tudo'}><IconExport /> Excel</button>
+          <button className="btn btn-sm" onClick={() => handleExport('site')} disabled={exporting} title={selectedCollection ? `Exportar coleção "${selectedCollection.name}"` : 'Exportar tudo'}><IconExport /> Site</button>
         </div>
       </div>
 

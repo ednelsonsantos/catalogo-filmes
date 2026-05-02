@@ -369,8 +369,18 @@ ipcMain.handle('cover:read', (_, filePath) => {
 
 // ─── IPC: EXPORT ──────────────────────────────────────────────────────────────
 
-ipcMain.handle('export:csv', async () => {
-  const filmes = db.prepare('SELECT * FROM filmes ORDER BY title COLLATE NOCASE').all()
+function queryFilmesForExport(filmeIds) {
+  if (Array.isArray(filmeIds) && filmeIds.length > 0) {
+    const ids = filmeIds.filter(id => isPositiveInt(id))
+    if (ids.length === 0) return []
+    const placeholders = ids.map(() => '?').join(',')
+    return db.prepare(`SELECT * FROM filmes WHERE id IN (${placeholders}) ORDER BY title COLLATE NOCASE`).all(...ids)
+  }
+  return db.prepare('SELECT * FROM filmes ORDER BY title COLLATE NOCASE').all()
+}
+
+ipcMain.handle('export:csv', async (_e, { filmeIds } = {}) => {
+  const filmes = queryFilmesForExport(filmeIds)
   const headers = ['Título','Título Original','Ano','Formato(s)','Gênero','Diretor','Elenco','Duração','Nota IMDb','Assistido em','Sinopse']
   const rows = filmes.map(f => [
     f.title, f.original_title || '', f.year || '',
@@ -389,9 +399,9 @@ ipcMain.handle('export:csv', async () => {
   return { success: true }
 })
 
-ipcMain.handle('export:xlsx', async () => {
+ipcMain.handle('export:xlsx', async (_e, { filmeIds } = {}) => {
   const XLSX = require('xlsx')
-  const filmes = db.prepare('SELECT * FROM filmes ORDER BY title COLLATE NOCASE').all()
+  const filmes = queryFilmesForExport(filmeIds)
   const data = filmes.map(f => ({
     'Título': f.title, 'Título Original': f.original_title || '',
     'Ano': f.year || '', 'Formato(s)': f.formats || f.format || '',
@@ -413,8 +423,8 @@ ipcMain.handle('export:xlsx', async () => {
   return { success: true }
 })
 
-ipcMain.handle('export:siteJson', async () => {
-  const filmes = db.prepare('SELECT * FROM filmes ORDER BY title COLLATE NOCASE').all()
+ipcMain.handle('export:siteJson', async (_e, { filmeIds } = {}) => {
+  const filmes = queryFilmesForExport(filmeIds)
   const data = filmes.map(f => ({
     title:          f.title,
     original_title: f.original_title || '',

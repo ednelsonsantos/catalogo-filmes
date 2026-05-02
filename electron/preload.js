@@ -23,9 +23,9 @@ contextBridge.exposeInMainWorld('api', {
   readCover:         (path)   => ipcRenderer.invoke('cover:read', path),
 
   // Export
-  exportCsv:         ()       => ipcRenderer.invoke('export:csv'),
-  exportXlsx:        ()       => ipcRenderer.invoke('export:xlsx'),
-  exportSiteJson:    ()       => ipcRenderer.invoke('export:siteJson'),
+  exportCsv:         (opts)   => ipcRenderer.invoke('export:csv', opts),
+  exportXlsx:        (opts)   => ipcRenderer.invoke('export:xlsx', opts),
+  exportSiteJson:    (opts)   => ipcRenderer.invoke('export:siteJson', opts),
 
   // Settings
   getSettings:       ()       => ipcRenderer.invoke('settings:get'),
