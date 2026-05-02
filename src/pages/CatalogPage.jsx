@@ -18,7 +18,7 @@ const FILTERS = [
 
 const ALL_CATEGORIES = ['Filme', 'Série', 'Mini-série', 'Documentário', 'Animação', 'Anime', 'Show/Stand-up', 'Musical', 'Esporte', 'Outro']
 
-export default function CatalogPage({ filmes, onEdit, onDelete, showToast }) {
+export default function CatalogPage({ filmes, onEdit, onDelete, onToggleWatched, showToast }) {
   const [search, setSearch] = useState('')
   const [format, setFormat] = useState('all')
   const [category, setCategory] = useState('all')
@@ -205,7 +205,8 @@ export default function CatalogPage({ filmes, onEdit, onDelete, showToast }) {
         <div className={viewMode === 'grid' ? 'disc-grid' : 'disc-list'}>
           {filtered.map(f => (
             <DiscCard key={f.id} filme={f} viewMode={viewMode}
-              onClick={() => setDetail(f)} onEdit={() => onEdit(f)} onDelete={() => handleDelete(f)} />
+              onClick={() => setDetail(f)} onEdit={() => onEdit(f)} onDelete={() => handleDelete(f)}
+              onToggleWatched={onToggleWatched} />
           ))}
         </div>
       )}

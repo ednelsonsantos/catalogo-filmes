@@ -17,12 +17,25 @@
   background: rgba(0,0,0,0.65); color: #fff; backdrop-filter: blur(4px);
   max-width: calc(100% - 16px); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
-.watched-overlay {
+.watched-toggle {
   position: absolute; top: 8px; right: 8px;
-  font-size: 11px; font-weight: 700; background: rgba(76,175,125,0.85);
-  color: #fff; width: 20px; height: 20px; border-radius: 50%;
+  font-size: 11px; font-weight: 700; border: none; cursor: pointer;
+  width: 22px; height: 22px; border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
+  background: rgba(0,0,0,0.45); color: rgba(255,255,255,0.4);
+  backdrop-filter: blur(4px); transition: background 0.15s, color 0.15s, opacity 0.15s;
+  opacity: 0;
 }
+.disc-card:hover .watched-toggle { opacity: 1; }
+.watched-toggle--on { background: rgba(76,175,125,0.85) !important; color: #fff !important; opacity: 1 !important; }
+.watched-toggle:hover:not(.watched-toggle--on) { background: rgba(76,175,125,0.45); color: rgba(255,255,255,0.85); }
+
+.watched-toggle--list {
+  position: static; opacity: 1;
+  width: 26px; height: 26px; font-size: 12px;
+  background: var(--bg4); color: var(--text3);
+}
+.watched-toggle--list.watched-toggle--on { background: rgba(76,175,125,0.2); color: var(--green); }
 .rating-overlay {
   position: absolute; bottom: 8px; right: 8px;
   font-size: 11px; font-weight: 600;

@@ -44,8 +44,16 @@ export default function Sidebar({ page, setPage, count, onAddNew, collections, s
   const [newName, setNewName] = useState('')
   const [renamingId, setRenamingId] = useState(null)
   const [renameValue, setRenameValue] = useState('')
+  const [colSort, setColSort] = useState('az')
   const createInputRef = useRef()
   const renameInputRef = useRef()
+
+  const sortedCollections = React.useMemo(() => {
+    const arr = [...collections]
+    if (colSort === 'az') return arr.sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'))
+    if (colSort === 'count') return arr.sort((a, b) => (b.count || 0) - (a.count || 0))
+    return arr // 'recent' = ordem original do banco (id desc)
+  }, [collections, colSort])
 
   useEffect(() => { if (creating) createInputRef.current?.focus() }, [creating])
   useEffect(() => { if (renamingId) renameInputRef.current?.focus() }, [renamingId])
@@ -101,11 +109,26 @@ export default function Sidebar({ page, setPage, count, onAddNew, collections, s
         </button>
 
         {/* Coleções */}
-        <div className="section-label" style={{ marginTop: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div className="section-label" style={{ marginTop: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4 }}>
           <span>Coleções</span>
-          <button className="col-add-btn" title="Nova coleção" onClick={() => { setCreating(true); setNewName('') }}>
-            <IconPlus />
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            {collections.length > 1 && (
+              <select
+                className="col-sort-select"
+                value={colSort}
+                onChange={e => setColSort(e.target.value)}
+                title="Ordenar coleções"
+                onClick={e => e.stopPropagation()}
+              >
+                <option value="az">A–Z</option>
+                <option value="count">Mais títulos</option>
+                <option value="recent">Mais recente</option>
+              </select>
+            )}
+            <button className="col-add-btn" title="Nova coleção" onClick={() => { setCreating(true); setNewName('') }}>
+              <IconPlus />
+            </button>
+          </div>
         </div>
 
         {creating && (
@@ -122,7 +145,7 @@ export default function Sidebar({ page, setPage, count, onAddNew, collections, s
           </div>
         )}
 
-        {collections.map(col => (
+        {sortedCollections.map(col => (
           <div key={col.id} className="col-item-wrap">
             {renamingId === col.id ? (
               <div className="col-create-row">

@@ -5,7 +5,7 @@ function getFormats(filme) {
   return (filme.formats || filme.format || '').split(',').map(f => f.trim()).filter(Boolean)
 }
 
-export default function DiscCard({ filme, viewMode, onClick, onEdit, onDelete }) {
+export default function DiscCard({ filme, viewMode, onClick, onEdit, onDelete, onToggleWatched }) {
   const [coverSrc, setCoverSrc] = useState(null)
 
   useEffect(() => {
@@ -46,7 +46,13 @@ export default function DiscCard({ filme, viewMode, onClick, onEdit, onDelete })
           <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
             {formats.map(f => <span key={f} className="format-badge">{f}</span>)}
           </div>
-          {filme.watched_at && <span style={{ fontSize: 10, color: 'var(--green)' }}>✓ assistido</span>}
+          {onToggleWatched && (
+            <button
+              className={`watched-toggle watched-toggle--list ${filme.watched_at ? 'watched-toggle--on' : ''}`}
+              title={filme.watched_at ? 'Marcar como não assistido' : 'Marcar como assistido'}
+              onClick={e => { e.stopPropagation(); onToggleWatched(filme) }}
+            >✓</button>
+          )}
           {filme.imdb_rating && filme.imdb_rating !== 'N/A' && (
             <span className="rating-badge">★ {filme.imdb_rating}</span>
           )}
@@ -74,7 +80,13 @@ export default function DiscCard({ filme, viewMode, onClick, onEdit, onDelete })
         <span className="format-badge-overlay">
           {[filme.category, ...formats].filter(Boolean).join(' · ') || '—'}
         </span>
-        {filme.watched_at && <span className="watched-overlay">✓</span>}
+        {onToggleWatched && (
+          <button
+            className={`watched-toggle ${filme.watched_at ? 'watched-toggle--on' : ''}`}
+            title={filme.watched_at ? 'Marcar como não assistido' : 'Marcar como assistido'}
+            onClick={e => { e.stopPropagation(); onToggleWatched(filme) }}
+          >✓</button>
+        )}
         {filme.imdb_rating && filme.imdb_rating !== 'N/A' && (
           <span className="rating-overlay">★ {filme.imdb_rating}</span>
         )}

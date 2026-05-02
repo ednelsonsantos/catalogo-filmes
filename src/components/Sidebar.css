@@ -54,6 +54,13 @@
 .col-add-btn:hover { background: var(--bg3); color: var(--text); }
 .col-add-btn svg { width: 12px; height: 12px; }
 
+.col-sort-select {
+  font-size: 10px; color: var(--text3); background: transparent;
+  border: none; cursor: pointer; padding: 1px 2px; outline: none;
+  max-width: 74px;
+}
+.col-sort-select:hover { color: var(--text2); }
+
 .col-item-wrap { position: relative; }
 
 .col-nav-item { padding-right: 8px; }

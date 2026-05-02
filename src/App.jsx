@@ -70,6 +70,13 @@ export default function App() {
     return filmes.filter(f => collectionFilmeIds.includes(f.id))
   }, [filmes, collectionFilmeIds])
 
+  const handleToggleWatched = useCallback(async (filme) => {
+    const wasWatched = !!filme.watched_at
+    const updated = { ...filme, watched_at: wasWatched ? null : new Date().toISOString().slice(0, 10) }
+    await window.api.update(updated)
+    setFilmes(prev => prev.map(f => f.id === updated.id ? updated : f))
+  }, [])
+
   const handleEdit = useCallback((filme) => { setEditFilme(filme); setPage('add') }, [])
   const handleAddNew = useCallback(() => { setEditFilme(null); setPage('add') }, [])
 
@@ -118,6 +125,7 @@ export default function App() {
             filmes={catalogFilmes}
             onEdit={handleEdit}
             onDelete={async () => { await refresh(); await refreshCollections(); if (selectedCollection) { const ids = await window.api.colecoesGetFilmeIds(selectedCollection.id); setCollectionFilmeIds(ids) } }}
+            onToggleWatched={handleToggleWatched}
             showToast={showToast}
             selectedCollection={selectedCollection}
           />
