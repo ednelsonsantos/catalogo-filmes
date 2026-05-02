@@ -68,8 +68,8 @@ export default function App() {
   const handleAddNew = useCallback(() => { setEditFilme(null); setPage('add') }, [])
 
   const handleSavedFilme = useCallback(async (savedId, colecaoIds) => {
-    if (savedId && colecaoIds) {
-      await window.api.colecoesSetForFilme({ filmeId: savedId, colecaoIds })
+    if (savedId != null) {
+      await window.api.colecoesSetForFilme({ filmeId: savedId, colecaoIds: colecaoIds ?? [] })
     }
     await refresh()
     await refreshCollections()

@@ -135,7 +135,7 @@ export default function CatalogPage({ filmes, onEdit, onDelete, showToast }) {
       {filtered.length === 0 ? (
         <div className="empty-state">
           {filmes.length === 0
-            ? <><div className="empty-icon">🎬</div><p>Sua coleção está vazia.</p><span>Clique em "Adicionar Filme" para começar!</span></>
+            ? <><div className="empty-icon">🎬</div><p>Sua coleção está vazia.</p><span>Clique em "Adicionar Título" para começar!</span></>
             : <><div className="empty-icon">🔍</div><p>Nenhum resultado{search ? ` para "${search}"` : category !== 'all' ? ` na categoria "${category}"` : ''}</p></>
           }
         </div>

@@ -1,7 +1,7 @@
 {
   "name": "catalogo-filmes",
   "version": "1.0.0",
-  "description": "Catálogo pessoal de filmes em DVD, Blu-ray e outros formatos",
+  "description": "Catálogo pessoal de filmes, séries, documentários e outros formatos",
   "main": "electron/main.js",
   "scripts": {
     "dev": "node dev-runner.js",
@@ -27,8 +27,8 @@
     "wait-on": "^7.2.0"
   },
   "build": {
-    "appId": "com.ednelson.catalogo-filmes",
-    "productName": "Catálogo de Filmes",
+    "appId": "com.ednelson.meu-catalogo",
+    "productName": "Meu Catálogo",
     "asar": true,
     "asarUnpack": [
       "**/better-sqlite3/**"

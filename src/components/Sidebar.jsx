@@ -83,11 +83,11 @@ export default function Sidebar({ page, setPage, count, onAddNew, collections, s
     <aside className="sidebar">
       <div className="sidebar-logo">
         <span className="logo-icon"><IconFilm /></span>
-        <span className="logo-text">Catálogo de Filmes</span>
+        <span className="logo-text">Meu Catálogo</span>
       </div>
 
       <button className="btn btn-primary add-btn" onClick={onAddNew}>
-        <IconPlus /> Adicionar Filme
+        <IconPlus /> Adicionar Título
       </button>
 
       <nav className="sidebar-nav">

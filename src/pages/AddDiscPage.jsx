@@ -363,7 +363,7 @@ export default function AddDiscPage({ settings, editFilme, collections = [], onS
     } catch (e) {
       console.error(e); showToast('Erro ao salvar.', 'error')
     } finally { setSaving(false) }
-  }, [filme, coverFile, isEditing, editFilme, onSaved, showToast])
+  }, [filme, coverFile, isEditing, editFilme, onSaved, showToast, selectedCollections])
 
   // ── Drag & drop ──────────────────────────────────────────────────────────────
 
@@ -375,7 +375,7 @@ export default function AddDiscPage({ settings, editFilme, collections = [], onS
 
   return (
     <div className="page add-page">
-      <h1 className="page-title">{isEditing ? `Editar: ${editFilme.title}` : 'Adicionar Filme'}</h1>
+      <h1 className="page-title">{isEditing ? `Editar: ${editFilme.title}` : 'Adicionar Título'}</h1>
 
       {!isEditing && (
         <div className="mode-tabs">

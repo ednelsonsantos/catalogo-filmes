@@ -65,7 +65,7 @@ function createWindow() {
     height: 800,
     minWidth: 900,
     minHeight: 600,
-    title: 'Catálogo de Filmes',
+    title: 'Meu Catálogo',
     titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
@@ -259,7 +259,7 @@ ipcMain.handle('export:csv', async () => {
   const csv = [headers.join(','), ...rows].join('\n')
   const { filePath } = await dialog.showSaveDialog(mainWindow, {
     title: 'Exportar CSV',
-    defaultPath: 'catalogo-filmes.csv',
+    defaultPath: 'meu-catalogo.csv',
     filters: [{ name: 'CSV', extensions: ['csv'] }],
   })
   if (filePath) { fs.writeFileSync(filePath, '\ufeff' + csv, 'utf8'); return { success: true } }
@@ -281,7 +281,7 @@ ipcMain.handle('export:xlsx', async () => {
   const wb = XLSX.utils.book_new()
   XLSX.utils.book_append_sheet(wb, ws, 'Coleção')
   const { filePath } = await dialog.showSaveDialog(mainWindow, {
-    title: 'Exportar Excel', defaultPath: 'catalogo-filmes.xlsx',
+    title: 'Exportar Excel', defaultPath: 'meu-catalogo.xlsx',
     filters: [{ name: 'Excel', extensions: ['xlsx'] }],
   })
   if (filePath) { XLSX.writeFile(wb, filePath); return { success: true } }
