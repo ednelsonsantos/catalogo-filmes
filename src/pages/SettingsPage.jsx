@@ -5,9 +5,16 @@ export default function SettingsPage({ settings, onSave }) {
   const [form, setForm] = useState({ omdbApiKey: '', tmdbApiKey: '' })
   const [showKey, setShowKey] = useState(false)
   const [showTmdbKey, setShowTmdbKey] = useState(false)
+  const [saved, setSaved] = useState(false)
 
   const openExternal = (url) => {
     if (window.api?.openExternal) window.api.openExternal(url)
+  }
+
+  const handleSave = () => {
+    onSave(form)
+    setSaved(true)
+    setTimeout(() => setSaved(false), 2000)
   }
 
   return (
@@ -141,8 +148,8 @@ export default function SettingsPage({ settings, onSave }) {
           </div>
         </div>
 
-        <button className="btn btn-primary" style={{ width: 'fit-content' }} onClick={() => onSave(form)}>
-          Salvar configurações
+        <button className="btn btn-primary" style={{ width: 'fit-content', transition: 'background 0.2s' }} onClick={handleSave} disabled={saved}>
+          {saved ? '✓ Salvo' : 'Salvar configurações'}
         </button>
       </div>
     </div>

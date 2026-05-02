@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react'
+import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react'
 import DiscCard from '../components/DiscCard.jsx'
 import DiscDetailModal from '../components/DiscDetailModal.jsx'
 import './CatalogPage.css'
@@ -26,6 +26,26 @@ export default function CatalogPage({ filmes, onEdit, onDelete, showToast }) {
   const [viewMode, setViewMode] = useState('grid')
   const [detail, setDetail] = useState(null)
   const [exporting, setExporting] = useState(false)
+  const searchRef = useRef(null)
+
+  const hasActiveFilters = search || format !== 'all' || category !== 'all'
+
+  const clearFilters = useCallback(() => {
+    setSearch(''); setFormat('all'); setCategory('all')
+    searchRef.current?.focus()
+  }, [])
+
+  // Ctrl+F foca na busca
+  useEffect(() => {
+    const handler = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+        e.preventDefault()
+        searchRef.current?.focus()
+      }
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [])
 
   const filtered = useMemo(() => {
     let items = [...filmes]
@@ -104,7 +124,7 @@ export default function CatalogPage({ filmes, onEdit, onDelete, showToast }) {
       <div className="toolbar">
         <div className="search-wrap">
           <IconSearch />
-          <input className="search-input" placeholder="Buscar título, diretor, gênero..." value={search} onChange={e => setSearch(e.target.value)} />
+          <input ref={searchRef} className="search-input" placeholder="Buscar título, diretor, gênero... (Ctrl+F)" value={search} onChange={e => setSearch(e.target.value)} />
           {search && <button className="clear-search" onClick={() => setSearch('')}>✕</button>}
         </div>
         <div className="toolbar-right">
@@ -128,8 +148,21 @@ export default function CatalogPage({ filmes, onEdit, onDelete, showToast }) {
             <button className={`btn btn-icon btn-sm ${viewMode === 'grid' ? 'active' : ''}`} onClick={() => setViewMode('grid')}><IconGrid /></button>
             <button className={`btn btn-icon btn-sm ${viewMode === 'list' ? 'active' : ''}`} onClick={() => setViewMode('list')}><IconList /></button>
           </div>
+          {hasActiveFilters && (
+            <button className="btn btn-sm btn-ghost" onClick={clearFilters} style={{ color: 'var(--red)', borderColor: 'rgba(200,60,60,0.3)' }}>
+              ✕ Limpar filtros
+            </button>
+          )}
         </div>
       </div>
+
+      {/* Contagem de resultados filtrados */}
+      {hasActiveFilters && filmes.length > 0 && (
+        <div style={{ fontSize: 12, color: 'var(--text3)', padding: '0 2px 12px', marginTop: -8 }}>
+          Exibindo <strong style={{ color: 'var(--text2)' }}>{filtered.length}</strong> de <strong style={{ color: 'var(--text2)' }}>{filmes.length}</strong> título{filmes.length !== 1 ? 's' : ''}
+          {filtered.length === 0 && <span style={{ color: 'var(--red)', marginLeft: 6 }}>— nenhum resultado</span>}
+        </div>
+      )}
 
       {/* Grid / List */}
       {filtered.length === 0 ? (
