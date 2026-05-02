@@ -45,7 +45,7 @@ O app foi desenvolvido com práticas de segurança para aplicações Electron:
 | OCR | Tesseract.js 5 (local, sem internet) |
 | Metadados | OMDb API + TMDB API |
 | Exportação | xlsx |
-| Testes | Jest |
+| Testes | Jest (local) |
 
 ---
 
@@ -99,14 +99,6 @@ npm run dev
 
 > O `postinstall` executa `electron-rebuild` automaticamente para compilar o `better-sqlite3` contra a versão correta do Electron.
 
-### Testes
-
-```bash
-npm test
-```
-
-Suíte Jest com 52 testes cobrindo validações de segurança, path traversal, allowlist de URLs e lógica de mascaramento de API keys.
-
 ### Build para distribuição
 
 ```bash
@@ -133,7 +125,6 @@ catalogo-filmes/
 │       ├── Sidebar.jsx         # Navegação lateral com coleções
 │       ├── DiscCard.jsx        # Card do título (grade e lista)
 │       └── DiscDetailModal.jsx # Modal de detalhes
-├── tests/                 # Suíte de testes Jest (ignorada pelo git)
 ├── colecao.html           # Página standalone para publicar no site
 ├── dev-runner.js          # Script de desenvolvimento com detecção automática de porta
 └── package.json
