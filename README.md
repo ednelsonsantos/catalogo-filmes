@@ -21,6 +21,20 @@ Aplicativo desktop para catalogar sua coleção pessoal de filmes, séries, docu
 
 ---
 
+## Segurança
+
+O app foi desenvolvido com práticas de segurança para aplicações Electron:
+
+- **API keys nunca cruzam o IPC** — as chaves OMDb e TMDB ficam exclusivamente no processo principal (`main.js`); o renderer nunca as recebe nem as envia
+- **Path traversal bloqueado** — leitura e gravação de capas validadas para ficarem estritamente dentro de `userData/covers/`
+- **Content Security Policy** — aplicada em produção para bloquear scripts e recursos não autorizados
+- **Allowlist de URLs externas** — `shell.openExternal` só aceita origens explicitamente permitidas, validadas por `URL.origin` (previne subdomain spoofing)
+- **Navegação bloqueada** — `will-navigate` e `setWindowOpenHandler` impedem que o renderer navegue para URLs externas
+- **`contextIsolation: true` + `nodeIntegration: false`** — isolamento completo entre renderer e Node.js
+- **Validação de entrada** — todos os handlers IPC validam tipo, range e tamanho dos parâmetros recebidos
+
+---
+
 ## Tecnologias
 
 | Camada | Tecnologia |
@@ -31,6 +45,7 @@ Aplicativo desktop para catalogar sua coleção pessoal de filmes, séries, docu
 | OCR | Tesseract.js 5 (local, sem internet) |
 | Metadados | OMDb API + TMDB API |
 | Exportação | xlsx |
+| Testes | Jest |
 
 ---
 
@@ -46,7 +61,7 @@ Fornece: sinopse (inglês), elenco, nota IMDb, pôster, duração, país, idioma
 2. Escolha o plano **Free**
 3. Preencha seu e-mail e clique em *Submit*
 4. Confirme o e-mail recebido — a chave vem na mensagem
-5. Cole a chave em **Configurações → OMDb API**
+5. Cole a chave em **Configurações → OMDb API** e clique em Salvar
 
 ### TMDB API
 Fornece: título em português, sinopse traduzida, elenco, pôster de alta qualidade, tipo detalhado da obra (Miniseries, Documentary, Animation, Talk Show…).
@@ -56,7 +71,7 @@ Fornece: título em português, sinopse traduzida, elenco, pôster de alta quali
 2. Acesse **Configurações → API** no seu perfil
 3. Solicite uma chave de API (tipo *Developer*)
 4. Copie a **API Key (v3 auth)**
-5. Cole a chave em **Configurações → TMDB API**
+5. Cole a chave em **Configurações → TMDB API** e clique em Salvar
 
 > Quando ambas as chaves estão configuradas, a busca roda as duas APIs em paralelo e combina os resultados — título PT-BR do TMDB com nota IMDb do OMDb.
 
@@ -84,6 +99,14 @@ npm run dev
 
 > O `postinstall` executa `electron-rebuild` automaticamente para compilar o `better-sqlite3` contra a versão correta do Electron.
 
+### Testes
+
+```bash
+npm test
+```
+
+Suíte Jest com 52 testes cobrindo validações de segurança, path traversal, allowlist de URLs e lógica de mascaramento de API keys.
+
 ### Build para distribuição
 
 ```bash
@@ -99,8 +122,8 @@ O instalador Windows (`.exe`) é gerado na pasta `dist-electron/`.
 ```
 catalogo-filmes/
 ├── electron/
-│   ├── main.js          # Processo principal: banco de dados, IPC, APIs
-│   └── preload.js       # Bridge segura entre Electron e React
+│   ├── main.js          # Processo principal: banco de dados, IPC, APIs, segurança
+│   └── preload.js       # Bridge segura entre Electron e React (contextBridge)
 ├── src/
 │   ├── pages/
 │   │   ├── AddDiscPage.jsx    # Adicionar / editar título (OCR, busca, formulário)
@@ -110,8 +133,9 @@ catalogo-filmes/
 │       ├── Sidebar.jsx         # Navegação lateral com coleções
 │       ├── DiscCard.jsx        # Card do título (grade e lista)
 │       └── DiscDetailModal.jsx # Modal de detalhes
-├── colecao.html         # Página standalone para publicar no site
-├── dev-runner.js        # Script de desenvolvimento (evita conflito de env vars)
+├── tests/                 # Suíte de testes Jest (ignorada pelo git)
+├── colecao.html           # Página standalone para publicar no site
+├── dev-runner.js          # Script de desenvolvimento com detecção automática de porta
 └── package.json
 ```
 
