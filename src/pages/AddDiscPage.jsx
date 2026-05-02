@@ -200,17 +200,17 @@ export default function AddDiscPage({ settings, editFilme, collections = [], onS
 
   const doSearch = useCallback(async (query, year = searchYear) => {
     if (!query?.trim()) return
-    const { omdbApiKey, tmdbApiKey } = settings
-    if (!omdbApiKey && !tmdbApiKey) { showToast('Configure ao menos uma chave de API nas configurações.', 'error'); return }
+    const { omdbConfigured, tmdbConfigured } = settings
+    if (!omdbConfigured && !tmdbConfigured) { showToast('Configure ao menos uma chave de API nas configurações.', 'error'); return }
     setSearching(true); setSearchResults([])
 
     async function fetchCombined(q, y) {
-      // Busca paralela: OMDb (?t= + ?s=) e TMDB ao mesmo tempo
+      // Busca paralela: OMDb (?t= + ?s=) e TMDB ao mesmo tempo — apiKey gerenciada pelo main process
       const [omdbResults, tmdbResults] = await Promise.all([
-        omdbApiKey ? (async () => {
+        omdbConfigured ? (async () => {
           const [exactRes, listRes] = await Promise.all([
-            window.api.omdbSearch({ title: q, year: y, apiKey: omdbApiKey }),
-            window.api.omdbSearchByTitle({ title: q, year: y, apiKey: omdbApiKey }),
+            window.api.omdbSearch({ title: q, year: y }),
+            window.api.omdbSearchByTitle({ title: q, year: y }),
           ])
           const exact = exactRes?.Response === 'True' ? exactRes : null
           const list  = listRes?.Search || []
@@ -221,10 +221,10 @@ export default function AddDiscPage({ settings, editFilme, collections = [], onS
           ]
         })().catch(() => []) : [],
 
-        tmdbApiKey ? Promise.all([
-          window.api.tmdbSearch({ query: q, year: y, apiKey: tmdbApiKey })
+        tmdbConfigured ? Promise.all([
+          window.api.tmdbSearch({ query: q, year: y })
             .then(res => (res.results || []).slice(0, 5).map(r => ({ ...r, _source: 'tmdb', _tmdbType: 'movie' }))),
-          window.api.tmdbSearchTv({ query: q, year: y, apiKey: tmdbApiKey })
+          window.api.tmdbSearchTv({ query: q, year: y })
             .then(res => (res.results || []).slice(0, 3).map(r => ({ ...r, _source: 'tmdb', _tmdbType: 'tv' }))),
         ]).then(([movies, tvs]) => [...movies, ...tvs]).catch(() => []) : [],
       ])
@@ -269,16 +269,16 @@ export default function AddDiscPage({ settings, editFilme, collections = [], onS
       const formats = filme.formats || filme.format || 'DVD'
       let filled
 
-      if (item._source === 'tmdb' && settings.tmdbApiKey) {
+      if (item._source === 'tmdb' && settings.tmdbConfigured) {
         if (item._tmdbType === 'tv') {
-          const data = await window.api.tmdbTvDetails({ id: item.id, apiKey: settings.tmdbApiKey })
+          const data = await window.api.tmdbTvDetails({ id: item.id })
           filled = tmdbToFilmeTv(data, formats)
         } else {
-          const data = await window.api.tmdbDetails({ id: item.id, apiKey: settings.tmdbApiKey })
+          const data = await window.api.tmdbDetails({ id: item.id })
           filled = tmdbToFilme(data, formats)
         }
-      } else if (settings.omdbApiKey) {
-        const data = await window.api.omdbSearch({ imdbId: item.imdbID, apiKey: settings.omdbApiKey })
+      } else if (settings.omdbConfigured) {
+        const data = await window.api.omdbSearch({ imdbId: item.imdbID })
         if (data.Response !== 'True') throw new Error('not found')
         filled = omdbToFilme(data, formats)
       } else return
@@ -317,10 +317,10 @@ export default function AddDiscPage({ settings, editFilme, collections = [], onS
 
       const best = candidates[0].replace(/[|\\/<>{}[\]]/g, '').replace(/\s+/g, ' ').trim()
 
-      if (!settings.omdbApiKey) {
+      if (!settings.omdbConfigured && !settings.tmdbConfigured) {
         setOcrStatus('done')
         setField('title', best)
-        setOcrMessage(`Título extraído: "${best}". Configure a chave OMDb para buscar detalhes.`)
+        setOcrMessage(`Título extraído: "${best}". Configure uma chave de API para buscar detalhes.`)
         return
       }
 

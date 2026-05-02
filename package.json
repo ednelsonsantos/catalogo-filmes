@@ -8,7 +8,13 @@
     "build": "vite build && electron-builder",
     "preview": "vite preview",
     "postinstall": "electron-rebuild -f -w better-sqlite3",
-    "rebuild": "electron-rebuild -f -w better-sqlite3"
+    "rebuild": "electron-rebuild -f -w better-sqlite3",
+    "test": "jest --forceExit",
+    "test:watch": "jest --watch"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "testMatch": ["**/tests/**/*.test.js"]
   },
   "dependencies": {
     "better-sqlite3": "^12.6.2",
@@ -23,6 +29,7 @@
     "electron": "^32.3.3",
     "electron-builder": "^25.1.8",
     "electron-rebuild": "^3.2.9",
+    "jest": "^30.3.0",
     "vite": "^5.0.0",
     "wait-on": "^7.2.0"
   },

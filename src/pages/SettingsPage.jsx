@@ -5,6 +5,10 @@ export default function SettingsPage({ settings, onSave }) {
   const [showKey, setShowKey] = useState(false)
   const [showTmdbKey, setShowTmdbKey] = useState(false)
 
+  const openExternal = (url) => {
+    if (window.api?.openExternal) window.api.openExternal(url)
+  }
+
   return (
     <div className="page" style={{ maxWidth: 620 }}>
       <h1 className="page-title">Configurações</h1>
@@ -36,19 +40,25 @@ export default function SettingsPage({ settings, onSave }) {
                 Busca sinopse, elenco, nota IMDb, poster, duração...
               </p>
             </div>
-            <a href="https://www.omdbapi.com/apikey.aspx" target="_blank" rel="noreferrer"
-              style={{ fontSize: 12, color: 'var(--blue)', textDecoration: 'none', whiteSpace: 'nowrap' }}>
+            <button
+              className="btn btn-ghost btn-sm"
+              onClick={() => openExternal('https://www.omdbapi.com/apikey.aspx')}
+              style={{ fontSize: 12, color: 'var(--blue)', whiteSpace: 'nowrap' }}
+            >
               Obter chave grátis ↗
-            </a>
+            </button>
           </div>
           <div className="field">
             <label>Chave de API</label>
+            {settings.omdbConfigured && (
+              <p style={{ fontSize: 11, color: 'var(--green)', marginBottom: 4 }}>✓ Chave configurada</p>
+            )}
             <div style={{ display: 'flex', gap: 8 }}>
               <input
                 type={showKey ? 'text' : 'password'}
                 value={form.omdbApiKey || ''}
                 onChange={e => setForm(f => ({ ...f, omdbApiKey: e.target.value }))}
-                placeholder="xxxxxxxx"
+                placeholder={settings.omdbConfigured ? 'Digite para substituir a chave atual' : 'xxxxxxxx'}
                 style={{ flex: 1 }}
               />
               <button className="btn btn-sm" onClick={() => setShowKey(v => !v)}>
@@ -73,19 +83,25 @@ export default function SettingsPage({ settings, onSave }) {
                 Títulos em português, sinopse traduzida, elenco e pôster de alta qualidade.
               </p>
             </div>
-            <a href="https://www.themoviedb.org/settings/api" target="_blank" rel="noreferrer"
-              style={{ fontSize: 12, color: 'var(--blue)', textDecoration: 'none', whiteSpace: 'nowrap' }}>
+            <button
+              className="btn btn-ghost btn-sm"
+              onClick={() => openExternal('https://www.themoviedb.org/settings/api')}
+              style={{ fontSize: 12, color: 'var(--blue)', whiteSpace: 'nowrap' }}
+            >
               Obter chave grátis ↗
-            </a>
+            </button>
           </div>
           <div className="field">
             <label>Chave de API (v3)</label>
+            {settings.tmdbConfigured && (
+              <p style={{ fontSize: 11, color: 'var(--green)', marginBottom: 4 }}>✓ Chave configurada</p>
+            )}
             <div style={{ display: 'flex', gap: 8 }}>
               <input
                 type={showTmdbKey ? 'text' : 'password'}
                 value={form.tmdbApiKey || ''}
                 onChange={e => setForm(f => ({ ...f, tmdbApiKey: e.target.value }))}
-                placeholder="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                placeholder={settings.tmdbConfigured ? 'Digite para substituir a chave atual' : 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'}
                 style={{ flex: 1 }}
               />
               <button className="btn btn-sm" onClick={() => setShowTmdbKey(v => !v)}>
