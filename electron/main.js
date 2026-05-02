@@ -169,6 +169,8 @@ function createWindow() {
   mainWindow.once('ready-to-show', () => mainWindow.show())
 }
 
+app.commandLine.appendSwitch('disable-features', 'Autofill')
+
 app.whenReady().then(() => {
   createDatabase()
   createWindow()
