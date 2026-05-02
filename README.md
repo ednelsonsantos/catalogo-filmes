@@ -1,19 +1,20 @@
-# Catálogo de Filmes
+# Meu Catálogo
 
-Aplicativo desktop para catalogar sua coleção pessoal de filmes em DVD, Blu-ray, 4K UHD e outros formatos. Desenvolvido com Electron + React.
+Aplicativo desktop para catalogar sua coleção pessoal de filmes, séries, documentários e outros conteúdos em DVD, Blu-ray, 4K UHD e mais. Desenvolvido com Electron + React.
 
 ---
 
 ## Funcionalidades
 
-- **Adicionar filmes** por foto da capa (OCR local), busca por título ou preenchimento manual
+- **Adicionar títulos** por foto da capa (OCR local), busca por título ou preenchimento manual
 - **OCR local** via Tesseract.js — lê o texto da capa sem internet e sem conta
 - **Busca automática** em OMDb e TMDB simultaneamente — retorna título em PT-BR, sinopse, elenco, nota IMDb, pôster e categoria
 - **Categorias automáticas** — Filme, Série, Mini-série, Documentário, Animação, etc. preenchidas direto da API
+- **Coleções** — agrupe títulos em coleções personalizadas com filtro na sidebar
 - **Múltiplos formatos** por título — DVD, Blu-ray, 4K UHD, VHS, Digital
 - **Marcar como assistido** com ou sem data
 - **Catálogo** com visualização em grade ou lista, filtros por formato, categoria e busca por texto
-- **Exportar** coleção para CSV ou Excel
+- **Exportar** coleção para CSV, Excel ou JSON para publicar em site
 - **Banco de dados local** SQLite — seus dados ficam no computador, sem nuvem
 
 ---
@@ -33,7 +34,7 @@ Aplicativo desktop para catalogar sua coleção pessoal de filmes em DVD, Blu-ra
 
 ## APIs utilizadas
 
-O aplicativo funciona sem APIs — você pode preencher filmes manualmente. As chaves desbloqueiam a busca automática de metadados.
+O aplicativo funciona sem APIs — você pode preencher títulos manualmente. As chaves desbloqueiam a busca automática de metadados.
 
 ### OMDb API
 Fornece: sinopse (inglês), elenco, nota IMDb, pôster, duração, país, idioma, tipo (filme/série).
@@ -100,12 +101,14 @@ catalogo-filmes/
 │   └── preload.js       # Bridge segura entre Electron e React
 ├── src/
 │   ├── pages/
-│   │   ├── AddDiscPage.jsx    # Adicionar / editar filme (OCR, busca, formulário)
+│   │   ├── AddDiscPage.jsx    # Adicionar / editar título (OCR, busca, formulário)
 │   │   ├── CatalogPage.jsx    # Catálogo com filtros e exportação
 │   │   └── SettingsPage.jsx   # Configuração das chaves de API
 │   └── components/
-│       ├── DiscCard.jsx        # Card do filme (grade e lista)
+│       ├── Sidebar.jsx         # Navegação lateral com coleções
+│       ├── DiscCard.jsx        # Card do título (grade e lista)
 │       └── DiscDetailModal.jsx # Modal de detalhes
+├── colecao.html         # Página standalone para publicar no site
 ├── dev-runner.js        # Script de desenvolvimento (evita conflito de env vars)
 └── package.json
 ```
