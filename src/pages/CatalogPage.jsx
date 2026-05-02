@@ -94,12 +94,26 @@ export default function CatalogPage({ filmes, onEdit, onDelete, showToast }) {
     finally { setExporting(false) }
   }, [showToast])
 
-  const stats = useMemo(() => ({
-    total: filmes.length,
-    bluray: filmes.filter(f => (f.formats || f.format || '').includes('Blu-ray')).length,
-    dvd: filmes.filter(f => (f.formats || f.format || '').includes('DVD')).length,
-    watched: filmes.filter(f => !!f.watched_at).length,
-  }), [filmes])
+  const stats = useMemo(() => {
+    const categoryCounts = {}
+    for (const f of filmes) {
+      const c = f.category || ''
+      if (c) categoryCounts[c] = (categoryCounts[c] || 0) + 1
+    }
+    const uhd = filmes.filter(f => (f.formats || f.format || '').includes('4K UHD')).length
+    const watched = filmes.filter(f => !!f.watched_at).length
+    const lastAdded = filmes.length ? [...filmes].sort((a, b) => b.id - a.id)[0] : null
+    return {
+      total: filmes.length,
+      bluray: filmes.filter(f => (f.formats || f.format || '').includes('Blu-ray')).length,
+      dvd: filmes.filter(f => (f.formats || f.format || '').includes('DVD')).length,
+      uhd,
+      watched,
+      watchedPct: filmes.length ? Math.round((watched / filmes.length) * 100) : 0,
+      categoryCounts,
+      lastAdded,
+    }
+  }, [filmes])
 
   return (
     <div className="page catalog-page">
@@ -108,10 +122,23 @@ export default function CatalogPage({ filmes, onEdit, onDelete, showToast }) {
         <div className="stat"><span className="stat-value">{stats.total}</span><span className="stat-label">Total</span></div>
         <div className="stat-divider"/>
         <div className="stat"><span className="stat-value">{stats.bluray}</span><span className="stat-label">Blu-ray</span></div>
+        {stats.uhd > 0 && <><div className="stat-divider"/><div className="stat"><span className="stat-value">{stats.uhd}</span><span className="stat-label">4K UHD</span></div></>}
         <div className="stat-divider"/>
         <div className="stat"><span className="stat-value">{stats.dvd}</span><span className="stat-label">DVD</span></div>
         <div className="stat-divider"/>
-        <div className="stat"><span className="stat-value">{stats.watched}</span><span className="stat-label">Assistidos</span></div>
+        <div className="stat" title={`${stats.watchedPct}% da coleção`}>
+          <span className="stat-value">{stats.watched}</span>
+          <span className="stat-label">Assistidos {stats.total > 0 && <span style={{ fontSize: 10, opacity: 0.7 }}>({stats.watchedPct}%)</span>}</span>
+        </div>
+        {stats.lastAdded && (
+          <>
+            <div className="stat-divider"/>
+            <div className="stat" title={`Último adicionado: ${stats.lastAdded.title}`}>
+              <span className="stat-value" style={{ fontSize: 11, maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{stats.lastAdded.title}</span>
+              <span className="stat-label">Último adicionado</span>
+            </div>
+          </>
+        )}
         <div style={{ flex: 1 }}/>
         <div className="export-group">
           <button className="btn btn-sm" onClick={() => handleExport('csv')} disabled={exporting}><IconExport /> CSV</button>
@@ -135,7 +162,9 @@ export default function CatalogPage({ filmes, onEdit, onDelete, showToast }) {
           </div>
           <select className="sort-select" value={category} onChange={e => setCategory(e.target.value)}>
             <option value="all">Todas as categorias</option>
-            {ALL_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+            {ALL_CATEGORIES.map(c => (
+              <option key={c} value={c}>{c}{stats.categoryCounts[c] ? ` (${stats.categoryCounts[c]})` : ''}</option>
+            ))}
           </select>
           <select className="sort-select" value={sort} onChange={e => setSort(e.target.value)}>
             <option value="title">A → Z</option>

@@ -27,7 +27,7 @@ export default function DiscCard({ filme, viewMode, onClick, onEdit, onDelete })
     return (
       <div className="disc-list-item" onClick={onClick}>
         <div className="list-cover">
-          {coverSrc ? <img src={coverSrc} alt={filme.title} /> : <DiscPlaceholder />}
+          {coverSrc ? <img src={coverSrc} alt={filme.title} /> : <DiscPlaceholder title={filme.title} />}
         </div>
         <div className="list-info">
           <div className="list-title">{filme.title}</div>
@@ -70,7 +70,7 @@ export default function DiscCard({ filme, viewMode, onClick, onEdit, onDelete })
   return (
     <div className="disc-card" onClick={onClick}>
       <div className="disc-cover">
-        {coverSrc ? <img src={coverSrc} alt={filme.title} /> : <DiscPlaceholder />}
+        {coverSrc ? <img src={coverSrc} alt={filme.title} /> : <DiscPlaceholder title={filme.title} />}
         <span className="format-badge-overlay">
           {[filme.category, ...formats].filter(Boolean).join(' · ') || '—'}
         </span>
@@ -87,14 +87,25 @@ export default function DiscCard({ filme, viewMode, onClick, onEdit, onDelete })
   )
 }
 
-function DiscPlaceholder() {
+function titleToColor(title) {
+  if (!title) return 'hsl(220, 20%, 22%)'
+  let hash = 0
+  for (let i = 0; i < title.length; i++) hash = title.charCodeAt(i) + ((hash << 5) - hash)
+  const hue = Math.abs(hash) % 360
+  return `hsl(${hue}, 35%, 28%)`
+}
+
+function titleInitials(title) {
+  if (!title) return '?'
+  return title.split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0].toUpperCase()).join('')
+}
+
+function DiscPlaceholder({ title }) {
+  const bg = titleToColor(title)
+  const initials = titleInitials(title)
   return (
-    <div className="disc-placeholder">
-      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1">
-        <rect x="2" y="2" width="20" height="20" rx="2.18"/>
-        <line x1="7" y1="2" x2="7" y2="22"/><line x1="17" y1="2" x2="17" y2="22"/>
-        <line x1="2" y1="12" x2="22" y2="12"/>
-      </svg>
+    <div className="disc-placeholder" style={{ background: bg }}>
+      <span style={{ fontSize: 22, fontWeight: 700, color: 'rgba(255,255,255,0.55)', letterSpacing: 1 }}>{initials}</span>
     </div>
   )
 }
