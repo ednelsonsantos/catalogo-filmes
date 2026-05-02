@@ -11,11 +11,13 @@ Aplicativo desktop para catalogar sua coleção pessoal de filmes, séries, docu
 - **OCR local** via Tesseract.js — lê o texto da capa sem internet e sem conta
 - **Busca automática** em OMDb e TMDB simultaneamente — retorna título em PT-BR, sinopse, elenco, nota IMDb, pôster e categoria
 - **Categorias automáticas** — Filme, Série, Mini-série, Documentário, Animação, etc. preenchidas direto da API
-- **Coleções** — agrupe títulos em coleções personalizadas com filtro na sidebar
+- **Coleções** — agrupe títulos em coleções personalizadas com filtro na sidebar; ordenação por A–Z, mais títulos ou mais recente
 - **Múltiplos formatos** por título — DVD, Blu-ray, 4K UHD, VHS, Digital
-- **Marcar como assistido** com ou sem data
-- **Catálogo** com visualização em grade ou lista, filtros por formato, categoria e busca por texto
-- **Exportar** coleção para CSV, Excel ou JSON para publicar em site
+- **Marcar como assistido** com ou sem data, diretamente no card sem abrir o modal
+- **Catálogo** com visualização em grade ou lista, filtros por formato, categoria e busca por texto (Ctrl+F)
+- **Pôster fallback** — títulos sem imagem exibem fundo colorido único com iniciais, gerado a partir do título
+- **Estatísticas** — barra com totais por formato, % assistidos e último título adicionado; dropdown de categorias com contagem
+- **Exportar** coleção para CSV, Excel ou JSON — exporta tudo ou apenas a coleção selecionada na sidebar
 - **Banco de dados local** SQLite — seus dados ficam no computador, sem nuvem
 - **Ícone personalizado** — logo do app no instalador, atalhos e barra de tarefas
 
@@ -32,6 +34,7 @@ O app foi desenvolvido com práticas de segurança para aplicações Electron:
 - **Navegação bloqueada** — `will-navigate` e `setWindowOpenHandler` impedem que o renderer navegue para URLs externas
 - **`contextIsolation: true` + `nodeIntegration: false`** — isolamento completo entre renderer e Node.js
 - **Validação de entrada** — todos os handlers IPC validam tipo, range e tamanho dos parâmetros recebidos
+- **SQL parametrizado** — queries de exportação filtradas por ID usam placeholders `?` para prevenir injeção
 
 ---
 
@@ -99,6 +102,14 @@ npm run dev
 
 > O `postinstall` executa `electron-rebuild` automaticamente para compilar o `better-sqlite3` contra a versão correta do Electron.
 
+### Testes
+
+A suite de testes (Jest) cobre validações de segurança do processo principal e não é incluída no repositório. Para rodar localmente:
+
+```bash
+npm test
+```
+
 ### Build para distribuição
 
 ```bash
@@ -119,11 +130,11 @@ catalogo-filmes/
 ├── src/
 │   ├── pages/
 │   │   ├── AddDiscPage.jsx    # Adicionar / editar título (OCR, busca, formulário)
-│   │   ├── CatalogPage.jsx    # Catálogo com filtros e exportação
+│   │   ├── CatalogPage.jsx    # Catálogo com filtros, estatísticas e exportação
 │   │   └── SettingsPage.jsx   # Configuração das chaves de API
 │   └── components/
-│       ├── Sidebar.jsx         # Navegação lateral com coleções
-│       ├── DiscCard.jsx        # Card do título (grade e lista)
+│       ├── Sidebar.jsx         # Navegação lateral com coleções e ordenação
+│       ├── DiscCard.jsx        # Card do título (grade e lista) com toggle assistido
 │       └── DiscDetailModal.jsx # Modal de detalhes
 ├── colecao.html           # Página standalone para publicar no site
 ├── dev-runner.js          # Script de desenvolvimento com detecção automática de porta
