@@ -109,31 +109,32 @@ function createWindow() {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
-      sandbox: true,
     },
     backgroundColor: '#0f0f0f',
     show: false,
   })
 
-  // Content Security Policy
-  mainWindow.webContents.session.webRequest.onHeadersReceived((details, callback) => {
-    callback({
-      responseHeaders: {
-        ...details.responseHeaders,
-        'Content-Security-Policy': [
-          [
-            "default-src 'self'",
-            "script-src 'self'",
-            "style-src 'self' 'unsafe-inline'",
-            "img-src 'self' data: https://image.tmdb.org https://img.omdbapi.com https://m.media-amazon.com",
-            "font-src 'self' data:",
-            "connect-src 'self'",
-            "frame-ancestors 'none'",
-          ].join('; ')
-        ],
-      },
+  // Content Security Policy — só aplicado em produção; dev usa o Vite sem restrições
+  if (app.isPackaged) {
+    mainWindow.webContents.session.webRequest.onHeadersReceived((details, callback) => {
+      callback({
+        responseHeaders: {
+          ...details.responseHeaders,
+          'Content-Security-Policy': [
+            [
+              "default-src 'self'",
+              "script-src 'self'",
+              "style-src 'self' 'unsafe-inline'",
+              "img-src 'self' data: blob: https://image.tmdb.org https://img.omdbapi.com https://m.media-amazon.com",
+              "font-src 'self' data:",
+              "connect-src 'self'",
+              "frame-ancestors 'none'",
+            ].join('; ')
+          ],
+        },
+      })
     })
-  })
+  }
 
   // Block navigation to external URLs
   mainWindow.webContents.on('will-navigate', (event, url) => {
@@ -152,13 +153,15 @@ function createWindow() {
   mainWindow.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))
 
   const isDev = !app.isPackaged
+
   if (isDev) {
+    // Abre DevTools antes do load para capturar erros de carregamento
+    mainWindow.webContents.openDevTools({ mode: 'detach' })
     const devUrl = process.env.VITE_DEV_URL || 'http://localhost:5173'
-    // Validate dev URL to prevent environment variable injection
     if (!/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?\/?$/.test(devUrl)) {
       throw new Error(`Invalid VITE_DEV_URL: ${devUrl}`)
     }
-    mainWindow.loadURL(devUrl)
+    mainWindow.loadURL(devUrl).catch(err => console.error('loadURL error:', err))
   } else {
     mainWindow.loadFile(path.join(__dirname, '../dist/index.html'))
   }
