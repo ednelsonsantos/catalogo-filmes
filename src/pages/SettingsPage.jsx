@@ -1,7 +1,8 @@
 import React, { useState } from 'react'
 
 export default function SettingsPage({ settings, onSave }) {
-  const [form, setForm] = useState({ ...settings })
+  // Nunca pré-preenche com o placeholder mascarado — campo vazio = manter chave atual
+  const [form, setForm] = useState({ omdbApiKey: '', tmdbApiKey: '' })
   const [showKey, setShowKey] = useState(false)
   const [showTmdbKey, setShowTmdbKey] = useState(false)
 
@@ -56,14 +57,16 @@ export default function SettingsPage({ settings, onSave }) {
             <div style={{ display: 'flex', gap: 8 }}>
               <input
                 type={showKey ? 'text' : 'password'}
-                value={form.omdbApiKey || ''}
+                value={form.omdbApiKey}
                 onChange={e => setForm(f => ({ ...f, omdbApiKey: e.target.value }))}
-                placeholder={settings.omdbConfigured ? 'Digite para substituir a chave atual' : 'xxxxxxxx'}
+                placeholder={settings.omdbConfigured ? 'Deixe em branco para manter a atual' : 'xxxxxxxx'}
                 style={{ flex: 1 }}
               />
-              <button className="btn btn-sm" onClick={() => setShowKey(v => !v)}>
-                {showKey ? 'Ocultar' : 'Mostrar'}
-              </button>
+              {form.omdbApiKey && (
+                <button className="btn btn-sm" onClick={() => setShowKey(v => !v)}>
+                  {showKey ? 'Ocultar' : 'Mostrar'}
+                </button>
+              )}
             </div>
           </div>
           <div style={{ marginTop: 12, padding: 10, background: 'rgba(74,158,255,0.06)', border: '1px solid rgba(74,158,255,0.15)', borderRadius: 6 }}>
@@ -99,14 +102,16 @@ export default function SettingsPage({ settings, onSave }) {
             <div style={{ display: 'flex', gap: 8 }}>
               <input
                 type={showTmdbKey ? 'text' : 'password'}
-                value={form.tmdbApiKey || ''}
+                value={form.tmdbApiKey}
                 onChange={e => setForm(f => ({ ...f, tmdbApiKey: e.target.value }))}
-                placeholder={settings.tmdbConfigured ? 'Digite para substituir a chave atual' : 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'}
+                placeholder={settings.tmdbConfigured ? 'Deixe em branco para manter a atual' : 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'}
                 style={{ flex: 1 }}
               />
-              <button className="btn btn-sm" onClick={() => setShowTmdbKey(v => !v)}>
-                {showTmdbKey ? 'Ocultar' : 'Mostrar'}
-              </button>
+              {form.tmdbApiKey && (
+                <button className="btn btn-sm" onClick={() => setShowTmdbKey(v => !v)}>
+                  {showTmdbKey ? 'Ocultar' : 'Mostrar'}
+                </button>
+              )}
             </div>
           </div>
           <div style={{ marginTop: 12, padding: 10, background: 'rgba(1,180,228,0.06)', border: '1px solid rgba(1,180,228,0.2)', borderRadius: 6 }}>
