@@ -25,7 +25,7 @@ function portaLivre(inicio = 5173) {
 
 async function main() {
   const porta = await portaLivre(5173)
-  const url = `http://localhost:${porta}`
+  let url = `http://localhost:${porta}`
   console.log(`\n🚀 Iniciando Vite na porta ${porta}...`)
 
   const vite = spawn(
@@ -38,6 +38,11 @@ async function main() {
 
   function tryStartElectron(text) {
     if (viteReady) return
+    const localMatch = text.match(/Local:\s+http:\/\/localhost:(\d+)/)
+    if (localMatch) {
+      const realPort = localMatch[1]
+      url = `http://localhost:${realPort}`
+    }
     if (text.includes('Local:') || text.includes('ready in') || text.includes('localhost:')) {
       viteReady = true
       console.log(`\n⚡ Vite pronto em ${url} — iniciando Electron...`)

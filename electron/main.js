@@ -66,6 +66,7 @@ function createWindow() {
     minWidth: 900,
     minHeight: 600,
     title: 'Meu Catálogo',
+    icon: path.join(__dirname, '../icon.png'),
     titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),

@@ -29,6 +29,7 @@
   "build": {
     "appId": "com.ednelson.meu-catalogo",
     "productName": "Meu Catálogo",
+    "icon": "icon.png",
     "asar": true,
     "asarUnpack": [
       "**/better-sqlite3/**"
@@ -39,6 +40,7 @@
     "files": [
       "dist/**/*",
       "electron/**/*",
+      "icon.png",
       "node_modules/better-sqlite3/build/**/*",
       "node_modules/better-sqlite3/lib/**/*",
       "node_modules/better-sqlite3/package.json"

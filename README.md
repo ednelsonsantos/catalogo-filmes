@@ -6,6 +6,7 @@ Aplicativo desktop para catalogar sua coleção pessoal de filmes, séries, docu
 
 ## Funcionalidades
 
+- **Tela de carregamento** com logo animado ao iniciar o aplicativo
 - **Adicionar títulos** por foto da capa (OCR local), busca por título ou preenchimento manual
 - **OCR local** via Tesseract.js — lê o texto da capa sem internet e sem conta
 - **Busca automática** em OMDb e TMDB simultaneamente — retorna título em PT-BR, sinopse, elenco, nota IMDb, pôster e categoria
@@ -16,6 +17,7 @@ Aplicativo desktop para catalogar sua coleção pessoal de filmes, séries, docu
 - **Catálogo** com visualização em grade ou lista, filtros por formato, categoria e busca por texto
 - **Exportar** coleção para CSV, Excel ou JSON para publicar em site
 - **Banco de dados local** SQLite — seus dados ficam no computador, sem nuvem
+- **Ícone personalizado** — logo do app no instalador, atalhos e barra de tarefas
 
 ---
 

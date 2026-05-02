@@ -4,6 +4,7 @@ import CatalogPage from './pages/CatalogPage.jsx'
 import AddDiscPage from './pages/AddDiscPage.jsx'
 import SettingsPage from './pages/SettingsPage.jsx'
 import Toast from './components/Toast.jsx'
+import appIcon from '../icon.png'
 import './App.css'
 
 export default function App() {
@@ -23,6 +24,7 @@ export default function App() {
 
   useEffect(() => {
     const init = async () => {
+      const start = Date.now()
       try {
         const [all, cols, saved] = await Promise.all([
           window.api.getAll(),
@@ -33,7 +35,11 @@ export default function App() {
         setCollections(cols)
         if (saved) setSettings(s => ({ ...s, ...saved }))
       } catch (e) { console.error(e) }
-      finally { setLoading(false) }
+      finally {
+        const elapsed = Date.now() - start
+        const remaining = Math.max(0, 1800 - elapsed)
+        setTimeout(() => setLoading(false), remaining)
+      }
     }
     init()
   }, [])
@@ -82,9 +88,14 @@ export default function App() {
   }, [refresh, refreshCollections, selectedCollection])
 
   if (loading) return (
-    <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:'100vh', color:'var(--text3)', flexDirection:'column', gap:12 }}>
-      <div className="spinner" />
-      <span style={{ fontSize: 13 }}>Carregando coleção...</span>
+    <div className="loading-screen">
+      <div className="loading-icon-wrap">
+        <img src={appIcon} alt="Meu Catálogo" className="loading-icon" />
+      </div>
+      <div className="loading-app-name">Meu Catálogo</div>
+      <div className="loading-bar-wrap">
+        <div className="loading-bar" />
+      </div>
     </div>
   )
 
