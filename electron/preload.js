@@ -42,4 +42,23 @@ contextBridge.exposeInMainWorld('api', {
 
   // Shell — allowlist enforced in main process
   openExternal:      (url)    => ipcRenderer.invoke('shell:openExternal', url),
+
+  // MAL
+  malStartAuth:      ()       => ipcRenderer.invoke('mal:startAuth'),
+  malExchangeCode:   (p)      => ipcRenderer.invoke('mal:exchangeCode', p),
+  malSearch:         (p)      => ipcRenderer.invoke('mal:search', p),
+  malGetAnimeList:   (p)      => ipcRenderer.invoke('mal:getAnimeList', p),
+  malUpdateAnime:    (p)      => ipcRenderer.invoke('mal:updateAnime', p),
+  malGetStatus:      ()       => ipcRenderer.invoke('mal:getStatus'),
+  malSavePoster:     (p)      => ipcRenderer.invoke('mal:savePoster', p),
+  malSaveCache:      (list)   => ipcRenderer.invoke('mal:saveCache', list),
+  malLoadCache:      ()       => ipcRenderer.invoke('mal:loadCache'),
+  malDisconnect:     ()       => ipcRenderer.invoke('mal:disconnect'),
+  exportMalJson:     (p)      => ipcRenderer.invoke('export:malJson', p),
+
+  // Listener para o callback OAuth2
+  onMalCallback: (cb) => {
+    ipcRenderer.on('mal:oauth-callback', (_e, data) => cb(data))
+    return () => ipcRenderer.removeAllListeners('mal:oauth-callback')
+  },
 })

@@ -20,6 +20,13 @@ Aplicativo desktop para catalogar sua coleção pessoal de filmes, séries, docu
 - **Exportar** coleção para CSV, Excel ou JSON — exporta tudo ou apenas a coleção selecionada na sidebar
 - **Banco de dados local** SQLite — seus dados ficam no computador, sem nuvem
 - **Ícone personalizado** — logo do app no instalador, atalhos e barra de tarefas
+- **MyAnimeList integrado** — conecte sua conta MAL via OAuth2 PKCE, carregue sua lista de animes, edite status/nota/episódios e sincronize de volta ao site
+- **Lista de animes persistente** — cache em disco, carregada automaticamente ao abrir o app sem precisar recarregar do MAL
+- **Pôsteres de animes offline** — baixados para disco na primeira carga e exibidos sem depender de URLs externas (funciona no executável empacotado)
+- **Busca e adição de animes** — pesquise na API do MAL e adicione diretamente à sua lista com status, nota e episódios
+- **Detecção de duplicatas** — ao buscar filmes ou animes já presentes na coleção, exibe badge "Já na coleção / Já na lista" com informações do item existente
+- **Visualização em lista para animes** — alterne entre grade e lista com ordenação por título, score MAL, minha nota, ano ou episódios
+- **Exportar animes para JSON** — exporta a lista filtrada para uso no site pessoal
 
 ---
 
@@ -47,6 +54,7 @@ O app foi desenvolvido com práticas de segurança para aplicações Electron:
 | Banco de dados | better-sqlite3 (SQLite local) |
 | OCR | Tesseract.js 5 (local, sem internet) |
 | Metadados | OMDb API + TMDB API |
+| Animes | MyAnimeList API v2 (OAuth2 PKCE) |
 | Exportação | xlsx |
 | Testes | Jest (local) |
 
@@ -77,6 +85,17 @@ Fornece: título em português, sinopse traduzida, elenco, pôster de alta quali
 5. Cole a chave em **Configurações → TMDB API** e clique em Salvar
 
 > Quando ambas as chaves estão configuradas, a busca roda as duas APIs em paralelo e combina os resultados — título PT-BR do TMDB com nota IMDb do OMDb.
+
+### MyAnimeList API
+
+Permite carregar, editar e sincronizar sua lista de animes diretamente do MAL. Requer apenas um Client ID (sem Client Secret).
+
+**Como configurar:**
+1. Acesse [myanimelist.net/apiconfig](https://myanimelist.net/apiconfig) e clique em **Create ID**
+2. Escolha o tipo **other** e preencha `http://localhost:7813` como **App Redirect URL**
+3. Copie o **Client ID** gerado
+4. Cole em **Configurações → MyAnimeList Client ID** e clique em Salvar
+5. Na página Animes, clique em **Conectar ao MAL** e autorize no navegador
 
 ---
 
@@ -129,11 +148,12 @@ catalogo-filmes/
 │   └── preload.js       # Bridge segura entre Electron e React (contextBridge)
 ├── src/
 │   ├── pages/
-│   │   ├── AddDiscPage.jsx    # Adicionar / editar título (OCR, busca, formulário)
+│   │   ├── AddDiscPage.jsx    # Adicionar / editar título e animes (OCR, busca, formulário)
+│   │   ├── AnimePage.jsx      # Lista de animes MAL com grade/lista, edição e exportação
 │   │   ├── CatalogPage.jsx    # Catálogo com filtros, estatísticas e exportação
-│   │   └── SettingsPage.jsx   # Configuração das chaves de API
+│   │   └── SettingsPage.jsx   # Configuração das chaves de API e MAL Client ID
 │   └── components/
-│       ├── Sidebar.jsx         # Navegação lateral com coleções e ordenação
+│       ├── Sidebar.jsx         # Navegação lateral com coleções, ordenação e badge animes
 │       ├── DiscCard.jsx        # Card do título (grade e lista) com toggle assistido
 │       └── DiscDetailModal.jsx # Modal de detalhes
 ├── colecao.html           # Página standalone para publicar no site

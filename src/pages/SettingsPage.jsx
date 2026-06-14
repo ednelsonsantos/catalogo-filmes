@@ -1,8 +1,7 @@
 import React, { useState } from 'react'
 
 export default function SettingsPage({ settings, onSave }) {
-  // Nunca pré-preenche com o placeholder mascarado — campo vazio = manter chave atual
-  const [form, setForm] = useState({ omdbApiKey: '', tmdbApiKey: '' })
+  const [form, setForm] = useState({ omdbApiKey: '', tmdbApiKey: '', malClientId: '' })
   const [showKey, setShowKey] = useState(false)
   const [showTmdbKey, setShowTmdbKey] = useState(false)
   const [saved, setSaved] = useState(false)
@@ -126,6 +125,48 @@ export default function SettingsPage({ settings, onSave }) {
               Completamente gratuito e sem limite diário. Quando configurado junto com OMDb,
               a busca usa <strong style={{ color: 'var(--text)' }}>ambas as APIs em paralelo</strong> e
               combina os resultados — títulos em PT‑BR do TMDB e notas IMDb do OMDb.
+            </p>
+          </div>
+        </div>
+
+        {/* MAL */}
+        <div className="card">
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 16 }}>
+            <div>
+              <h2 style={{ fontSize: 15, fontWeight: 600 }}>MyAnimeList API</h2>
+              <p style={{ fontSize: 12, color: 'var(--text3)', marginTop: 4 }}>
+                Importa sua lista de animes via OAuth2 para consulta e exportação JSON.
+              </p>
+            </div>
+            <button
+              className="btn btn-ghost btn-sm"
+              onClick={() => openExternal('https://myanimelist.net/apiconfig')}
+              style={{ fontSize: 12, color: 'var(--blue)', whiteSpace: 'nowrap' }}
+            >
+              Criar aplicativo ↗
+            </button>
+          </div>
+
+          <div className="field">
+            <label>Client ID</label>
+            {settings.malConfigured && (
+              <p style={{ fontSize: 11, color: 'var(--green)', marginBottom: 4 }}>✓ Configurado</p>
+            )}
+            <input
+              type="text"
+              value={form.malClientId}
+              onChange={e => setForm(f => ({ ...f, malClientId: e.target.value }))}
+              placeholder={settings.malConfigured ? 'Deixe em branco para manter' : 'Cole o Client ID aqui'}
+            />
+          </div>
+
+          <div style={{ marginTop: 12, padding: 10, background: 'rgba(74,158,255,0.06)', border: '1px solid rgba(74,158,255,0.15)', borderRadius: 6 }}>
+            <p style={{ fontSize: 12, color: 'var(--text2)', lineHeight: 1.6 }}>
+              Após salvar, vá até a página <strong style={{ color: 'var(--text)' }}>Animes</strong> e clique em
+              {' '}<strong style={{ color: 'var(--text)' }}>Conectar ao MAL</strong> para autorizar via OAuth2.{' '}
+              No cadastro do aplicativo no MAL, use o tipo <strong style={{ color: 'var(--text)' }}>other</strong> e coloque{' '}
+              <code style={{ background: 'var(--bg4)', padding: '1px 5px', borderRadius: 4, fontSize: 11 }}>http://localhost:7813</code>
+              {' '}como App Redirect URL. Apps do tipo "other" não geram Client Secret — só o Client ID é necessário.
             </p>
           </div>
         </div>

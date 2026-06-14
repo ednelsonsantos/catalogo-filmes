@@ -26,6 +26,15 @@ const IconCollection = () => (
     <path d="M19 11H5m14 0a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-6a2 2 0 0 1 2-2m14 0V9a2 2 0 0 0-2-2M5 11V9a2 2 0 0 1 2-2m0 0V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v2M7 7h10"/>
   </svg>
 )
+const IconAnime = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+    <circle cx="12" cy="12" r="10"/>
+    <path d="M8 9.5c0-1.1.9-2 2-2s2 .9 2 2-.9 2-2 2-2-.9-2-2z" fill="currentColor" stroke="none"/>
+    <path d="M13 9.5c0-1.1.9-2 2-2s2 .9 2 2-.9 2-2 2-2-.9-2-2z" fill="currentColor" stroke="none"/>
+    <path d="M7 15.5c1-2 8-2 10 0"/>
+    <path d="M5 7l2 1M19 7l-2 1"/>
+  </svg>
+)
 const IconPencil = () => (
   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
     <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
@@ -39,7 +48,7 @@ const IconTrash = () => (
   </svg>
 )
 
-export default function Sidebar({ page, setPage, count, onAddNew, collections, selectedCollection, onSelectCollection, onCollectionsChange, showToast }) {
+export default function Sidebar({ page, setPage, count, animeCount, onAddNew, collections, selectedCollection, onSelectCollection, onCollectionsChange, showToast }) {
   const [creating, setCreating] = useState(false)
   const [newName, setNewName] = useState('')
   const [renamingId, setRenamingId] = useState(null)
@@ -106,6 +115,13 @@ export default function Sidebar({ page, setPage, count, onAddNew, collections, s
         >
           <IconFilm /><span>Minha Coleção</span>
           <span className="nav-count">{count}</span>
+        </button>
+        <button
+          className={`nav-item ${page === 'animes' ? 'active' : ''}`}
+          onClick={() => { setPage('animes'); onSelectCollection(null) }}
+        >
+          <IconAnime /><span>Animes</span>
+          {animeCount > 0 && <span className="nav-count">{animeCount}</span>}
         </button>
 
         {/* Coleções */}

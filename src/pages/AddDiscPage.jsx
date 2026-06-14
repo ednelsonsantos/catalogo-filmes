@@ -2,6 +2,30 @@ import React, { useState, useRef, useCallback, useEffect } from 'react'
 import { createWorker } from 'tesseract.js'
 import './AddDiscPage.css'
 
+// ─── Constantes MAL ───────────────────────────────────────────────────────────
+
+const MAL_STATUS_LABELS = {
+  watching:      'Assistindo',
+  completed:     'Completo',
+  on_hold:       'Em pausa',
+  dropped:       'Abandonado',
+  plan_to_watch: 'Planejo assistir',
+}
+
+const MAL_STATUS_COLORS = {
+  watching:      '#4a9eff',
+  completed:     '#4caf7d',
+  on_hold:       '#f59e0b',
+  dropped:       '#ef4444',
+  plan_to_watch: '#8b8b8b',
+}
+
+const MAL_SCORE_LABELS = {
+  0: 'Sem nota', 1: '(1) Horrível', 2: '(2) Terrível', 3: '(3) Muito ruim',
+  4: '(4) Ruim', 5: '(5) Médio', 6: '(6) Bom', 7: '(7) Muito bom',
+  8: '(8) Ótimo', 9: '(9) Excelente', 10: '(10) Obra-prima',
+}
+
 // ─── Constantes ───────────────────────────────────────────────────────────────
 
 const ALL_FORMATS = ['DVD', 'Blu-ray', '4K UHD', 'VHS', 'Digital']
@@ -165,7 +189,8 @@ function fileToBase64(file) {
 
 // ─── Componente principal ─────────────────────────────────────────────────────
 
-export default function AddDiscPage({ settings, editFilme, collections = [], onSaved, showToast }) {
+export default function AddDiscPage({ settings, editFilme, filmes = [], collections = [], onSaved, showToast, animeList = [], setAnimeList }) {
+  const [tab, setTab] = useState('titulo')
   const [mode, setMode] = useState('photo')
   const [filme, setFilme] = useState(editFilme ? { ...editFilme } : { ...EMPTY })
   const [selectedCollections, setSelectedCollections] = useState([])
@@ -178,6 +203,7 @@ export default function AddDiscPage({ settings, editFilme, collections = [], onS
   const [searchYear, setSearchYear] = useState('')
   const [searchResults, setSearchResults] = useState([])
   const [searching, setSearching] = useState(false)
+  const [duplicateWarning, setDuplicateWarning] = useState(null)
   const [saving, setSaving] = useState(false)
   const [isDragging, setIsDragging] = useState(false)
   const fileRef = useRef()
@@ -195,6 +221,20 @@ export default function AddDiscPage({ settings, editFilme, collections = [], onS
   }, [editFilme])
 
   const setField = useCallback((key, value) => setFilme(f => ({ ...f, [key]: value })), [])
+
+  const handleCancel = useCallback(() => {
+    setTab('titulo')
+    setMode('photo')
+    setFilme({ ...EMPTY })
+    setSearchQuery('')
+    setSearchYear('')
+    setSearchResults([])
+    setDuplicateWarning(null)
+    setCoverPreview(null)
+    setCoverFile(null)
+    setOcrStatus(null)
+    onSaved()
+  }, [onSaved])
 
   // ── Busca OMDb (usada pelo OCR e pela busca manual) ──────────────────────────
 
@@ -261,9 +301,34 @@ export default function AddDiscPage({ settings, editFilme, collections = [], onS
     finally { setSearching(false) }
   }, [settings, showToast, searchYear])
 
-  const handleSearch = useCallback(() => doSearch(searchQuery, searchYear), [doSearch, searchQuery, searchYear])
+  const handleSearch = useCallback(() => { setDuplicateWarning(null); doSearch(searchQuery, searchYear) }, [doSearch, searchQuery, searchYear])
+
+  const findDuplicate = useCallback((item) => {
+    const isTmdb  = item._source === 'tmdb'
+    const tmdbId  = isTmdb ? String(item.id) : null
+    const imdbId  = !isTmdb ? item.imdbID : null
+    const title   = isTmdb ? (item.name || item.title || '') : (item.Title || '')
+    const year    = isTmdb
+      ? parseInt(item.first_air_date || item.release_date || '0')
+      : parseInt(item.Year || '0')
+    return filmes.find(f => {
+      if (tmdbId && f.tmdb_id && f.tmdb_id === tmdbId) return true
+      if (imdbId && f.imdb_id && f.imdb_id === imdbId) return true
+      // fallback: título normalizado + ano
+      const sameTitle = (f.title || '').toLowerCase() === title.toLowerCase() ||
+                        (f.original_title || '').toLowerCase() === title.toLowerCase()
+      const sameYear  = year && f.year && Number(f.year) === year
+      return sameTitle && sameYear
+    }) || null
+  }, [filmes])
 
   const selectResult = useCallback(async (item) => {
+    setDuplicateWarning(null)
+    const existing = findDuplicate(item)
+    if (existing) {
+      setDuplicateWarning(existing)
+      return
+    }
     setSearching(true)
     try {
       const formats = filme.formats || filme.format || 'DVD'
@@ -375,8 +440,27 @@ export default function AddDiscPage({ settings, editFilme, collections = [], onS
 
   return (
     <div className="page add-page">
-      <h1 className="page-title">{isEditing ? `Editar: ${editFilme.title}` : 'Adicionar Título'}</h1>
+      <h1 className="page-title">{isEditing ? `Editar: ${editFilme.title}` : 'Adicionar'}</h1>
 
+      {/* Abas principais */}
+      {!isEditing && (
+        <div className="mode-tabs" style={{ marginBottom: 16 }}>
+          <button className={`mode-tab ${tab === 'titulo' ? 'active' : ''}`} onClick={() => setTab('titulo')}>
+            🎬 Adicionar Título
+          </button>
+          <button className={`mode-tab ${tab === 'anime' ? 'active' : ''}`} onClick={() => setTab('anime')}>
+            🎌 Adicionar Anime
+          </button>
+        </div>
+      )}
+
+      {/* Aba Anime */}
+      {tab === 'anime' && !isEditing && (
+        <AnimeSearchSection settings={settings} showToast={showToast} animeList={animeList} setAnimeList={setAnimeList} onCancel={handleCancel} />
+      )}
+
+      {/* Aba Título */}
+      {(tab === 'titulo' || isEditing) && <>
       {!isEditing && (
         <div className="mode-tabs">
           {[
@@ -561,10 +645,11 @@ export default function AddDiscPage({ settings, editFilme, collections = [], onS
                       ? (r.vote_average ? `★ ${Number(r.vote_average).toFixed(1)}` : null)
                       : (r.imdbRating && r.imdbRating !== 'N/A' ? `★ ${r.imdbRating} IMDb` : null)
                     const typeLabel = isTmdb ? (isTv ? 'Série' : 'Filme') : (r.Type === 'movie' ? 'Filme' : r.Type === 'series' ? 'Série' : r.Type)
+                    const dupFound = !isEditing && findDuplicate(r)
                     return (
                       <div key={isTmdb ? `${r._tmdbType}-${r.id}` : r.imdbID} className="search-result-item"
                         onClick={() => !searching && selectResult(r)}
-                        style={{ opacity: searching ? 0.5 : 1, cursor: searching ? 'wait' : 'pointer' }}>
+                        style={{ opacity: searching ? 0.5 : 1, cursor: searching ? 'wait' : 'pointer', position: 'relative', borderColor: dupFound ? 'rgba(234,179,8,0.5)' : undefined }}>
                         {poster
                           ? <img src={poster} alt={title} />
                           : <div className="result-no-poster">?</div>
@@ -584,6 +669,11 @@ export default function AddDiscPage({ settings, editFilme, collections = [], onS
                             {year} · {typeLabel}{rating && <> · {rating}</>}
                           </div>
                         </div>
+                        {dupFound && (
+                          <span style={{ fontSize: 10, fontWeight: 600, color: '#f59e0b', background: 'rgba(234,179,8,0.12)', border: '1px solid rgba(234,179,8,0.3)', padding: '2px 7px', borderRadius: 99, whiteSpace: 'nowrap', alignSelf: 'center', flexShrink: 0 }}>
+                            Já na coleção
+                          </span>
+                        )}
                       </div>
                     )
                   })}
@@ -592,6 +682,29 @@ export default function AddDiscPage({ settings, editFilme, collections = [], onS
               {!searching && searchResults.length === 0 && searchQuery && (
                 <div style={{ marginTop: 12, fontSize: 13, color: 'var(--text3)', textAlign: 'center', padding: '16px 0' }}>
                   Nenhum resultado. Tente um título diferente ou adicione o ano.
+                </div>
+              )}
+
+              {duplicateWarning && (
+                <div style={{ marginTop: 12, padding: '12px 14px', background: 'rgba(234,179,8,0.08)', border: '1px solid rgba(234,179,8,0.35)', borderRadius: 8, display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                  <span style={{ fontSize: 16, flexShrink: 0 }}>⚠️</span>
+                  <div style={{ flex: 1 }}>
+                    <p style={{ fontSize: 13, fontWeight: 600, color: '#f59e0b', margin: '0 0 4px' }}>
+                      "{duplicateWarning.title}" já está na sua coleção
+                    </p>
+                    <p style={{ fontSize: 12, color: 'var(--text2)', margin: 0 }}>
+                      Adicionado em {duplicateWarning.created_at?.slice(0, 10) || '—'}
+                      {duplicateWarning.formats ? ` · ${duplicateWarning.formats}` : ''}
+                      {duplicateWarning.watched_at ? ' · Assistido' : ''}
+                    </p>
+                  </div>
+                  <button
+                    className="btn btn-sm"
+                    style={{ fontSize: 11, flexShrink: 0 }}
+                    onClick={() => setDuplicateWarning(null)}
+                  >
+                    Fechar
+                  </button>
                 </div>
               )}
               {filme.title && <div style={{ marginTop: 16 }}><FormFields filme={filme} setField={setField} /></div>}
@@ -606,8 +719,332 @@ export default function AddDiscPage({ settings, editFilme, collections = [], onS
             <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
               {saving ? 'Salvando...' : isEditing ? 'Salvar alterações' : 'Adicionar à coleção'}
             </button>
-            <button className="btn" onClick={onSaved}>Cancelar</button>
+            <button className="btn" onClick={handleCancel}>Cancelar</button>
           </div>
+        </div>
+      </div>
+      </>}
+    </div>
+  )
+}
+
+// ─── AnimeSearchSection ───────────────────────────────────────────────────────
+
+const STATUS_LABELS_ADD = {
+  watching:      'Assistindo',
+  completed:     'Completo',
+  on_hold:       'Em pausa',
+  dropped:       'Abandonado',
+  plan_to_watch: 'Planejo assistir',
+}
+
+const STATUS_COLORS_ADD = {
+  watching:      '#4a9eff',
+  completed:     '#4caf7d',
+  on_hold:       '#f59e0b',
+  dropped:       '#ef4444',
+  plan_to_watch: '#8b8b8b',
+}
+
+function AnimeSearchSection({ settings, showToast, animeList = [], setAnimeList, onCancel }) {
+  const [query, setQuery]             = useState('')
+  const [results, setResults]         = useState([])
+  const [searching, setSearching]     = useState(false)
+  const [editAnime, setEditAnime]     = useState(null)
+  const [dupWarning, setDupWarning]   = useState(null)
+
+  const findDupAnime = (node) => animeList.find(a => a.node.id === node.id) || null
+
+  const handleSearch = async () => {
+    setDupWarning(null)
+    if (!query.trim()) return
+    if (!settings.malConfigured) {
+      showToast('Configure o Client ID do MAL nas Configurações.', 'error')
+      return
+    }
+    setSearching(true)
+    setResults([])
+    try {
+      const res = await window.api.malSearch({ query: query.trim(), limit: 20 })
+      setResults(res.data || [])
+      if (!res.data?.length) showToast('Nenhum resultado encontrado.', 'info')
+    } catch (e) {
+      showToast('Erro ao buscar: ' + e.message, 'error')
+    } finally {
+      setSearching(false)
+    }
+  }
+
+  const handleSaveAnime = async (animeId, patch, node) => {
+    try {
+      await window.api.malUpdateAnime({ animeId, patch })
+      // insere ou atualiza na lista persistida no App
+      if (setAnimeList) {
+        setAnimeList(prev => {
+          const exists = prev.find(a => a.node.id === animeId)
+          const newItem = {
+            node,
+            list_status: { ...patch, num_episodes_watched: patch.num_episodes_watched },
+          }
+          return exists
+            ? prev.map(a => a.node.id === animeId ? newItem : a)
+            : [...prev, newItem]
+        })
+      }
+      showToast('Adicionado/atualizado no MyAnimeList!', 'success')
+      setEditAnime(null)
+    } catch (e) {
+      showToast('Erro ao salvar: ' + e.message, 'error')
+    }
+  }
+
+  if (!settings.malConfigured) {
+    return (
+      <div className="card" style={{ textAlign: 'center', padding: '32px 24px' }}>
+        <div style={{ fontSize: 36, marginBottom: 12 }}>🎌</div>
+        <p style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.7 }}>
+          Configure o <strong>Client ID do MyAnimeList</strong> nas Configurações para buscar animes.
+        </p>
+      </div>
+    )
+  }
+
+  return (
+    <div>
+      {/* Barra de busca */}
+      <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+        <input
+          style={{ flex: 1, padding: '9px 12px', background: 'var(--bg3)', border: '1px solid var(--border)', borderRadius: 8, color: 'var(--text)', outline: 'none', fontSize: 13 }}
+          placeholder="Nome do anime..."
+          value={query}
+          onChange={e => setQuery(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && handleSearch()}
+        />
+        <button className="btn btn-primary" onClick={handleSearch} disabled={searching}>
+          {searching ? 'Buscando...' : 'Buscar'}
+        </button>
+      </div>
+
+      {/* Resultados — mesmo estilo de search-results */}
+      {results.length > 0 && (
+        <div className="search-results">
+          {results.map(({ node }) => {
+            const poster   = node._cachedPoster || node.main_picture?.large || node.main_picture?.medium
+            const malScore = node.mean ? Number(node.mean).toFixed(2) : null
+            const year     = node.start_date?.slice(0, 4)
+            const type     = node.media_type || ''
+            const eps      = node.num_episodes > 0 ? `${node.num_episodes} eps` : null
+            const dup      = findDupAnime(node)
+            return (
+              <div
+                key={node.id}
+                className="search-result-item"
+                onClick={() => {
+                  if (searching) return
+                  if (dup) { setDupWarning(dup); return }
+                  setEditAnime({ node })
+                }}
+                style={{ cursor: 'pointer', borderColor: dup ? 'rgba(234,179,8,0.5)' : undefined }}
+              >
+                {poster
+                  ? <img src={poster} alt={node.title} />
+                  : <div className="result-no-poster">🎌</div>
+                }
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 500, fontSize: 13, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {node.title}
+                    </span>
+                    <span style={{ fontSize: 10, background: 'rgba(46,81,162,0.25)', color: '#6ea8fe', padding: '2px 6px', borderRadius: 3, fontWeight: 600, flexShrink: 0 }}>
+                      MAL
+                    </span>
+                  </div>
+                  {node.alternative_titles?.en && node.alternative_titles.en !== node.title && (
+                    <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 1 }}>
+                      {node.alternative_titles.en}
+                    </div>
+                  )}
+                  <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 2 }}>
+                    {[year, type, eps, malScore && `⭐ ${malScore}`].filter(Boolean).join(' · ')}
+                  </div>
+                </div>
+                {dup && (
+                  <span style={{ fontSize: 10, fontWeight: 600, color: '#f59e0b', background: 'rgba(234,179,8,0.12)', border: '1px solid rgba(234,179,8,0.3)', padding: '2px 7px', borderRadius: 99, whiteSpace: 'nowrap', alignSelf: 'center', flexShrink: 0 }}>
+                    Já na lista
+                  </span>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      )}
+
+      {dupWarning && (() => {
+        const ls   = dupWarning.list_status
+        const sc   = ls?.score > 0 ? ls.score : null
+        const eps  = ls?.num_episodes_watched > 0 ? ls.num_episodes_watched : null
+        const totEps = dupWarning.node?.num_episodes > 0 ? dupWarning.node.num_episodes : null
+        const color  = STATUS_COLORS_ADD[ls?.status] || '#8b8b8b'
+        const label  = STATUS_LABELS_ADD[ls?.status] || ls?.status || '—'
+        return (
+          <div style={{ marginTop: 12, padding: '12px 14px', background: 'rgba(234,179,8,0.08)', border: '1px solid rgba(234,179,8,0.35)', borderRadius: 8, display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+            <span style={{ fontSize: 16, flexShrink: 0 }}>⚠️</span>
+            <div style={{ flex: 1 }}>
+              <p style={{ fontSize: 13, fontWeight: 600, color: '#f59e0b', margin: '0 0 4px' }}>
+                "{dupWarning.node?.title}" já está na sua lista
+              </p>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 12px', fontSize: 12, color: 'var(--text2)' }}>
+                <span style={{ color, fontWeight: 600 }}>{label}</span>
+                {sc   && <span>★ {sc}/10</span>}
+                {eps  && <span>{eps}{totEps ? `/${totEps}` : ''} ep vistos</span>}
+              </div>
+            </div>
+            <button className="btn btn-sm" style={{ fontSize: 11, flexShrink: 0 }} onClick={() => setDupWarning(null)}>
+              Fechar
+            </button>
+          </div>
+        )
+      })()}
+
+      {!searching && results.length === 0 && query && (
+        <div style={{ fontSize: 13, color: 'var(--text3)', textAlign: 'center', padding: '24px 0' }}>
+          Nenhum resultado. Tente um título diferente.
+        </div>
+      )}
+
+      {editAnime && (
+        <AnimeAddModal
+          anime={editAnime}
+          onSave={(animeId, patch) => handleSaveAnime(animeId, patch, editAnime.node)}
+          onClose={() => setEditAnime(null)}
+        />
+      )}
+
+      <div style={{ marginTop: 20 }}>
+        <button className="btn" onClick={onCancel}>Cancelar</button>
+      </div>
+    </div>
+  )
+}
+
+// ─── Modal de adicionar anime ─────────────────────────────────────────────────
+
+function AnimeAddModal({ anime, onSave, onClose }) {
+  const { node } = anime
+  const [form, setForm] = useState({ status: 'plan_to_watch', score: 0, num_episodes_watched: 0 })
+  const [saving, setSaving] = useState(false)
+  const poster   = node._cachedPoster || node.main_picture?.large || node.main_picture?.medium
+  const malScore = node.mean ? Number(node.mean).toFixed(2) : null
+  const totalEps = node.num_episodes || 0
+
+  useEffect(() => {
+    const onKey = e => { if (e.key === 'Escape') onClose() }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [onClose])
+
+  const handleSave = async () => {
+    setSaving(true)
+    await onSave(node.id, {
+      status:               form.status,
+      score:                Number(form.score),
+      num_episodes_watched: Number(form.num_episodes_watched),
+    })
+    setSaving(false)
+  }
+
+  return (
+    <div
+      onClick={e => { if (e.target === e.currentTarget) onClose() }}
+      style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 24 }}
+    >
+      <div style={{ background: 'var(--bg2)', borderRadius: 12, width: '100%', maxWidth: 520, border: '1px solid var(--border2)', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+        {/* Topo */}
+        <div style={{ display: 'flex', background: 'var(--bg3)' }}>
+          {poster && (
+            <div style={{ width: 90, flexShrink: 0, overflow: 'hidden' }}>
+              <img src={poster} alt={node.title} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+            </div>
+          )}
+          <div style={{ flex: 1, padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <h2 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', lineHeight: 1.4, margin: 0 }}>{node.title}</h2>
+            {node.alternative_titles?.en && node.alternative_titles.en !== node.title && (
+              <p style={{ fontSize: 11, color: 'var(--text3)', margin: 0 }}>{node.alternative_titles.en}</p>
+            )}
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 2 }}>
+              {malScore && <span style={{ fontSize: 12, color: '#f59e0b', fontWeight: 600 }}>⭐ {malScore} MAL</span>}
+              {totalEps > 0 && <span style={{ fontSize: 12, color: 'var(--text3)' }}>{totalEps} eps</span>}
+              {node.start_date && <span style={{ fontSize: 12, color: 'var(--text3)' }}>{node.start_date.slice(0, 4)}</span>}
+            </div>
+            {(node.genres || []).slice(0, 4).map(g => (
+              <span key={g.id} style={{ fontSize: 10, color: 'var(--text2)', background: 'var(--bg4)', padding: '1px 6px', borderRadius: 99, display: 'inline-block', marginRight: 4 }}>{g.name}</span>
+            ))}
+          </div>
+        </div>
+
+        {/* Formulário */}
+        <div style={{ padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div className="field">
+            <label>Status</label>
+            <select
+              value={form.status}
+              onChange={e => {
+                const s = e.target.value
+                const updates = { status: s }
+                if (s === 'completed' && totalEps > 0) updates.num_episodes_watched = totalEps
+                setForm(f => ({ ...f, ...updates }))
+              }}
+              style={{ background: `${MAL_STATUS_COLORS[form.status]}22`, borderColor: MAL_STATUS_COLORS[form.status], fontWeight: 600, color: MAL_STATUS_COLORS[form.status] }}
+            >
+              {Object.entries(MAL_STATUS_LABELS).map(([val, label]) => (
+                <option key={val} value={val} style={{ background: 'var(--bg3)', color: 'var(--text)' }}>{label}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="field">
+            <label style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <span>Episódios assistidos</span>
+              {totalEps > 0 && <span style={{ color: 'var(--text3)', fontWeight: 400 }}>de {totalEps}</span>}
+            </label>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <input type="number" min={0} max={totalEps || 9999} value={form.num_episodes_watched}
+                onChange={e => setForm(f => ({ ...f, num_episodes_watched: Math.max(0, Number(e.target.value)) }))}
+                style={{ flex: 1 }} />
+              {totalEps > 0 && (
+                <button className="btn btn-sm" onClick={() => setForm(f => ({ ...f, num_episodes_watched: totalEps }))}>
+                  Completo
+                </button>
+              )}
+            </div>
+            {totalEps > 0 && (
+              <div style={{ height: 4, background: 'var(--bg4)', borderRadius: 99, marginTop: 4 }}>
+                <div style={{ height: '100%', borderRadius: 99, background: MAL_STATUS_COLORS[form.status], width: `${Math.min(100, (form.num_episodes_watched / totalEps) * 100)}%`, transition: 'width 0.2s' }} />
+              </div>
+            )}
+          </div>
+
+          <div className="field">
+            <label style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <span>Minha nota</span>
+              <span style={{ color: form.score > 0 ? '#4a9eff' : 'var(--text3)', fontWeight: form.score > 0 ? 600 : 400 }}>
+                {MAL_SCORE_LABELS[form.score]}
+              </span>
+            </label>
+            <input type="range" min={0} max={10} step={1} value={form.score}
+              onChange={e => setForm(f => ({ ...f, score: Number(e.target.value) }))}
+              style={{ width: '100%', accentColor: '#4a9eff' }} />
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: 'var(--text3)', marginTop: 2 }}>
+              <span>Sem nota</span><span>10</span>
+            </div>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, padding: '12px 20px', borderTop: '1px solid var(--border)' }}>
+          <button className="btn btn-sm" onClick={onClose}>Cancelar</button>
+          <button className="btn btn-primary btn-sm" onClick={handleSave} disabled={saving}>
+            {saving ? 'Salvando…' : 'Adicionar ao MAL'}
+          </button>
         </div>
       </div>
     </div>

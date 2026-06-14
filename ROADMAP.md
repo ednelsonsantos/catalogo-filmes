@@ -73,7 +73,70 @@ Com uma coleção ativa na sidebar, os botões CSV / Excel / Site exportam apena
 
 ---
 
-## Fora do escopo deste roadmap
+---
+
+## Fase 5 — MyAnimeList ✓ concluída
+
+### 5.1 OAuth2 PKCE com MAL ✓
+Autenticação via servidor local `http://localhost:7813` — MAL não aceita custom schemes. Fluxo PKCE com `plain` challenge, sem Client Secret.
+
+### 5.2 Carregar lista de animes ✓
+Busca paralela por status (watching, completed, on_hold, dropped, plan_to_watch), exibição progressiva com pôsteres baixados em lotes de 10.
+
+### 5.3 Editar e sincronizar com o MAL ✓
+Modal com status, nota (0–10) e episódios vistos. PATCH via `fetch` nativo com campo correto `num_watched_episodes`.
+
+### 5.4 Persistência em disco ✓
+Cache em `userData/mal-cache.json` carregado ao iniciar o app. Pôsteres salvos em `userData/mal-posters/` como `data:` URI para funcionar no executável empacotado (contorna CSP).
+
+### 5.5 Busca e adição de animes ✓
+Aba "Adicionar Anime" dentro da página de adicionar título, com busca na API MAL e modal de status/nota/episódios. Detecção de duplicatas com badge "Já na lista" e card de aviso com status atual.
+
+### 5.6 Visualização em lista ✓
+Toolbar com toggle grade/lista e select de ordenação (A→Z, score MAL, minha nota, ano, episódios). Linha de lista com thumbnail, título alternativo, episódios, score MAL e badge de status colorido.
+
+### 5.7 Exportar JSON de animes ✓
+Exporta a lista filtrada para JSON — campo `ongoing: true` para séries sem total de episódios (ex: One Piece).
+
+---
+
+## Fase 6 — Correções e polimento ✓ concluída
+
+### 6.1 Botão Cancelar em "Adicionar" ✓
+Resetava o estado mas não existia na aba Anime. Corrigido: `handleCancel` limpa todo o estado local e navega para o catálogo; aba Anime recebe o botão via prop `onCancel`.
+
+### 6.2 Terminal VSCode travado após fechar app em dev ✓
+`http.createServer` do OAuth ficava com `listen` ativo quando o fluxo não era concluído. Corrigido com `app.on('before-quit')` no Electron. Causa raiz no `dev-runner.js`: `proc.kill()` envia SIGTERM que no Windows é ignorado. Solução: `cmd /c npx vite` + `shell: false` para obter PID real via `wmic`, e `taskkill /pid /f /t` para matar a árvore de processos.
+
+---
+
+## Resultado completo
+
+| # | Fase | Item | Status |
+|---|---|---|---|
+| 1 | 1.1 | Total de resultados filtrados | ✓ |
+| 2 | 1.2 | Limpar filtros | ✓ |
+| 3 | 1.3 | Atalho Ctrl+F | ✓ |
+| 4 | 1.4 | Feedback salvar configurações | ✓ |
+| 5 | 2.1 | Contagem por categoria | ✓ |
+| 6 | 2.2 | Painel de estatísticas | ✓ |
+| 7 | 2.3 | Pôster fallback com cor | ✓ |
+| 8 | 3.1 | Toggle assistido no card | ✓ |
+| 9 | 3.2 | Ordenar coleções | ✓ |
+| 10 | 4.1 | Exportar coleção específica | ✓ |
+| 11 | 5.1 | OAuth2 PKCE MAL | ✓ |
+| 12 | 5.2 | Carregar lista de animes | ✓ |
+| 13 | 5.3 | Editar e sincronizar com MAL | ✓ |
+| 14 | 5.4 | Persistência em disco (cache + pôsteres) | ✓ |
+| 15 | 5.5 | Busca e adição com detecção de duplicatas | ✓ |
+| 16 | 5.6 | Visualização em lista com ordenação | ✓ |
+| 17 | 5.7 | Exportar JSON de animes | ✓ |
+| 18 | 6.1 | Botão Cancelar funcional | ✓ |
+| 19 | 6.2 | Terminal não trava após fechar em dev | ✓ |
+
+---
+
+## Fora do escopo
 
 - Sincronização em nuvem
 - Compartilhamento entre dispositivos
