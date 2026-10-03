@@ -30,11 +30,14 @@ const MAL_SCORE_LABELS = {
 
 const ALL_FORMATS = ['DVD', 'Blu-ray', '4K UHD', 'VHS', 'Digital']
 
-const ALL_CATEGORIES = ['', 'Filme', 'Série', 'Mini-série', 'Documentário', 'Animação', 'Anime', 'Show/Stand-up', 'Musical', 'Esporte', 'Outro']
+const ALL_CATEGORIES = ['', 'Filme', 'Série', 'Mini-série', 'Documentário', 'Animação', 'Anime', 'Show/Stand-up', 'Musical', 'Esporte', 'Streaming', 'Outro']
+
+// Categorias seriadas, onde faz sentido marcar "Assistindo" (em andamento)
+const SERIES_CATEGORIES = ['Série', 'Mini-série', 'Anime', 'Animação']
 
 const EMPTY = {
-  title: '', original_title: '', year: '', format: 'DVD', formats: '',
-  watched_at: '', genre: '', director: '', cast: '', runtime: '',
+  title: '', original_title: '', year: '', format: '', formats: '',
+  watched_at: '', watching: false, genre: '', director: '', cast: '', runtime: '',
   imdb_rating: '', synopsis: '', poster_url: '', language: '', country: '', cover_path: null,
   category: '', tmdb_id: '',
 }
@@ -55,7 +58,7 @@ function omdbToFilme(data, formats) {
     title:          data.Title !== 'N/A' ? data.Title : '',
     original_title: data.Title !== 'N/A' ? data.Title : '',
     year:           data.Year && data.Year !== 'N/A' ? parseInt(data.Year) : null,
-    format:         formats.split(',')[0]?.trim() || 'DVD',
+    format:         formats.split(',')[0]?.trim() || '',
     formats,
     genre:          data.Genre !== 'N/A' ? data.Genre : '',
     director:       data.Director !== 'N/A' ? data.Director : '',
@@ -87,7 +90,7 @@ function tmdbToFilme(data, formats) {
     title:          data.title || data.original_title || '',
     original_title: data.original_title || '',
     year,
-    format:         formats.split(',')[0]?.trim() || 'DVD',
+    format:         formats.split(',')[0]?.trim() || '',
     formats,
     genre:          genres,
     director,
@@ -126,7 +129,7 @@ function tmdbToFilmeTv(data, formats) {
     title:          data.name || data.original_name || '',
     original_title: data.original_name || '',
     year,
-    format:         formats.split(',')[0]?.trim() || 'DVD',
+    format:         formats.split(',')[0]?.trim() || '',
     formats,
     genre:          genres,
     director,
@@ -189,11 +192,13 @@ function fileToBase64(file) {
 
 // ─── Componente principal ─────────────────────────────────────────────────────
 
-export default function AddDiscPage({ settings, editFilme, filmes = [], collections = [], onSaved, showToast, animeList = [], setAnimeList }) {
+export default function AddDiscPage({ settings, editFilme, filmes = [], collections = [], onCollectionsChange, onSaved, showToast, animeList = [], setAnimeList }) {
   const [tab, setTab] = useState('titulo')
   const [mode, setMode] = useState('photo')
   const [filme, setFilme] = useState(editFilme ? { ...editFilme } : { ...EMPTY })
   const [selectedCollections, setSelectedCollections] = useState([])
+  const [creatingCollection, setCreatingCollection] = useState(false)
+  const [newCollectionName, setNewCollectionName] = useState('')
   const [coverPreview, setCoverPreview] = useState(null)
   const [coverFile, setCoverFile] = useState(null)
   const [ocrStatus, setOcrStatus] = useState(null)
@@ -221,6 +226,19 @@ export default function AddDiscPage({ settings, editFilme, filmes = [], collecti
   }, [editFilme])
 
   const setField = useCallback((key, value) => setFilme(f => ({ ...f, [key]: value })), [])
+
+  const handleCreateCollection = useCallback(async () => {
+    const name = newCollectionName.trim()
+    if (!name) { setCreatingCollection(false); return }
+    try {
+      const col = await window.api.colecoesInsert(name)
+      setSelectedCollections(prev => [...prev, col.id])
+      setNewCollectionName(''); setCreatingCollection(false)
+      onCollectionsChange?.()
+    } catch (e) {
+      showToast(e.message || 'Erro ao criar coleção.', 'error')
+    }
+  }, [newCollectionName, onCollectionsChange, showToast])
 
   const handleCancel = useCallback(() => {
     setTab('titulo')
@@ -331,7 +349,7 @@ export default function AddDiscPage({ settings, editFilme, filmes = [], collecti
     }
     setSearching(true)
     try {
-      const formats = filme.formats || filme.format || 'DVD'
+      const formats = filme.formats || filme.format || ''
       let filled
 
       if (item._source === 'tmdb' && settings.tmdbConfigured) {
@@ -410,6 +428,7 @@ export default function AddDiscPage({ settings, editFilme, filmes = [], collecti
 
   const handleSave = useCallback(async () => {
     if (!filme.title.trim()) { showToast('Informe o título.', 'error'); return }
+    if (!filme.category) { showToast('Selecione uma categoria.', 'error'); return }
     setSaving(true)
     try {
       let saved = isEditing
@@ -527,7 +546,7 @@ export default function AddDiscPage({ settings, editFilme, filmes = [], collecti
                     <input type="checkbox" checked={checked} style={{ display: 'none' }} onChange={() => {
                       const next = checked ? selected.filter(x => x !== f) : [...selected, f]
                       setField('formats', next.join(', '))
-                      setField('format', next[0] || f)
+                      setField('format', next[0] || '')
                     }} />
                     {f}
                   </label>
@@ -556,21 +575,63 @@ export default function AddDiscPage({ settings, editFilme, filmes = [], collecti
               style={{ padding: '8px 10px', background: 'var(--bg3)', border: '1px solid var(--border)', borderRadius: '8px', color: 'var(--text)', fontSize: 13, outline: 'none', colorScheme: 'dark' }}
             />
           </div>
-          <div style={{ marginTop: 8 }}>
+          <div style={{ marginTop: 8, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             <label
               className={`format-check ${filme.watched_at ? 'active' : ''}`}
               style={{ cursor: 'pointer' }}
-              onClick={() => setField('watched_at', filme.watched_at ? '' : 'watched')}
+              onClick={() => setFilme(f => ({
+                ...f,
+                watched_at: f.watched_at ? '' : 'watched',
+                // marcar como assistido agora encerra o "assistindo"
+                watching: f.watched_at ? f.watching : false,
+              }))}
             >
               ✓ Assistido
             </label>
+            {SERIES_CATEGORIES.includes(filme.category) && (
+              <label
+                className={`format-check ${filme.watching ? 'active' : ''}`}
+                style={{ cursor: 'pointer' }}
+                onClick={() => setFilme(f => ({
+                  ...f,
+                  watching: !f.watching,
+                  // marcar como assistindo agora desfaz o "assistido"
+                  watched_at: f.watching ? f.watched_at : '',
+                }))}
+              >
+                ▶ Assistindo
+              </label>
+            )}
           </div>
 
           {/* Coleções */}
-          {collections.length > 0 && (
-            <div className="field" style={{ marginTop: 12 }}>
-              <label>Coleções</label>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 4 }}>
+          <div className="field" style={{ marginTop: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <label style={{ margin: 0 }}>Coleções</label>
+              <button
+                type="button"
+                className="btn btn-sm"
+                style={{ fontSize: 11, padding: '2px 8px' }}
+                onClick={() => { setCreatingCollection(true); setNewCollectionName('') }}
+              >
+                + Nova
+              </button>
+            </div>
+
+            {creatingCollection && (
+              <input
+                autoFocus
+                value={newCollectionName}
+                onChange={e => setNewCollectionName(e.target.value)}
+                placeholder="Nome da coleção..."
+                onKeyDown={e => { if (e.key === 'Enter') handleCreateCollection(); if (e.key === 'Escape') setCreatingCollection(false) }}
+                onBlur={handleCreateCollection}
+                style={{ marginTop: 6, width: '100%', padding: '6px 10px', background: 'var(--bg3)', border: '1px solid var(--border)', borderRadius: 6, color: 'var(--text)', fontSize: 12, outline: 'none' }}
+              />
+            )}
+
+            {collections.length > 0 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 6 }}>
                 {collections.map(c => {
                   const checked = selectedCollections.includes(c.id)
                   return (
@@ -585,8 +646,8 @@ export default function AddDiscPage({ settings, editFilme, filmes = [], collecti
                   )
                 })}
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
 
         {/* Direita: modo ativo */}

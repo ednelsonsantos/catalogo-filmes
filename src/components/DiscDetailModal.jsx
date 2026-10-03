@@ -61,6 +61,14 @@ export default function DiscDetailModal({ filme, onClose, onEdit, onDelete }) {
             {filme.imdb_rating && filme.imdb_rating !== 'N/A' && <span style={{ fontSize: 12, color: 'var(--accent)', fontWeight: 600 }}>★ {filme.imdb_rating} IMDb</span>}
           </div>
 
+          {/* Assistindo */}
+          {filme.watching && (
+            <div style={{ fontSize: 12, color: '#4a9eff', display: 'flex', alignItems: 'center', gap: 5 }}>
+              <span>▶</span>
+              <span>Assistindo</span>
+            </div>
+          )}
+
           {/* Assistido em */}
           {filme.watched_at && (
             <div style={{ fontSize: 12, color: 'var(--green)', display: 'flex', alignItems: 'center', gap: 5 }}>

@@ -82,7 +82,12 @@ export default function App() {
 
   const handleToggleWatched = useCallback(async (filme) => {
     const wasWatched = !!filme.watched_at
-    const updated = { ...filme, watched_at: wasWatched ? null : new Date().toISOString().slice(0, 10) }
+    const updated = {
+      ...filme,
+      watched_at: wasWatched ? null : new Date().toISOString().slice(0, 10),
+      // marcar como assistido agora encerra o "assistindo" (não soma nos dois contadores)
+      watching: wasWatched ? filme.watching : false,
+    }
     await window.api.update(updated)
     setFilmes(prev => prev.map(f => f.id === updated.id ? updated : f))
   }, [])
@@ -147,6 +152,7 @@ export default function App() {
             editFilme={editFilme}
             filmes={filmes}
             collections={collections}
+            onCollectionsChange={refreshCollections}
             onSaved={handleSavedFilme}
             showToast={showToast}
             animeList={animeList}

@@ -11,9 +11,11 @@ Aplicativo desktop para catalogar sua coleção pessoal de filmes, séries, docu
 - **OCR local** via Tesseract.js — lê o texto da capa sem internet e sem conta
 - **Busca automática** em OMDb e TMDB simultaneamente — retorna título em PT-BR, sinopse, elenco, nota IMDb, pôster e categoria
 - **Categorias automáticas** — Filme, Série, Mini-série, Documentário, Animação, etc. preenchidas direto da API
-- **Coleções** — agrupe títulos em coleções personalizadas com filtro na sidebar; ordenação por A–Z, mais títulos ou mais recente
-- **Múltiplos formatos** por título — DVD, Blu-ray, 4K UHD, VHS, Digital
+- **Coleções** — agrupe títulos em coleções personalizadas com filtro na sidebar; ordenação por A–Z, mais títulos ou mais recente; crie uma nova coleção direto no formulário de adicionar/editar, sem precisar ir até a sidebar
+- **Múltiplos formatos** por título — DVD, Blu-ray, 4K UHD, VHS, Digital; nenhum vem marcado por padrão, você escolhe o que tem
+- **Categoria obrigatória** — Filme, Série, Mini-série, Documentário, Animação, Anime, Show/Stand-up, Musical, Esporte, Streaming, Outro; o app avisa se tentar salvar sem selecionar uma
 - **Marcar como assistido** com ou sem data, diretamente no card sem abrir o modal
+- **Status "Assistindo"** para Série, Mini-série, Anime e Animação — contador próprio nas estatísticas; marcar como assistido encerra automaticamente o "assistindo" (e vice-versa), sem contar nos dois ao mesmo tempo
 - **Catálogo** com visualização em grade ou lista, filtros por formato, categoria e busca por texto (Ctrl+F)
 - **Pôster fallback** — títulos sem imagem exibem fundo colorido único com iniciais, gerado a partir do título
 - **Estatísticas** — barra com totais por formato, % assistidos e último título adicionado; dropdown de categorias com contagem

@@ -14,6 +14,7 @@ const FILTERS = [
   { id: 'Blu-ray', label: 'Blu-ray' },
   { id: '4K UHD', label: '4K UHD' },
   { id: 'assistidos', label: '✓ Assistidos' },
+  { id: 'assistindo', label: '▶ Assistindo' },
 ]
 
 const ALL_CATEGORIES = ['Filme', 'Série', 'Mini-série', 'Documentário', 'Animação', 'Anime', 'Show/Stand-up', 'Musical', 'Esporte', 'Outro']
@@ -61,6 +62,8 @@ export default function CatalogPage({ filmes, onEdit, onDelete, onToggleWatched,
     }
     if (format === 'assistidos') {
       items = items.filter(f => !!f.watched_at)
+    } else if (format === 'assistindo') {
+      items = items.filter(f => !!f.watching)
     } else if (format !== 'all') {
       items = items.filter(f => (f.formats || f.format || '').split(',').map(x => x.trim()).includes(format))
     }
@@ -107,6 +110,7 @@ export default function CatalogPage({ filmes, onEdit, onDelete, onToggleWatched,
     }
     const uhd = filmes.filter(f => (f.formats || f.format || '').includes('4K UHD')).length
     const watched = filmes.filter(f => !!f.watched_at).length
+    const watching = filmes.filter(f => !!f.watching).length
     const lastAdded = filmes.length ? [...filmes].sort((a, b) => b.id - a.id)[0] : null
     return {
       total: filmes.length,
@@ -115,6 +119,7 @@ export default function CatalogPage({ filmes, onEdit, onDelete, onToggleWatched,
       uhd,
       watched,
       watchedPct: filmes.length ? Math.round((watched / filmes.length) * 100) : 0,
+      watching,
       categoryCounts,
       lastAdded,
     }
@@ -135,6 +140,15 @@ export default function CatalogPage({ filmes, onEdit, onDelete, onToggleWatched,
           <span className="stat-value">{stats.watched}</span>
           <span className="stat-label">Assistidos {stats.total > 0 && <span style={{ fontSize: 10, opacity: 0.7 }}>({stats.watchedPct}%)</span>}</span>
         </div>
+        {stats.watching > 0 && (
+          <>
+            <div className="stat-divider"/>
+            <div className="stat">
+              <span className="stat-value">{stats.watching}</span>
+              <span className="stat-label">Assistindo</span>
+            </div>
+          </>
+        )}
         {stats.lastAdded && (
           <>
             <div className="stat-divider"/>

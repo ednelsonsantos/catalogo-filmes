@@ -136,6 +136,37 @@ Resetava o estado mas não existia na aba Anime. Corrigido: `handleCancel` limpa
 
 ---
 
+## Fase 7 — Status "Assistindo" e coleções no formulário ✓ concluída
+
+### 7.1 Formatos ("Tenho em") sem marcação forçada ✓
+Nenhuma caixa (DVD, Blu-ray, 4K UHD, VHS, Digital) vem marcada por padrão ao buscar ou criar um título — antes "DVD" vinha marcado automaticamente. Corrigido também o bug que impedia desmarcar a última opção selecionada (o campo `format` era reposto com o valor clicado em vez de ficar vazio).
+
+### 7.2 Categoria obrigatória e nova opção "Streaming" ✓
+Salvar sem categoria selecionada mostra aviso e bloqueia o salvamento. Adicionada a categoria **Streaming** à lista.
+
+### 7.3 Status "Assistindo" para séries e animes ✓
+Novo checkbox "▶ Assistindo" ao lado de "✓ Assistido", visível para as categorias Série, Mini-série, Anime e Animação. Campo `watching` persistido no banco (migração automática). Badge exibido nos cards (grade/lista) e no modal de detalhes.
+
+### 7.4 Contador e exclusividade mútua entre "Assistindo" e "Assistido" ✓
+Novo filtro "▶ Assistindo" e contador próprio na barra de estatísticas do catálogo. Marcar algo como assistido (pelo card ou pelo formulário) desliga automaticamente o "assistindo", e vice-versa — o item nunca é contado nos dois ao mesmo tempo.
+
+### 7.5 Criar coleção direto no formulário ✓
+Botão "+ Nova" na seção "Coleções" do formulário de adicionar/editar — cria e nomeia uma coleção sem precisar ir até a sidebar. Lista sempre em ordem alfabética (já ordenada pela consulta no banco).
+
+---
+
+## Resultado — Fase 7
+
+| # | Item | Status |
+|---|---|---|
+| 1 | 7.1 | Formatos sem marcação forçada + fix de desmarcar tudo | ✓ |
+| 2 | 7.2 | Categoria obrigatória + "Streaming" | ✓ |
+| 3 | 7.3 | Status "Assistindo" para séries/animes | ✓ |
+| 4 | 7.4 | Contador + exclusividade mútua assistindo/assistido | ✓ |
+| 5 | 7.5 | Criar coleção no formulário | ✓ |
+
+---
+
 ## Fora do escopo
 
 - Sincronização em nuvem

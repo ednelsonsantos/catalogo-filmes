@@ -33,10 +33,15 @@ tests/
 # Editor
 .vscode/
 .idea/
+.claude/
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
+
+# Exportações geradas pelo próprio app
+/colecao.json
+/meus-animes.json
 
 # Sistema operacional
 Thumbs.db

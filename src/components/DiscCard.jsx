@@ -44,6 +44,7 @@ export default function DiscCard({ filme, viewMode, onClick, onEdit, onDelete, o
         </div>
         <div className="list-right" onClick={e => e.stopPropagation()}>
           <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+            {filme.watching && <span className="format-badge watching-badge">Assistindo</span>}
             {formats.map(f => <span key={f} className="format-badge">{f}</span>)}
           </div>
           {onToggleWatched && (
@@ -80,6 +81,7 @@ export default function DiscCard({ filme, viewMode, onClick, onEdit, onDelete, o
         <span className="format-badge-overlay">
           {[filme.category, ...formats].filter(Boolean).join(' · ') || '—'}
         </span>
+        {filme.watching && <span className="watching-overlay">▶ Assistindo</span>}
         {onToggleWatched && (
           <button
             className={`watched-toggle ${filme.watched_at ? 'watched-toggle--on' : ''}`}

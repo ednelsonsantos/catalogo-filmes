@@ -137,6 +137,7 @@ function createDatabase() {
       format TEXT DEFAULT 'DVD',
       formats TEXT DEFAULT '',
       watched_at TEXT,
+      watching INTEGER DEFAULT 0,
       genre TEXT,
       director TEXT,
       cast TEXT,
@@ -157,6 +158,7 @@ function createDatabase() {
   if (!columns.includes('watched_at')) db.exec('ALTER TABLE filmes ADD COLUMN watched_at TEXT')
   if (!columns.includes('category'))   db.exec("ALTER TABLE filmes ADD COLUMN category TEXT DEFAULT ''")
   if (!columns.includes('tmdb_id'))    db.exec("ALTER TABLE filmes ADD COLUMN tmdb_id TEXT DEFAULT ''")
+  if (!columns.includes('watching'))   db.exec('ALTER TABLE filmes ADD COLUMN watching INTEGER DEFAULT 0')
 
   db.exec(`
     CREATE TABLE IF NOT EXISTS colecoes (
@@ -277,14 +279,14 @@ ipcMain.handle('db:getAll', () =>
 
 ipcMain.handle('db:insert', (_, filme) => {
   const stmt = db.prepare(`
-    INSERT INTO filmes (title, original_title, year, format, formats, watched_at,
+    INSERT INTO filmes (title, original_title, year, format, formats, watched_at, watching,
       genre, director, cast, runtime, imdb_rating, imdb_id, synopsis,
       poster_url, cover_path, language, country, category, tmdb_id)
-    VALUES (@title, @original_title, @year, @format, @formats, @watched_at,
+    VALUES (@title, @original_title, @year, @format, @formats, @watched_at, @watching,
       @genre, @director, @cast, @runtime, @imdb_rating, @imdb_id, @synopsis,
       @poster_url, @cover_path, @language, @country, @category, @tmdb_id)
   `)
-  const result = stmt.run(filme)
+  const result = stmt.run({ ...filme, watching: filme.watching ? 1 : 0 })
   return db.prepare('SELECT * FROM filmes WHERE id = ?').get(result.lastInsertRowid)
 })
 
@@ -292,12 +294,12 @@ ipcMain.handle('db:update', (_, filme) => {
   if (!isPositiveInt(filme.id)) throw new Error('Invalid filme ID')
   db.prepare(`
     UPDATE filmes SET title=@title, original_title=@original_title, year=@year,
-      format=@format, formats=@formats, watched_at=@watched_at,
+      format=@format, formats=@formats, watched_at=@watched_at, watching=@watching,
       genre=@genre, director=@director, cast=@cast, runtime=@runtime,
       imdb_rating=@imdb_rating, imdb_id=@imdb_id, synopsis=@synopsis, poster_url=@poster_url,
       language=@language, country=@country, category=@category, tmdb_id=@tmdb_id
     WHERE id=@id
-  `).run(filme)
+  `).run({ ...filme, watching: filme.watching ? 1 : 0 })
   return db.prepare('SELECT * FROM filmes WHERE id = ?').get(filme.id)
 })
 
