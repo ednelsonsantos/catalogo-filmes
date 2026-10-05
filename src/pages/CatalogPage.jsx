@@ -17,7 +17,7 @@ const FILTERS = [
   { id: 'assistindo', label: '▶ Assistindo' },
 ]
 
-const ALL_CATEGORIES = ['Filme', 'Série', 'Mini-série', 'Documentário', 'Animação', 'Anime', 'Show/Stand-up', 'Musical', 'Esporte', 'Outro']
+const ALL_CATEGORIES = ['Filme', 'Série', 'Mini-série', 'Documentário', 'Animação', 'Anime', 'Show/Stand-up', 'Musical', 'Esporte', 'Streaming', 'Outro']
 
 export default function CatalogPage({ filmes, onEdit, onDelete, onToggleWatched, showToast, selectedCollection }) {
   const [search, setSearch] = useState('')

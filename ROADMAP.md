@@ -153,6 +153,11 @@ Novo filtro "▶ Assistindo" e contador próprio na barra de estatísticas do ca
 ### 7.5 Criar coleção direto no formulário ✓
 Botão "+ Nova" na seção "Coleções" do formulário de adicionar/editar — cria e nomeia uma coleção sem precisar ir até a sidebar. Lista sempre em ordem alfabética (já ordenada pela consulta no banco).
 
+### 7.6 Correções pós-revisão ✓
+Revisão item a item encontrou duas lacunas da Fase 7 que não tinham sido pegas:
+- `CatalogPage.jsx` tinha sua própria lista de categorias (separada da do formulário) e não incluía "Streaming" — dava pra salvar um título nessa categoria, mas não pra filtrar por ela no catálogo.
+- O aviso de duplicata (ao buscar um título já existente na coleção) mostrava "· Assistido" mas nunca "· Assistindo", mesmo quando era o caso.
+
 ---
 
 ## Resultado — Fase 7
@@ -164,6 +169,59 @@ Botão "+ Nova" na seção "Coleções" do formulário de adicionar/editar — c
 | 3 | 7.3 | Status "Assistindo" para séries/animes | ✓ |
 | 4 | 7.4 | Contador + exclusividade mútua assistindo/assistido | ✓ |
 | 5 | 7.5 | Criar coleção no formulário | ✓ |
+| 6 | 7.6 | Correções pós-revisão (categoria no filtro + aviso de duplicata) | ✓ |
+
+---
+
+## Fase 8 — Acompanhamento de episódios ⏳ planejada
+
+Hoje o app só sabe se uma série está "Assistida" ou "Assistindo" como um todo — não sabe em qual episódio você está, nem quantos faltam, nem quando sai o próximo. A TMDB (já integrada) expõe tudo isso; falta usar.
+
+### 8.1 Banco de dados
+- Nova tabela `episodios_assistidos` — guarda só o que foi marcado, não a lista inteira (que vem da TMDB sob demanda):
+  ```sql
+  CREATE TABLE episodios_assistidos (
+    filme_id INTEGER NOT NULL,
+    season_number INTEGER NOT NULL,
+    episode_number INTEGER NOT NULL,
+    watched_at TEXT,
+    PRIMARY KEY (filme_id, season_number, episode_number)
+  )
+  ```
+- Novas colunas em `filmes` (cache leve, evita bater na API toda hora): `episodes_aired`, `episodes_watched_count`, `next_episode_air_date`, `last_episode_check`
+
+### 8.2 Electron / IPC
+- `tmdb:tvSeasonDetails` — `GET /tv/{id}/season/{season_number}`, retorna episódios (número, nome, data de exibição)
+- `episodes:setWatched` / `episodes:getWatched` — grava/lê o progresso local por episódio
+- `episodes:refresh` — busca `next_episode_to_air` / `seasons` na TMDB, recalcula os contadores cacheados em `filmes` e atualiza
+
+### 8.3 Interface
+- Nova aba "Episódios" no modal de detalhes (`DiscDetailModal.jsx`), visível quando o título tem `tmdb_id` e categoria Série/Mini-série/Anime/Animação
+  - Acordeão por temporada, checkbox por episódio; episódios com data futura ficam bloqueados (ainda não foi ao ar)
+  - Botão "Marcar até aqui" (marca tudo da temporada até o episódio clicado)
+  - "Próximo episódio: Ep 5 — 12/10/2026" no topo
+- Badge no card do catálogo: barra "8/12 eps" + ícone 🆕 quando um episódio novo saiu e ainda não foi contabilizado
+- Botão manual "Atualizar episódios" (chama `episodes:refresh` sob demanda, já que seria caro consultar a TMDB pra cada série a cada abertura do app)
+
+### 8.4 Animes (MAL) — ajuste leve, sem API nova
+- Exibir "faltam X episódios" usando dados que o MAL já devolve (`num_episodes − num_episodes_watched`), já carregados em `AnimePage.jsx`
+
+### Ordem de implementação sugerida
+1. **8.1 + 8.2** — schema e busca de temporadas/episódios na TMDB (sem marcar nada ainda, só listar)
+2. **8.3 (parte 1)** — aba "Episódios" com checkboxes funcionando
+3. **8.3 (parte 2)** — contadores cacheados + badge no card + botão de atualizar
+4. **8.4** — exibir "faltam X" para animes (rápido, pode ser feito em paralelo)
+
+---
+
+## Backlog de ideias (não detalhadas ainda)
+
+- **Onde assistir** — badge com os serviços de streaming (Netflix, Prime Video...) via `/tv|movie/{id}/watch/providers` da TMDB. *Nota: isso é só exibir informação, diferente de "integração com serviços de streaming" citado abaixo em Fora do escopo, que seria reprodução/sincronização real.*
+- **Backup completo** — exportar/importar `catalogo.db` + capas num `.zip` (hoje só dá pra exportar CSV/Excel/JSON, que perdem capas e não voltam pro app)
+- **Nota pessoal** separada da nota IMDb, igual já existe pra anime via MAL
+- **Detecção de nova temporada** em séries já marcadas "Assistido"
+- **Notificação nativa do Windows** quando um episódio novo sai
+- **Tags livres** além da categoria fixa, com filtro por tag
 
 ---
 
@@ -171,5 +229,5 @@ Botão "+ Nova" na seção "Coleções" do formulário de adicionar/editar — c
 
 - Sincronização em nuvem
 - Compartilhamento entre dispositivos
-- Integração com serviços de streaming
+- Integração com serviços de streaming (reprodução/sincronização de progresso direto na plataforma)
 - Scanner de código de barras

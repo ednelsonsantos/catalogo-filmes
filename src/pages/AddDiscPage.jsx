@@ -757,6 +757,7 @@ export default function AddDiscPage({ settings, editFilme, filmes = [], collecti
                       Adicionado em {duplicateWarning.created_at?.slice(0, 10) || '—'}
                       {duplicateWarning.formats ? ` · ${duplicateWarning.formats}` : ''}
                       {duplicateWarning.watched_at ? ' · Assistido' : ''}
+                      {duplicateWarning.watching ? ' · Assistindo' : ''}
                     </p>
                   </div>
                   <button
