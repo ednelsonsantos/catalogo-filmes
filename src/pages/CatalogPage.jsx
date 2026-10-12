@@ -58,9 +58,11 @@ export default function CatalogPage({ filmes, onEdit, onDelete, onToggleWatched,
     for (let i = 0; i < targets.length; i++) {
       const f = targets[i]
       try {
-        // Títulos já marcados "Assistido" (de antes dessa funcionalidade existir) são sincronizados
-        // como totalmente vistos — "Assistido" sempre implicou "vi tudo", só não estava registrado episódio a episódio
-        const updated = await window.api.episodesRefresh({ filmeId: f.id, tmdbId: f.tmdb_id, markAllWatched: !!f.watched_at })
+        // Marca tudo como visto automaticamente só no catch-up único de título "Assistido" legado
+        // (nunca teve nenhum episódio registrado ainda). Se já tem episódios marcados, não mexe —
+        // senão uma temporada nova lançada depois seria marcada como vista sem o usuário ter assistido
+        const isLegacyWatched = !!f.watched_at && (f.episodes_watched_count || 0) === 0
+        const updated = await window.api.episodesRefresh({ filmeId: f.id, tmdbId: f.tmdb_id, markAllWatched: isLegacyWatched })
         onFilmeUpdated?.(updated)
         okCount++
       } catch {

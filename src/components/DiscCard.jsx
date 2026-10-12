@@ -10,7 +10,9 @@ function getEpisodeInfo(filme) {
   const watched = filme.episodes_watched_count || 0
   const today = new Date().toISOString().slice(0, 10)
   const isNew = !!filme.next_episode_air_date && filme.next_episode_air_date <= today
-  return { label: `${watched}/${filme.episodes_aired} eps`, isNew }
+  // "Assistido" mas ficou pra trás dos episódios aferidos = saiu temporada nova depois que foi marcado
+  const newSeason = !!filme.watched_at && watched < filme.episodes_aired
+  return { label: `${watched}/${filme.episodes_aired} eps`, isNew, newSeason }
 }
 
 export default function DiscCard({ filme, viewMode, onClick, onEdit, onDelete, onToggleWatched }) {
@@ -54,6 +56,7 @@ export default function DiscCard({ filme, viewMode, onClick, onEdit, onDelete, o
         <div className="list-right" onClick={e => e.stopPropagation()}>
           <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
             {!!filme.watching && <span className="format-badge watching-badge">Assistindo</span>}
+            {episodeInfo?.newSeason && <span className="format-badge new-season-badge">📺 Nova temporada</span>}
             {episodeInfo && (
               <span className="format-badge episode-badge">
                 {episodeInfo.isNew ? '🆕 ' : ''}{episodeInfo.label}
@@ -98,6 +101,7 @@ export default function DiscCard({ filme, viewMode, onClick, onEdit, onDelete, o
         {(!!filme.watching || episodeInfo) && (
           <div className="bottom-left-stack">
             {!!filme.watching && <span className="watching-overlay">▶ Assistindo</span>}
+            {episodeInfo?.newSeason && <span className="episode-overlay" style={{ background: 'rgba(245,158,11,0.9)' }}>📺 Nova temporada</span>}
             {episodeInfo && (
               <span className="episode-overlay">{episodeInfo.isNew ? '🆕 ' : ''}{episodeInfo.label}</span>
             )}

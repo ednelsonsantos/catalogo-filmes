@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react'
-
-const WEEKDAY_INDEX = { sunday: 0, monday: 1, tuesday: 2, wednesday: 3, thursday: 4, friday: 5, saturday: 6 }
+import { WEEKDAY_INDEX } from '../constants.js'
 
 function nextDateForWeekday(dayName) {
   const idx = WEEKDAY_INDEX[dayName]

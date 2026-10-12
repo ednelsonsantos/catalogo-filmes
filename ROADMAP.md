@@ -381,16 +381,23 @@ Tudo no app vive só localmente — sem isso, um disco com defeito leva a coleç
 - Dependência nova: `adm-zip` (JS puro, sem compilação nativa)
 - Testado sem precisar da UI: mecânica de zip/extração validada à parte (133 entradas, checksum SHA-256 do `catalogo.db` idêntico antes/depois do round-trip) — só o fluxo com os diálogos nativos de arquivo fica pendente de confirmação manual, já que não dá pra automatizar clique em diálogo do SO
 
+### 13.3 Notificação nativa + detecção de nova temporada (v1.5.0) ✓
+- **Notificação do Windows**: ao abrir o app, verifica séries "Assistindo" com episódio saindo hoje e animes do MAL com `broadcast` batendo com o dia da semana atual — dispara uma notificação nativa via `Notification` do navegador (funciona direto no Electron, sem precisar de nenhum código no processo principal)
+- **Nova temporada em série "Assistido"**: mesma checagem na abertura do app notifica quando uma série marcada como totalmente assistida tem `episodes_aired` maior que o que está registrado como visto — sinal de que saiu conteúdo novo depois que foi marcada
+- Badge "📺 Nova temporada" no card (grade e lista), complementando a notificação pra quem não vê ela a tempo
+- **Correção necessária na Fase 10.7**: a atualização em massa marcava *toda vez* um título "Assistido" como 100% visto — isso escondia silenciosamente qualquer temporada nova (já virava "visto" antes mesmo de detectar). Agora só marca tudo automaticamente no catch-up único de título legado (nunca teve nenhum episódio registrado) — depois disso, atualizações futuras só atualizam a contagem `episodes_aired`, sem forçar o "visto" de novo
+- Mapa `WEEKDAY_INDEX` extraído pra `constants.js`, compartilhado entre `ContinuePage.jsx` e `App.jsx`
+- Testado: dados reais do catálogo não geram falso positivo (nenhuma das 8 séries "Assistido" hoje tem gap entre aferido e visto) — confirma que a correção da 10.7 preservou o estado correto sem reintroduzir o bug original (Oz continua 56/56)
+
 ---
 
 ## Backlog de ideias (não detalhadas ainda)
 
 - ~~**⚠ Risco:** categoria "Animação" tratada como série pra fins de episódios, mesmo quando é um filme avulso~~ — **corrigido na v1.3.1**, ver Fase 13.1
 - **Onde assistir** — badge com os serviços de streaming (Netflix, Prime Video...) via `/tv|movie/{id}/watch/providers` da TMDB. *Nota: isso é só exibir informação, diferente de "integração com serviços de streaming" citado abaixo em Fora do escopo, que seria reprodução/sincronização real.*
-- **Backup completo** — exportar/importar `catalogo.db` + capas num `.zip` (hoje só dá pra exportar CSV/Excel/JSON, que perdem capas e não voltam pro app)
+- ~~**Backup completo**~~ — **feito na v1.4.0**, ver Fase 13.2
 - **Nota pessoal** separada da nota IMDb, igual já existe pra anime via MAL
-- **Detecção de nova temporada** em séries já marcadas "Assistido"
-- **Notificação nativa do Windows** quando um episódio novo sai
+- ~~**Detecção de nova temporada**~~ / ~~**Notificação nativa do Windows**~~ — **feitas na v1.5.0**, ver Fase 13.3
 - **Tags livres** além da categoria fixa, com filtro por tag
 
 ---

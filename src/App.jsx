@@ -6,9 +6,31 @@ import AddDiscPage from './pages/AddDiscPage.jsx'
 import SettingsPage from './pages/SettingsPage.jsx'
 import AnimePage from './pages/AnimePage.jsx'
 import Toast from './components/Toast.jsx'
-import { SERIES_CATEGORIES } from './constants.js'
+import { SERIES_CATEGORIES, WEEKDAY_INDEX } from './constants.js'
 import appIcon from '../icon.png'
 import './App.css'
+
+// Notifica (uma vez por abertura do app) episódios que saem hoje e temporadas novas em séries já "Assistido"
+function notifyNewEpisodes(filmes, animeList) {
+  if (typeof Notification === 'undefined' || Notification.permission === 'denied') return
+  const today = new Date().toISOString().slice(0, 10)
+  const todayWeekday = new Date().getDay()
+
+  const releasesTodayFilmes = filmes.filter(f => !!f.watching && f.next_episode_air_date === today)
+  const releasesTodayAnimes = animeList.filter(a =>
+    a.list_status?.status === 'watching' &&
+    a.node.status === 'currently_airing' &&
+    WEEKDAY_INDEX[a.node.broadcast?.day_of_the_week] === todayWeekday
+  )
+  const newSeasons = filmes.filter(f =>
+    !!f.watched_at && f.episodes_aired != null && (f.episodes_watched_count || 0) < f.episodes_aired
+  )
+
+  const notify = (title, body) => { try { new Notification(title, { body }) } catch {} }
+  releasesTodayFilmes.forEach(f => notify('🆕 Novo episódio hoje', f.title))
+  releasesTodayAnimes.forEach(a => notify('🆕 Novo episódio hoje', a.node.title))
+  newSeasons.forEach(f => notify('📺 Nova temporada disponível', f.title))
+}
 
 export default function App() {
   const [page, setPage] = useState('catalog')
@@ -43,6 +65,7 @@ export default function App() {
         // abre direto em "Continuando" se há algo em andamento, senão cai no catálogo como sempre
         const hasWatching = all.some(f => !!f.watching) || (cachedAnimes || []).some(a => a.list_status?.status === 'watching')
         if (hasWatching) setPage('continue')
+        notifyNewEpisodes(all, cachedAnimes || [])
       } catch (e) { console.error(e) }
       finally {
         const elapsed = Date.now() - start
