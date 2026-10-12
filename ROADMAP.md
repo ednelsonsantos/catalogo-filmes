@@ -467,6 +467,13 @@ Refatoração sem mudança de comportamento: de **1.411 para 540 linhas**. A pá
 - `src/components/add/`: `CoverPicker` (capa + arrastar + status do OCR, com o estado de "arrastando" dentro dele), `TitleSearchPanel` (busca, resultados, aviso de ambiguidade e de duplicata), `FormFields`, `ProgressSelector`, `CollectionsPicker` e `TagsPicker` (cada um com seu próprio estado de "criando"/"removendo"), `AnimeSearchSection` e `AnimeAddModal` (com as constantes do MAL, que só eles usam)
 - Os blocos foram recortados por intervalo exato de linhas com um script (sem redigitar código) e a suíte de 20 testes de interface passou igual antes e depois — incluindo os 5 testes de adicionar título escritos justamente pra proteger esta mudança
 
+### 14.5 Tela de Estatísticas (v1.11.0) ✓
+- Nova aba "Estatísticas" na sidebar. Cálculo em funções puras (`src/utils/stats.js`) sobre os dados que o app já carrega; só os episódios por mês vêm de um IPC novo (`stats:episodesByMonth`, agrupado no SQLite)
+- Cartões: títulos, assistidos (%), **horas assistidas** (filme assistido = duração; série = episódios vistos × duração do episódio, lida de "45 min/ep"), episódios vistos, nota pessoal média. Títulos sem duração cadastrada são contados à parte e avisados; animes não entram nas horas (a lista do MAL não traz a duração)
+- Gráficos de barra em CSS puro (sem biblioteca nova): gêneros, categorias, formatos, décadas, minhas notas, séries em andamento (vistos/lançados), animes por status
+- **Decisão pelos dados reais**: quase todos os títulos assistidos estão sem data (`watched_at = 'watched'`) e os 305 episódios foram marcados em lote no mesmo mês — um gráfico "por mês" como destaque mostraria uma barra só. A atividade dos 12 meses ficou como seção secundária, avisando quantos títulos estão sem data e que marcações em lote contam no mês em que foram feitas
+- Testes: dados conhecidos (horas = 120 + 90 + 6 × 45 = 480 min → 8 h, título sem duração avisado, média 7, empates de formato em ordem alfabética, décadas, notas, 12 colunas de atividade, títulos sem data) e coleção vazia sem quebrar. Conferido visualmente com o catálogo real (só leitura)
+
 ### 14.4 `safe.directory` do git ✓
 A pasta do projeto pertence a outro usuário do Windows (SID diferente, provavelmente de uma instalação anterior), e o git recusava rodar ("dubious ownership"). Registrada com `git config --global --add safe.directory "E:/Projetos aplicativos/catalogo-filmes"` — o git volta a funcionar sem o `-c safe.directory=...` em cada comando
 

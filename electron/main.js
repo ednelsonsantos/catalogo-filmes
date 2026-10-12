@@ -418,6 +418,13 @@ ipcMain.handle('db:getAll', () =>
   `).all()
 )
 
+ipcMain.handle('stats:episodesByMonth', () =>
+  db.prepare(`
+    SELECT substr(watched_at, 1, 7) AS month, COUNT(*) AS count
+    FROM episodios_assistidos WHERE watched_at IS NOT NULL GROUP BY month
+  `).all()
+)
+
 // Campos opcionais: um título preenchido à mão não traz imdb_id/tmdb_id e o SQLite recusa parâmetro ausente
 const FILME_INSERT_DEFAULTS = {
   original_title: '', year: null, format: '', formats: '', watched_at: '', watching: false,

@@ -7,6 +7,7 @@ contextBridge.exposeInMainWorld('api', {
   update:            (f)      => ipcRenderer.invoke('db:update', f),
   delete:            (id)     => ipcRenderer.invoke('db:delete', id),
   search:            (q)      => ipcRenderer.invoke('db:search', q),
+  statsEpisodesByMonth: ()    => ipcRenderer.invoke('stats:episodesByMonth'),
 
   // OMDb — apiKey omitted: kept only in main process
   omdbSearch:        (p)      => ipcRenderer.invoke('omdb:search', p),

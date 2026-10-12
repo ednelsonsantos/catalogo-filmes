@@ -40,6 +40,12 @@ const IconAnime = () => (
     <path d="M5 7l2 1M19 7l-2 1"/>
   </svg>
 )
+const IconChart = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+    <line x1="4" y1="20" x2="20" y2="20"/>
+    <rect x="5" y="11" width="3" height="7"/><rect x="10.5" y="6" width="3" height="12"/><rect x="16" y="13" width="3" height="5"/>
+  </svg>
+)
 const IconPencil = () => (
   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
     <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
@@ -136,6 +142,12 @@ export default function Sidebar({ page, setPage, count, animeCount, continueCoun
         >
           <IconAnime /><span>Animes</span>
           {animeCount > 0 && <span className="nav-count">{animeCount}</span>}
+        </button>
+        <button
+          className={`nav-item ${page === 'stats' ? 'active' : ''}`}
+          onClick={() => { setPage('stats'); onSelectCollection(null) }}
+        >
+          <IconChart /><span>Estatísticas</span>
         </button>
 
         {/* Coleções */}

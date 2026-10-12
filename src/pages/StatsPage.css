@@ -1,0 +1,26 @@
+.stat-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin-bottom: 16px; }
+.stat-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 16px; }
+.stat-card-value { font-size: 26px; font-weight: 700; color: var(--accent); line-height: 1.1; }
+.stat-card-label { font-size: 12px; color: var(--text2); margin-top: 4px; }
+.stat-card-hint { font-size: 11px; color: var(--text3); margin-top: 6px; line-height: 1.4; }
+
+.stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 12px; margin-bottom: 12px; }
+.stats-section h2 { font-size: 14px; font-weight: 600; margin-bottom: 12px; color: var(--text); }
+.stats-empty { font-size: 12px; color: var(--text3); }
+.stats-sub { font-size: 11px; color: var(--text3); margin-top: 10px; line-height: 1.6; }
+
+.bar-row { display: grid; grid-template-columns: 120px 1fr 52px; align-items: center; gap: 8px; margin-bottom: 6px; }
+.bar-label { font-size: 12px; color: var(--text2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bar-track { height: 8px; background: var(--bg4); border-radius: 99px; overflow: hidden; }
+.bar-fill { height: 100%; background: var(--accent); border-radius: 99px; transition: width 0.3s; }
+.bar-fill-progress { background: var(--blue); }
+.bar-value { font-size: 12px; color: var(--text3); text-align: right; font-variant-numeric: tabular-nums; }
+
+.activity-chart { display: flex; align-items: flex-end; gap: 6px; height: 140px; }
+.activity-col { flex: 1; display: flex; flex-direction: column; align-items: center; height: 100%; }
+.activity-bars { flex: 1; width: 100%; display: flex; align-items: flex-end; justify-content: center; gap: 2px; }
+.activity-bar { width: 40%; min-height: 0; border-radius: 3px 3px 0 0; }
+.activity-titles, .legend-titles { background: var(--accent); }
+.activity-episodes, .legend-episodes { background: var(--blue); }
+.activity-label { font-size: 10px; color: var(--text3); margin-top: 4px; }
+.legend { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 4px; vertical-align: middle; }

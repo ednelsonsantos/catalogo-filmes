@@ -5,6 +5,7 @@ import ContinuePage from './pages/ContinuePage.jsx'
 import AddDiscPage from './pages/AddDiscPage.jsx'
 import SettingsPage from './pages/SettingsPage.jsx'
 import AnimePage from './pages/AnimePage.jsx'
+import StatsPage from './pages/StatsPage.jsx'
 import Toast from './components/Toast.jsx'
 import { SERIES_CATEGORIES, WEEKDAY_INDEX } from './constants.js'
 import appIcon from '../icon.png'
@@ -247,6 +248,7 @@ export default function App() {
         {page === 'animes' && (
           <AnimePage settings={settings} showToast={showToast} animeList={animeList} setAnimeList={setAnimeList} />
         )}
+        {page === 'stats' && <StatsPage filmes={filmes} animeList={animeList} />}
         {page === 'settings' && (
           <SettingsPage settings={settings} showToast={showToast} appVersion={appVersion} updateStatus={updateStatus} onCheckUpdates={checkForUpdates} onSave={async (s) => {
             await window.api.saveSettings(s)
