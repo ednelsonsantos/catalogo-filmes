@@ -418,7 +418,16 @@ ipcMain.handle('db:getAll', () =>
   `).all()
 )
 
-ipcMain.handle('db:insert', (_, filme) => {
+// Campos opcionais: um título preenchido à mão não traz imdb_id/tmdb_id e o SQLite recusa parâmetro ausente
+const FILME_INSERT_DEFAULTS = {
+  original_title: '', year: null, format: '', formats: '', watched_at: '', watching: false,
+  genre: '', director: '', cast: '', runtime: '', imdb_rating: '', imdb_id: '', synopsis: '',
+  poster_url: '', cover_path: null, language: '', country: '', category: '', tmdb_id: '',
+  tmdb_media_type: '', my_rating: null,
+}
+
+ipcMain.handle('db:insert', (_, input) => {
+  const filme = { ...FILME_INSERT_DEFAULTS, ...input }
   const stmt = db.prepare(`
     INSERT INTO filmes (title, original_title, year, format, formats, watched_at, watching,
       genre, director, cast, runtime, imdb_rating, imdb_id, synopsis,

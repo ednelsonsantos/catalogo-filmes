@@ -456,6 +456,11 @@ Ordem combinada: 14.1 testes de interface → 14.2 atualização automática →
 - Testes (`e2e/atualizacao.spec.js`, servidor HTTP local com um "instalador" de bytes aleatórios): versão nova baixa sozinha e mostra o aviso; já atualizado; servidor fora do ar; desligado em dev. Os testes também pegaram dois problemas reais: o aviso cobria o botão "Configurações" da sidebar (movido pra direita dela) e o erro mostrava o stack trace inteiro
 - Conferido no app empacotado: `electron-updater` dentro do `app.asar`, consulta ao GitHub funcionando ("nenhuma versão publicada" enquanto não houver release)
 
+### Correção: "Preencher manualmente" não salvava (entra na v1.10.0)
+- Achado pelos testes novos de adicionar título (`e2e/adicionar.spec.js`), escritos pra proteger a divisão do `AddDiscPage.jsx`: salvar um título preenchido à mão (sem passar pela busca) sempre dava "Erro ao salvar." — o objeto vazio do formulário não tinha `imdb_id` e o `better-sqlite3` recusa parâmetro nomeado ausente (`Missing named parameter "imdb_id"`). Só funcionava quando a busca preenchia o campo
+- Corrigido nos dois lados: `imdb_id` no objeto vazio do formulário e valores padrão pra todos os campos opcionais no `db:insert` (o `db:update` continua exigindo todos, pra nunca apagar um campo em silêncio)
+- Testes novos: preencher manualmente (validações de título/categoria, formatos, nota, coleção criada na hora), "Assistido"/"Assistindo" na edição, aba de anime sem MAL, busca de série na TMDB com progresso informado ao adicionar, aviso de título já na coleção
+
 ---
 
 ## Backlog de ideias (não detalhadas ainda)

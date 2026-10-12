@@ -38,7 +38,7 @@ const ALL_CATEGORIES = ['', 'Filme', 'Série', 'Mini-série', 'Documentário', '
 const EMPTY = {
   title: '', original_title: '', year: '', format: '', formats: '',
   watched_at: '', watching: false, genre: '', director: '', cast: '', runtime: '',
-  imdb_rating: '', synopsis: '', poster_url: '', language: '', country: '', cover_path: null,
+  imdb_rating: '', imdb_id: '', synopsis: '', poster_url: '', language: '', country: '', cover_path: null,
   category: '', tmdb_id: '', tmdb_media_type: '', my_rating: '',
 }
 
