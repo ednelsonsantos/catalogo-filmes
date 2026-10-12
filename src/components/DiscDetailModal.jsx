@@ -11,11 +11,11 @@ export default function DiscDetailModal({ filme, onClose, onEdit, onDelete, onUp
 
   useEffect(() => {
     setProviders([])
-    if (!liveFilme.tmdb_id || !liveFilme.tmdb_media_type) return
-    window.api.tmdbWatchProviders({ id: Number(liveFilme.tmdb_id), mediaType: liveFilme.tmdb_media_type })
+    if (!liveFilme.tmdb_id && !liveFilme.imdb_id) return
+    window.api.tmdbWatchProviders(liveFilme.id)
       .then(setProviders)
       .catch(() => setProviders([]))
-  }, [liveFilme.tmdb_id, liveFilme.tmdb_media_type])
+  }, [liveFilme.id, liveFilme.tmdb_id, liveFilme.imdb_id])
 
   useEffect(() => {
     const load = async () => {

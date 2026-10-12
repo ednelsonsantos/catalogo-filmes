@@ -703,7 +703,7 @@ export default function AddDiscPage({ settings, editFilme, filmes = [], collecti
 
           {!!filme.watching && filme.tmdb_id && filme.tmdb_media_type === 'tv' && SERIES_CATEGORIES.includes(filme.category) && tvSeasonsMeta?.length > 0 && (
             <div style={{ marginTop: 8, display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-              <span style={{ fontSize: 12, color: 'var(--text3)' }}>Estou em:</span>
+              <span style={{ fontSize: 12, color: 'var(--text3)' }}>Próximo a assistir:</span>
               <select
                 value={currentSeason}
                 onChange={e => { setCurrentSeason(Number(e.target.value)); setCurrentEpisode(1); setProgressTouched(true) }}
@@ -723,7 +723,7 @@ export default function AddDiscPage({ settings, editFilme, filmes = [], collecti
                 ))}
               </select>
               {isEditing && progressTouched && (
-                <span style={{ fontSize: 11, color: 'var(--text3)' }}>marca tudo até aqui ao salvar</span>
+                <span style={{ fontSize: 11, color: 'var(--text3)' }}>ao salvar, marca como visto tudo antes deste e desmarca o que vier depois</span>
               )}
             </div>
           )}

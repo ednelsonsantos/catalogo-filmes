@@ -413,6 +413,14 @@ Badge de streaming no modal de detalhes, só exibindo informação (sem reprodu�
 - Exibe os logos dos serviços (Netflix, Globoplay, Prime Video...) direto da CDN de imagens da TMDB; nada aparece se não houver nenhum serviço de assinatura disponível na região
 - Testado: chamada direta à API confirmada com dados reais do catálogo (ex: "Origem" → Globoplay; "Oz" → nenhum, sem erro); build e modo dev sem erros
 
+### 13.7 Correções do teste manual (v1.8.2) ✓
+Achados do roteiro de testes feito pelo usuário antes de compilar:
+- **Tags duplicadas por maiúscula/minúscula** ("Romance"/"romance"): o `UNIQUE` do SQLite diferencia caixa, então o fallback `COLLATE NOCASE` nunca disparava. Agora o `tags:insert` procura sem diferenciar caixa antes de inserir, há um índice único `name COLLATE NOCASE`, e uma migração junta as duplicatas existentes (fica a mais antiga, associações migradas)
+- **"Onde assistir" vazio em títulos antigos**: 30 filmes buscados pela TMDB antes da v1.3.1 estavam com `tmdb_media_type = ''`. Backfill pra `'movie'` (categoria não seriada + `imdb_id` preenchido, que a busca de série nunca preenche). Os 6 adicionados só via OMDb (sem `tmdb_id`) são resolvidos sob demanda via `/find/{imdb_id}` ao abrir o detalhe, e o vínculo é salvo. O IPC `tmdb:watchProviders` passou a receber o ID do título
+- **Progresso não voltava atrás**: um "✓ Visto" errado (ex: Smallville com T3E14 marcado solto) puxava o "próximo" pra frente, e nem o seletor nem o "até aqui" removiam a marcação. O seletor virou "Próximo a assistir" (igual ao que já vinha pré-preenchido) e ao salvar marca tudo antes e **desmarca o que vier depois**. O `episodes:getNextUp` agora parte do episódio mais avançado visto, então lacunas em temporadas antigas não mandam mais de volta pro T1E1
+- **Ordenação "Minha nota"**: maior primeiro, empate em ordem alfabética, sem nota no fim (antes "sem nota" e nota 0 empatavam)
+- **Notificações do Windows**: faltava `app.setAppUserModelId` (precisa bater com o `appId` do instalador). No modo dev o Windows pode continuar sem exibir, já que não existe atalho instalado com esse ID
+
 ---
 
 ## Backlog de ideias (não detalhadas ainda)

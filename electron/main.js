@@ -219,6 +219,27 @@ function createDatabase() {
       PRIMARY KEY (filme_id, tag_id)
     )
   `)
+
+  // Tags que só diferem em maiúsculas/minúsculas ("Romance"/"romance") viram uma só: fica a mais antiga
+  db.transaction(() => {
+    const dupes = db.prepare(`
+      SELECT t.id AS dupId, (SELECT MIN(k.id) FROM tags k WHERE k.name = t.name COLLATE NOCASE) AS keepId
+      FROM tags t
+    `).all().filter(r => r.dupId !== r.keepId)
+    for (const { dupId, keepId } of dupes) {
+      db.prepare('INSERT OR IGNORE INTO filme_tag (filme_id, tag_id) SELECT filme_id, ? FROM filme_tag WHERE tag_id = ?').run(keepId, dupId)
+      db.prepare('DELETE FROM filme_tag WHERE tag_id = ?').run(dupId)
+      db.prepare('DELETE FROM tags WHERE id = ?').run(dupId)
+    }
+  })()
+  db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_tags_name_nocase ON tags(name COLLATE NOCASE)')
+
+  // Filmes buscados pela TMDB antes da v1.3.1 ficaram sem tipo; a busca de série nunca preenche imdb_id
+  db.prepare(`
+    UPDATE filmes SET tmdb_media_type = 'movie'
+    WHERE tmdb_media_type = '' AND tmdb_id != '' AND COALESCE(imdb_id, '') != ''
+      AND category NOT IN ('Série','Mini-série','Anime','Animação')
+  `).run()
 }
 
 // ─── WINDOW ───────────────────────────────────────────────────────────────────
@@ -296,6 +317,8 @@ function createWindow() {
 }
 
 app.commandLine.appendSwitch('disable-features', 'Autofill')
+// Sem isso o Windows não exibe as notificações do app (precisa bater com o appId do atalho do instalador)
+if (process.platform === 'win32') app.setAppUserModelId('com.ednelson.meu-catalogo')
 
 app.whenReady().then(() => {
   createDatabase()
@@ -435,15 +458,10 @@ ipcMain.handle('tags:getAll', () =>
 ipcMain.handle('tags:insert', (_, name) => {
   const n = String(name || '').trim()
   if (!n || n.length > 50) throw new Error('Nome de tag inválido')
-  try {
-    const r = db.prepare('INSERT INTO tags (name) VALUES (?)').run(n)
-    return db.prepare('SELECT * FROM tags WHERE id = ?').get(r.lastInsertRowid)
-  } catch (e) {
-    if (String(e.message).includes('UNIQUE')) {
-      return db.prepare('SELECT * FROM tags WHERE name = ? COLLATE NOCASE').get(n)
-    }
-    throw e
-  }
+  const existing = db.prepare('SELECT * FROM tags WHERE name = ? COLLATE NOCASE').get(n)
+  if (existing) return existing
+  const r = db.prepare('INSERT INTO tags (name) VALUES (?)').run(n)
+  return db.prepare('SELECT * FROM tags WHERE id = ?').get(r.lastInsertRowid)
 })
 
 ipcMain.handle('tags:delete', (_, id) => {
@@ -533,10 +551,25 @@ ipcMain.handle('tmdb:tvSeasonDetails', async (_, { id, season }) => {
 })
 
 // Onde assistir (streaming) — só o que está disponível em modo assinatura (flatrate) na região BR
-ipcMain.handle('tmdb:watchProviders', async (_, { id, mediaType }) => {
+ipcMain.handle('tmdb:watchProviders', async (_, filmeId) => {
   if (!_tmdbKey) throw new Error('TMDB API key not configured')
-  if (!isPositiveInt(id)) throw new Error('Invalid TMDB ID')
-  if (mediaType !== 'movie' && mediaType !== 'tv') throw new Error('Invalid media type')
+  if (!isPositiveInt(filmeId)) throw new Error('Invalid filme ID')
+  const filme = getFilmeById(filmeId)
+  if (!filme) return []
+  let id = Number(filme.tmdb_id) || 0
+  let mediaType = filme.tmdb_media_type
+
+  // Título antigo adicionado só via OMDb: descobre o ID da TMDB pelo IMDb uma vez e salva
+  if (!id && /^tt\d+$/.test(filme.imdb_id || '')) {
+    const found = await omdbFetch(`https://api.themoviedb.org/3/find/${filme.imdb_id}?external_source=imdb_id&api_key=${_tmdbKey}`)
+    const movie = found?.movie_results?.[0]
+    const tv = found?.tv_results?.[0]
+    const hit = movie ? { id: movie.id, type: 'movie' } : tv ? { id: tv.id, type: 'tv' } : null
+    if (!hit) return []
+    id = hit.id; mediaType = hit.type
+    db.prepare("UPDATE filmes SET tmdb_id = ?, tmdb_media_type = ? WHERE id = ? AND COALESCE(tmdb_id, '') = ''").run(String(id), mediaType, filmeId)
+  }
+  if (!isPositiveInt(id) || (mediaType !== 'movie' && mediaType !== 'tv')) return []
   const data = await omdbFetch(`https://api.themoviedb.org/3/${mediaType}/${id}/watch/providers?api_key=${_tmdbKey}`)
   const br = data?.results?.BR
   if (!br) return []
@@ -655,7 +688,14 @@ ipcMain.handle('episodes:markProgress', async (_, { filmeId, tmdbId, season, epi
   if (!Number.isInteger(episode) || episode < 1) throw new Error('Invalid episode number')
   const { episodesAired, nextAirDate, seasons } = await fetchTmdbTvSummary(tmdbId)
 
-  bulkInsertWatched(filmeId, pairsUpTo(seasons, season, episode))
+  // "Estou em TxEy" = próximo a assistir: tudo antes fica visto, e marcações depois dele (clique errado) saem
+  db.transaction(() => {
+    db.prepare(`
+      DELETE FROM episodios_assistidos
+      WHERE filme_id = ? AND (season_number > ? OR (season_number = ? AND episode_number >= ?))
+    `).run(filmeId, season, season, episode)
+    bulkInsertWatched(filmeId, pairsUpTo(seasons, season, episode - 1))
+  })()
 
   db.prepare(`
     UPDATE filmes SET episodes_aired = ?, next_episode_air_date = ?, last_episode_check = datetime('now','localtime')
@@ -669,17 +709,23 @@ ipcMain.handle('episodes:getNextUp', async (_, { filmeId, tmdbId }) => {
   if (!tmdbId) throw new Error('Título sem TMDB ID')
   const { seasons, last } = await fetchTmdbTvSummary(tmdbId)
   if (!last) return null // nada foi ao ar ainda
-  const watchedRows = db.prepare('SELECT season_number, episode_number FROM episodios_assistidos WHERE filme_id = ?').all(filmeId)
-  const watchedBySeason = {}
-  for (const r of watchedRows) {
-    watchedBySeason[r.season_number] = Math.max(watchedBySeason[r.season_number] || 0, r.episode_number)
-  }
+  // Próximo = o episódio seguinte ao mais avançado já visto (lacunas antigas não puxam de volta pra T1E1)
+  const furthest = db.prepare(`
+    SELECT season_number, episode_number FROM episodios_assistidos
+    WHERE filme_id = ? AND season_number >= 1
+    ORDER BY season_number DESC, episode_number DESC LIMIT 1
+  `).get(filmeId)
+  const airedIn = (s) => s.season_number < last.season_number ? (s.episode_count || 0)
+    : s.season_number === last.season_number ? last.episode_number : 0
   for (const s of seasons) {
-    const aired = s.season_number < last.season_number ? (s.episode_count || 0)
-      : s.season_number === last.season_number ? last.episode_number : 0
+    const aired = airedIn(s)
     if (aired === 0) continue
-    const watched = watchedBySeason[s.season_number] || 0
-    if (watched < aired) return { season: s.season_number, episode: watched + 1, seasonName: s.name || null }
+    let start = 1
+    if (furthest) {
+      if (s.season_number < furthest.season_number) continue
+      if (s.season_number === furthest.season_number) start = furthest.episode_number + 1
+    }
+    if (start <= aired) return { season: s.season_number, episode: start, seasonName: s.name || null }
   }
   return 'caught_up' // viu tudo que já foi ao ar
 })
