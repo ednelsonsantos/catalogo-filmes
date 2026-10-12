@@ -467,6 +467,9 @@ Refatoração sem mudança de comportamento: de **1.411 para 540 linhas**. A pá
 - `src/components/add/`: `CoverPicker` (capa + arrastar + status do OCR, com o estado de "arrastando" dentro dele), `TitleSearchPanel` (busca, resultados, aviso de ambiguidade e de duplicata), `FormFields`, `ProgressSelector`, `CollectionsPicker` e `TagsPicker` (cada um com seu próprio estado de "criando"/"removendo"), `AnimeSearchSection` e `AnimeAddModal` (com as constantes do MAL, que só eles usam)
 - Os blocos foram recortados por intervalo exato de linhas com um script (sem redigitar código) e a suíte de 20 testes de interface passou igual antes e depois — incluindo os 5 testes de adicionar título escritos justamente pra proteger esta mudança
 
+### 14.4 `safe.directory` do git ✓
+A pasta do projeto pertence a outro usuário do Windows (SID diferente, provavelmente de uma instalação anterior), e o git recusava rodar ("dubious ownership"). Registrada com `git config --global --add safe.directory "E:/Projetos aplicativos/catalogo-filmes"` — o git volta a funcionar sem o `-c safe.directory=...` em cada comando
+
 ---
 
 ## Backlog de ideias (não detalhadas ainda)
