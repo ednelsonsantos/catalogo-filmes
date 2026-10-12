@@ -12,7 +12,7 @@ Aplicativo desktop para catalogar sua coleção pessoal de filmes, séries, docu
 - **Busca automática** em OMDb e TMDB simultaneamente — retorna título em PT-BR, sinopse, elenco, nota IMDb, pôster e categoria
 - **Categorias automáticas** — Filme, Série, Mini-série, Documentário, Animação, etc. preenchidas direto da API
 - **Coleções** — agrupe títulos em coleções personalizadas com filtro na sidebar; ordenação por A–Z, mais títulos ou mais recente; crie uma nova coleção direto no formulário de adicionar/editar, sem precisar ir até a sidebar
-- **Tags livres** — marcação adicional à categoria, sem lista fixa (ex: "natal", "maratona"); crie direto no formulário, com filtro por tag no catálogo
+- **Tags livres** — marcação adicional à categoria, sem lista fixa (ex: "natal", "maratona"); crie direto no formulário (sem duplicar por maiúscula/minúscula), remova pelo ✕ no chip, com filtro por tag no catálogo
 - **Múltiplos formatos** por título — DVD, Blu-ray, 4K UHD, VHS, Digital; nenhum vem marcado por padrão, você escolhe o que tem
 - **Categoria obrigatória** — Filme, Série, Mini-série, Documentário, Animação, Anime, Show/Stand-up, Musical, Esporte, Streaming, Outro; o app avisa se tentar salvar sem selecionar uma
 - **Nota pessoal** (0–10), separada da nota do IMDb — exibida no modal de detalhes e disponível como opção de ordenação no catálogo

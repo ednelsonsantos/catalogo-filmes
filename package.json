@@ -1,6 +1,6 @@
 {
   "name": "catalogo-filmes",
-  "version": "1.8.3",
+  "version": "1.9.0",
   "description": "Catálogo pessoal de filmes, séries, documentários e outros formatos",
   "main": "electron/main.js",
   "scripts": {

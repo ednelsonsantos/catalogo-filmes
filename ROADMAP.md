@@ -427,6 +427,10 @@ Achados do roteiro de testes feito pelo usuário antes de compilar:
 - Clique individual passou a avisar o formulário só depois de gravar no banco (antes o seletor podia ler o estado anterior)
 - Testado no app rodando (Electron com `--remote-debugging-port`, cliques reais na interface via CDP): "até aqui" em T2E13 do Smallville → seletor em T2E14, banco com T1 completa (21) + T2 E1–E13 e T3 desmarcada; marcar/desmarcar T2E14 → seletor T2E15/T2E14; aba Continuando mostrando "Próximo: T2E14"
 
+### 13.9 Remover tag (v1.9.0) ✓
+- ✕ em cada chip de tag no formulário (com `stopPropagation`, pra não alternar a seleção) abre o `ConfirmModal` dizendo de quantos títulos a tag sai; confirmar chama o `tags:delete` já existente (remove associações e a tag), tira a tag da seleção atual e atualiza a lista/contagens
+- Testado na interface via CDP: criar tag → ✕ → Cancelar (nada muda) → ✕ → Remover tag (some da tela e do banco, demais tags intactas)
+
 ---
 
 ## Backlog de ideias (não detalhadas ainda)

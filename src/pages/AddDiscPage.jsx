@@ -2,6 +2,7 @@ import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react'
 import { createWorker } from 'tesseract.js'
 import { SERIES_CATEGORIES } from '../constants.js'
 import EpisodesPanel from '../components/EpisodesPanel.jsx'
+import ConfirmModal from '../components/ConfirmModal.jsx'
 import './AddDiscPage.css'
 
 // ─── Constantes MAL ───────────────────────────────────────────────────────────
@@ -231,6 +232,7 @@ export default function AddDiscPage({ settings, editFilme, filmes = [], collecti
   const [currentEpisode, setCurrentEpisode] = useState(1)
   const [progressTouched, setProgressTouched] = useState(false)
   const [episodesVersion, setEpisodesVersion] = useState(0)
+  const [deletingTag, setDeletingTag] = useState(null)
   const fileRef = useRef()
   const isEditing = !!editFilme
 
@@ -325,6 +327,19 @@ export default function AddDiscPage({ settings, editFilme, filmes = [], collecti
       showToast(e.message || 'Erro ao criar tag.', 'error')
     }
   }, [newTagName, onTagsChange, showToast])
+
+  const confirmDeleteTag = useCallback(async () => {
+    const tag = deletingTag
+    setDeletingTag(null)
+    try {
+      await window.api.tagsDelete(tag.id)
+      setSelectedTags(prev => prev.filter(id => id !== tag.id))
+      onTagsChange?.()
+      showToast(`Tag "${tag.name}" removida.`, 'info')
+    } catch (e) {
+      showToast(e.message || 'Erro ao remover tag.', 'error')
+    }
+  }, [deletingTag, onTagsChange, showToast])
 
   const handleCancel = useCallback(() => {
     setTab('titulo')
@@ -814,10 +829,28 @@ export default function AddDiscPage({ settings, editFilme, filmes = [], collecti
                         checked ? prev.filter(id => id !== t.id) : [...prev, t.id]
                       )}>
                       {t.name}
+                      <span
+                        role="button"
+                        title="Remover esta tag de todos os títulos"
+                        onClick={e => { e.stopPropagation(); setDeletingTag(t) }}
+                        style={{ marginLeft: 6, opacity: 0.6, fontSize: 11, lineHeight: 1 }}
+                      >
+                        ✕
+                      </span>
                     </label>
                   )
                 })}
               </div>
+            )}
+
+            {deletingTag && (
+              <ConfirmModal
+                title="Remover tag"
+                message={`Remover a tag "${deletingTag.name}"? Ela sai de ${deletingTag.count || 0} título(s) que a usam. Os títulos continuam na coleção.`}
+                confirmLabel="Remover tag"
+                onConfirm={confirmDeleteTag}
+                onCancel={() => setDeletingTag(null)}
+              />
             )}
           </div>
         </div>
