@@ -100,7 +100,7 @@ export default function App() {
     let saved = await window.api.update(updated)
 
     // Marcou "Assistido" agora: sincroniza episódios já lançados pra séries/animes da TMDB
-    if (!wasWatched && updated.tmdb_id && SERIES_CATEGORIES.includes(updated.category)) {
+    if (!wasWatched && updated.tmdb_id && updated.tmdb_media_type === 'tv' && SERIES_CATEGORIES.includes(updated.category)) {
       try { saved = await window.api.episodesRefresh({ filmeId: updated.id, tmdbId: updated.tmdb_id, markAllWatched: true }) }
       catch (e) { console.error('Erro ao sincronizar episódios:', e) }
     }

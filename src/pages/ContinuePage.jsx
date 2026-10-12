@@ -21,7 +21,7 @@ function formatDateLabel(iso) {
 }
 
 export default function ContinuePage({ filmes, animeList, setAnimeList, onEdit, onFilmeUpdated, setPage, showToast }) {
-  const watchingFilmes = useMemo(() => filmes.filter(f => !!f.watching && f.tmdb_id), [filmes])
+  const watchingFilmes = useMemo(() => filmes.filter(f => !!f.watching && f.tmdb_id && f.tmdb_media_type === 'tv'), [filmes])
   const watchingAnimes = useMemo(() => animeList.filter(a => a.list_status?.status === 'watching'), [animeList])
 
   const [nextUpMap, setNextUpMap] = useState({})

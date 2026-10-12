@@ -170,6 +170,15 @@ function createDatabase() {
   if (!columns.includes('episodes_aired'))        db.exec('ALTER TABLE filmes ADD COLUMN episodes_aired INTEGER')
   if (!columns.includes('next_episode_air_date'))  db.exec('ALTER TABLE filmes ADD COLUMN next_episode_air_date TEXT')
   if (!columns.includes('last_episode_check'))     db.exec('ALTER TABLE filmes ADD COLUMN last_episode_check TEXT')
+  if (!columns.includes('tmdb_media_type')) {
+    db.exec("ALTER TABLE filmes ADD COLUMN tmdb_media_type TEXT DEFAULT ''")
+    // Backfill: itens que já usam a trilha de episódios (categoria seriada + tmdb_id) quase certamente
+    // têm um ID de série (/tv/), já que é assim que o app sempre buscou episódios até aqui
+    db.exec(`
+      UPDATE filmes SET tmdb_media_type = 'tv'
+      WHERE tmdb_media_type = '' AND tmdb_id != '' AND category IN ('Série','Mini-série','Anime','Animação')
+    `)
+  }
 
   db.exec(`
     CREATE TABLE IF NOT EXISTS episodios_assistidos (
@@ -306,12 +315,12 @@ ipcMain.handle('db:insert', (_, filme) => {
   const stmt = db.prepare(`
     INSERT INTO filmes (title, original_title, year, format, formats, watched_at, watching,
       genre, director, cast, runtime, imdb_rating, imdb_id, synopsis,
-      poster_url, cover_path, language, country, category, tmdb_id)
+      poster_url, cover_path, language, country, category, tmdb_id, tmdb_media_type)
     VALUES (@title, @original_title, @year, @format, @formats, @watched_at, @watching,
       @genre, @director, @cast, @runtime, @imdb_rating, @imdb_id, @synopsis,
-      @poster_url, @cover_path, @language, @country, @category, @tmdb_id)
+      @poster_url, @cover_path, @language, @country, @category, @tmdb_id, @tmdb_media_type)
   `)
-  const result = stmt.run({ ...filme, watching: filme.watching ? 1 : 0 })
+  const result = stmt.run({ ...filme, watching: filme.watching ? 1 : 0, tmdb_media_type: filme.tmdb_media_type || '' })
   return getFilmeById(result.lastInsertRowid)
 })
 
@@ -322,9 +331,10 @@ ipcMain.handle('db:update', (_, filme) => {
       format=@format, formats=@formats, watched_at=@watched_at, watching=@watching,
       genre=@genre, director=@director, cast=@cast, runtime=@runtime,
       imdb_rating=@imdb_rating, imdb_id=@imdb_id, synopsis=@synopsis, poster_url=@poster_url,
-      language=@language, country=@country, category=@category, tmdb_id=@tmdb_id
+      language=@language, country=@country, category=@category, tmdb_id=@tmdb_id,
+      tmdb_media_type=@tmdb_media_type
     WHERE id=@id
-  `).run({ ...filme, watching: filme.watching ? 1 : 0 })
+  `).run({ ...filme, watching: filme.watching ? 1 : 0, tmdb_media_type: filme.tmdb_media_type || '' })
   return getFilmeById(filme.id)
 })
 

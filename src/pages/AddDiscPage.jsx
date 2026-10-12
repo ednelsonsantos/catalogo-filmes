@@ -38,7 +38,7 @@ const EMPTY = {
   title: '', original_title: '', year: '', format: '', formats: '',
   watched_at: '', watching: false, genre: '', director: '', cast: '', runtime: '',
   imdb_rating: '', synopsis: '', poster_url: '', language: '', country: '', cover_path: null,
-  category: '', tmdb_id: '',
+  category: '', tmdb_id: '', tmdb_media_type: '',
 }
 
 const TMDB_IMG = 'https://image.tmdb.org/t/p/w500'
@@ -78,6 +78,7 @@ function omdbToFilme(data, formats) {
     watched_at:     '',
     category:       omdbTypeToCategory(data.Type),
     tmdb_id:        '',
+    tmdb_media_type: '',
   }
 }
 
@@ -110,6 +111,7 @@ function tmdbToFilme(data, formats) {
     watched_at:     '',
     category:       'Filme',
     tmdb_id:        String(data.id || ''),
+    tmdb_media_type: 'movie',
   }
 }
 
@@ -149,6 +151,7 @@ function tmdbToFilmeTv(data, formats) {
     watched_at:     '',
     category:       tmdbTvTypeToCategory(data.type),
     tmdb_id:        String(data.id || ''),
+    tmdb_media_type: 'tv',
   }
 }
 
@@ -240,7 +243,7 @@ export default function AddDiscPage({ settings, editFilme, filmes = [], collecti
 
   // Busca as temporadas (só número + qtd de episódios) pro seletor rápido "estou na temporada X, ep Y"
   useEffect(() => {
-    if (!filme.tmdb_id || !SERIES_CATEGORIES.includes(filme.category)) { setTvSeasonsMeta(null); return }
+    if (!filme.tmdb_id || filme.tmdb_media_type !== 'tv' || !SERIES_CATEGORIES.includes(filme.category)) { setTvSeasonsMeta(null); return }
     let cancelled = false
     window.api.tmdbTvDetails({ id: Number(filme.tmdb_id) })
       .then(data => {
@@ -253,7 +256,7 @@ export default function AddDiscPage({ settings, editFilme, filmes = [], collecti
 
   // Ao editar um título "Assistindo", sugere o próximo episódio não visto em vez de sempre T1E1
   useEffect(() => {
-    if (!isEditing || !filme.watching || !filme.tmdb_id || !SERIES_CATEGORIES.includes(filme.category)) return
+    if (!isEditing || !filme.watching || !filme.tmdb_id || filme.tmdb_media_type !== 'tv' || !SERIES_CATEGORIES.includes(filme.category)) return
     let cancelled = false
     window.api.episodesGetNextUp({ filmeId: filme.id, tmdbId: Number(filme.tmdb_id) })
       .then(res => {
@@ -505,7 +508,7 @@ export default function AddDiscPage({ settings, editFilme, filmes = [], collecti
       }
 
       // Sincroniza episódios pra séries/animes com TMDB
-      if (filme.tmdb_id && SERIES_CATEGORIES.includes(filme.category)) {
+      if (filme.tmdb_id && filme.tmdb_media_type === 'tv' && SERIES_CATEGORIES.includes(filme.category)) {
         const tmdbId = Number(filme.tmdb_id)
         try {
           if (watchedJustChecked && filme.watched_at) {
@@ -681,7 +684,7 @@ export default function AddDiscPage({ settings, editFilme, filmes = [], collecti
             )}
           </div>
 
-          {!!filme.watching && filme.tmdb_id && SERIES_CATEGORIES.includes(filme.category) && tvSeasonsMeta?.length > 0 && (
+          {!!filme.watching && filme.tmdb_id && filme.tmdb_media_type === 'tv' && SERIES_CATEGORIES.includes(filme.category) && tvSeasonsMeta?.length > 0 && (
             <div style={{ marginTop: 8, display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
               <span style={{ fontSize: 12, color: 'var(--text3)' }}>Estou em:</span>
               <select
@@ -886,7 +889,7 @@ export default function AddDiscPage({ settings, editFilme, filmes = [], collecti
             <FormFields filme={filme} setField={setField} />
           )}
 
-          {isEditing && filme.tmdb_id && SERIES_CATEGORIES.includes(filme.category) && (
+          {isEditing && filme.tmdb_id && filme.tmdb_media_type === 'tv' && SERIES_CATEGORIES.includes(filme.category) && (
             <EpisodesPanel
               filme={filme}
               showToast={showToast}

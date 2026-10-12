@@ -363,9 +363,20 @@ Pra evitar recorrência do caso do Smallville (ID errado escolhido na busca): em
 
 ---
 
+## Fase 13 — Qualidade de dados e proteção (em andamento)
+
+### 13.1 Campo `tmdb_media_type` — distingue filme de série (v1.3.1) ✓
+Risco encontrado na revisão da Fase 10: a categoria "Animação" é usada tanto pra séries animadas quanto pra filmes de animação avulsos, mas o acompanhamento de episódios assumia que qualquer item com `tmdb_id` numa categoria seriada era uma série. Se um filme de animação fosse adicionado com `tmdb_id` de **filme** (namespace separado do de série na TMDB), o painel de episódios buscaria `/tv/{id}` com um ID de outra coisa — sem erro, já que o ID "existe", só que pra um título errado.
+- Nova coluna `tmdb_media_type` (`'movie'` | `'tv'` | `''`) em `filmes`
+- `tmdbToFilme` (busca de filme) seta `'movie'`; `tmdbToFilmeTv` (busca de série) seta `'tv'`; busca via OMDb (sem TMDB) deixa `''`
+- **Migração com backfill**: itens já cadastrados com categoria seriada + `tmdb_id` (que só podem ter chegado lá usando a trilha de série) recebem `tmdb_media_type = 'tv'` automaticamente — testado e confirmado: as 11 séries existentes no catálogo preservaram o acompanhamento de episódios sem precisar reeditar nada
+- Todo ponto que decide "isso tem episódios" (painel de detalhes, seletor de progresso, atualização em massa, painel "Continuando", sincronização ao marcar Assistido) agora exige `tmdb_media_type === 'tv'`, além da categoria
+
+---
+
 ## Backlog de ideias (não detalhadas ainda)
 
-- **⚠ Risco encontrado na revisão (não é bug ativo hoje):** a categoria "Animação" é tratada como "série" pra fins de episódios (`SERIES_CATEGORIES`), mas também é usada pra filmes de animação avulsos (ex: "Demon Slayer: Mugen Train - O Filme" no catálogo atual). Hoje não quebra nada porque esse filme específico não tem `tmdb_id` salvo — mas se algum dia um filme de animação for adicionado com `tmdb_id` de **filme** (não de série), o painel de episódios tentaria buscar `/tv/{id}` com um ID que pertence ao namespace de filmes da TMDB, podendo trazer dados de uma série completamente diferente (sem erro, já que o ID "existe", só que pra outra coisa). Precisa de um campo extra (`tmdb_media_type: 'movie'|'tv'`) pra diferenciar com segurança — adiado por exigir migração de schema.
+- ~~**⚠ Risco:** categoria "Animação" tratada como série pra fins de episódios, mesmo quando é um filme avulso~~ — **corrigido na v1.3.1**, ver Fase 13.1
 - **Onde assistir** — badge com os serviços de streaming (Netflix, Prime Video...) via `/tv|movie/{id}/watch/providers` da TMDB. *Nota: isso é só exibir informação, diferente de "integração com serviços de streaming" citado abaixo em Fora do escopo, que seria reprodução/sincronização real.*
 - **Backup completo** — exportar/importar `catalogo.db` + capas num `.zip` (hoje só dá pra exportar CSV/Excel/JSON, que perdem capas e não voltam pro app)
 - **Nota pessoal** separada da nota IMDb, igual já existe pra anime via MAL

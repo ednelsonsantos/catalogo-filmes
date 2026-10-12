@@ -31,7 +31,7 @@ export default function DiscDetailModal({ filme, onClose, onEdit, onDelete, onUp
   }
 
   const formats = (liveFilme.formats || liveFilme.format || '').split(',').map(f => f.trim()).filter(Boolean)
-  const hasEpisodes = !!liveFilme.tmdb_id && SERIES_CATEGORIES.includes(liveFilme.category)
+  const hasEpisodes = !!liveFilme.tmdb_id && liveFilme.tmdb_media_type === 'tv' && SERIES_CATEGORIES.includes(liveFilme.category)
 
   return (
     <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>

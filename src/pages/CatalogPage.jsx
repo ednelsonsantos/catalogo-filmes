@@ -44,7 +44,7 @@ export default function CatalogPage({ filmes, onEdit, onDelete, onToggleWatched,
   const searchRef = useRef(null)
 
   const trackableFilmes = useMemo(
-    () => filmes.filter(f => f.tmdb_id && SERIES_CATEGORIES.includes(f.category)),
+    () => filmes.filter(f => f.tmdb_id && f.tmdb_media_type === 'tv' && SERIES_CATEGORIES.includes(f.category)),
     [filmes]
   )
 
