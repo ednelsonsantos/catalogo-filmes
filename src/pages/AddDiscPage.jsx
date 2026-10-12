@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback, useEffect } from 'react'
+import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react'
 import { createWorker } from 'tesseract.js'
 import { SERIES_CATEGORIES } from '../constants.js'
 import EpisodesPanel from '../components/EpisodesPanel.jsx'
@@ -44,6 +44,11 @@ const EMPTY = {
 const TMDB_IMG = 'https://image.tmdb.org/t/p/w500'
 
 // ─── OMDb helper ─────────────────────────────────────────────────────────────
+
+// Normaliza um título pra comparação (minúsculo, sem acento) — usado pra avisar sobre resultados parecidos na busca
+function normalizeTitle(s) {
+  return (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim()
+}
 
 function omdbTypeToCategory(type) {
   if (type === 'series')  return 'Série'
@@ -245,6 +250,28 @@ export default function AddDiscPage({ settings, editFilme, filmes = [], collecti
       .catch(() => {})
     return () => { cancelled = true }
   }, [filme.tmdb_id, filme.category])
+
+  // Ao editar um título "Assistindo", sugere o próximo episódio não visto em vez de sempre T1E1
+  useEffect(() => {
+    if (!isEditing || !filme.watching || !filme.tmdb_id || !SERIES_CATEGORIES.includes(filme.category)) return
+    let cancelled = false
+    window.api.episodesGetNextUp({ filmeId: filme.id, tmdbId: Number(filme.tmdb_id) })
+      .then(res => {
+        if (cancelled || !res || res === 'caught_up') return
+        setCurrentSeason(res.season)
+        setCurrentEpisode(res.episode)
+      })
+      .catch(() => {})
+    return () => { cancelled = true }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isEditing, filme.id, filme.tmdb_id, filme.watching])
+
+  // Resultados de busca com título muito parecido — alerta pra conferir o ano antes de escolher
+  // (achado real: um ID errado foi salvo pra uma série por engano numa busca ambígua)
+  const hasAmbiguousResults = useMemo(() => {
+    const names = searchResults.map(r => normalizeTitle(r._source === 'tmdb' ? (r.name || r.title) : r.Title))
+    return names.some((n, i) => n && names.indexOf(n) !== i)
+  }, [searchResults])
 
   const setField = useCallback((key, value) => setFilme(f => ({ ...f, [key]: value })), [])
 
@@ -768,6 +795,11 @@ export default function AddDiscPage({ settings, editFilme, filmes = [], collecti
                   {searching ? 'Buscando...' : 'Buscar'}
                 </button>
               </div>
+              {hasAmbiguousResults && (
+                <div style={{ marginBottom: 10, padding: '8px 12px', background: 'rgba(234,179,8,0.08)', border: '1px solid rgba(234,179,8,0.3)', borderRadius: 8, fontSize: 12, color: '#f59e0b' }}>
+                  ⚠ Vários resultados com nome parecido — confira o ano e o pôster antes de escolher.
+                </div>
+              )}
               {searchResults.length > 0 && (
                 <div className="search-results">
                   {searchResults.map(r => {

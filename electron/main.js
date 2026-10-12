@@ -567,6 +567,26 @@ ipcMain.handle('episodes:markProgress', async (_, { filmeId, tmdbId, season, epi
   return getFilmeById(filmeId)
 })
 
+ipcMain.handle('episodes:getNextUp', async (_, { filmeId, tmdbId }) => {
+  if (!isPositiveInt(filmeId)) throw new Error('Invalid filme ID')
+  if (!tmdbId) throw new Error('Título sem TMDB ID')
+  const { seasons, last } = await fetchTmdbTvSummary(tmdbId)
+  if (!last) return null // nada foi ao ar ainda
+  const watchedRows = db.prepare('SELECT season_number, episode_number FROM episodios_assistidos WHERE filme_id = ?').all(filmeId)
+  const watchedBySeason = {}
+  for (const r of watchedRows) {
+    watchedBySeason[r.season_number] = Math.max(watchedBySeason[r.season_number] || 0, r.episode_number)
+  }
+  for (const s of seasons) {
+    const aired = s.season_number < last.season_number ? (s.episode_count || 0)
+      : s.season_number === last.season_number ? last.episode_number : 0
+    if (aired === 0) continue
+    const watched = watchedBySeason[s.season_number] || 0
+    if (watched < aired) return { season: s.season_number, episode: watched + 1, seasonName: s.name || null }
+  }
+  return 'caught_up' // viu tudo que já foi ao ar
+})
+
 // ─── IPC: SHELL ───────────────────────────────────────────────────────────────
 
 const ALLOWED_EXTERNAL_ORIGINS = [

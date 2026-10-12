@@ -40,6 +40,7 @@ export default function CatalogPage({ filmes, onEdit, onDelete, onToggleWatched,
   const [confirmingDelete, setConfirmingDelete] = useState(null)
   const [exporting, setExporting] = useState(false)
   const [bulkRefreshing, setBulkRefreshing] = useState(null) // { done, total } ou null
+  const [brokenLinks, setBrokenLinks] = useState(null) // [{ id, title }] ou null
   const searchRef = useRef(null)
 
   const trackableFilmes = useMemo(
@@ -51,6 +52,7 @@ export default function CatalogPage({ filmes, onEdit, onDelete, onToggleWatched,
     const targets = trackableFilmes
     if (targets.length === 0) return
     setBulkRefreshing({ done: 0, total: targets.length })
+    setBrokenLinks(null)
     let okCount = 0
     const failed = []
     for (let i = 0; i < targets.length; i++) {
@@ -62,13 +64,13 @@ export default function CatalogPage({ filmes, onEdit, onDelete, onToggleWatched,
         onFilmeUpdated?.(updated)
         okCount++
       } catch {
-        failed.push(f.title)
+        failed.push({ id: f.id, title: f.title })
       }
       setBulkRefreshing({ done: i + 1, total: targets.length })
     }
     setBulkRefreshing(null)
     if (failed.length > 0) {
-      showToast(`${okCount} atualizados. ID inválido/removido em: ${failed.join(', ')} — remova e re-adicione pela busca.`, 'info')
+      setBrokenLinks(failed)
     } else {
       showToast(`${okCount} séries/animes atualizados!`, 'success')
     }
@@ -318,6 +320,34 @@ export default function CatalogPage({ filmes, onEdit, onDelete, onToggleWatched,
           onConfirm={confirmDelete}
           onCancel={() => setConfirmingDelete(null)}
         />
+      )}
+
+      {brokenLinks && (
+        <div
+          onClick={e => e.target === e.currentTarget && setBrokenLinks(null)}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100, padding: 24 }}
+        >
+          <div style={{ background: 'var(--bg2)', borderRadius: 12, width: '100%', maxWidth: 440, border: '1px solid var(--border2)', padding: '20px 20px 16px' }}>
+            <h3 style={{ fontSize: 15, fontWeight: 600, color: 'var(--text)', margin: 0 }}>⚠ Vínculos TMDB quebrados</h3>
+            <p style={{ fontSize: 12, color: 'var(--text2)', lineHeight: 1.6, marginTop: 8 }}>
+              A TMDB não reconhece mais o ID salvo pra estes títulos (pode ter sido mesclado/removido numa limpeza deles). Remova e re-adicione cada um pela busca pra corrigir o vínculo.
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 12, maxHeight: 220, overflowY: 'auto' }}>
+              {brokenLinks.map(b => {
+                const full = filmes.find(f => f.id === b.id)
+                return (
+                  <div key={b.id} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--bg3)', borderRadius: 6, padding: '6px 10px' }}>
+                    <span style={{ flex: 1, fontSize: 13, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{b.title}</span>
+                    <button className="btn btn-sm" onClick={() => { setBrokenLinks(null); if (full) onEdit(full) }}>Editar</button>
+                  </div>
+                )
+              })}
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 16 }}>
+              <button className="btn btn-sm" onClick={() => setBrokenLinks(null)}>Fechar</button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )

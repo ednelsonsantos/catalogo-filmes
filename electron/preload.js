@@ -25,6 +25,7 @@ contextBridge.exposeInMainWorld('api', {
   episodesSetWatchedBulk: (p)      => ipcRenderer.invoke('episodes:setWatchedBulk', p),
   episodesRefresh:       (p)       => ipcRenderer.invoke('episodes:refresh', p),
   episodesMarkProgress:  (p)       => ipcRenderer.invoke('episodes:markProgress', p),
+  episodesGetNextUp:     (p)       => ipcRenderer.invoke('episodes:getNextUp', p),
 
   // Capas
   saveCover:         (p)      => ipcRenderer.invoke('cover:save', p),

@@ -26,6 +26,11 @@ const IconCollection = () => (
     <path d="M19 11H5m14 0a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-6a2 2 0 0 1 2-2m14 0V9a2 2 0 0 0-2-2M5 11V9a2 2 0 0 1 2-2m0 0V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v2M7 7h10"/>
   </svg>
 )
+const IconPlay = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+    <polygon points="6 3 20 12 6 21 6 3" fill="currentColor" stroke="none"/>
+  </svg>
+)
 const IconAnime = () => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
     <circle cx="12" cy="12" r="10"/>
@@ -48,7 +53,7 @@ const IconTrash = () => (
   </svg>
 )
 
-export default function Sidebar({ page, setPage, count, animeCount, onAddNew, collections, selectedCollection, onSelectCollection, onCollectionsChange, showToast }) {
+export default function Sidebar({ page, setPage, count, animeCount, continueCount, onAddNew, collections, selectedCollection, onSelectCollection, onCollectionsChange, showToast }) {
   const [creating, setCreating] = useState(false)
   const [newName, setNewName] = useState('')
   const [renamingId, setRenamingId] = useState(null)
@@ -109,6 +114,15 @@ export default function Sidebar({ page, setPage, count, animeCount, onAddNew, co
 
       <nav className="sidebar-nav">
         <div className="section-label">Biblioteca</div>
+        {continueCount > 0 && (
+          <button
+            className={`nav-item ${page === 'continue' ? 'active' : ''}`}
+            onClick={() => { setPage('continue'); onSelectCollection(null) }}
+          >
+            <IconPlay /><span>Continuando</span>
+            <span className="nav-count">{continueCount}</span>
+          </button>
+        )}
         <button
           className={`nav-item ${page === 'catalog' && !selectedCollection ? 'active' : ''}`}
           onClick={() => { setPage('catalog'); onSelectCollection(null) }}

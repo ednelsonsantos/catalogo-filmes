@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import Sidebar from './components/Sidebar.jsx'
 import CatalogPage from './pages/CatalogPage.jsx'
+import ContinuePage from './pages/ContinuePage.jsx'
 import AddDiscPage from './pages/AddDiscPage.jsx'
 import SettingsPage from './pages/SettingsPage.jsx'
 import AnimePage from './pages/AnimePage.jsx'
@@ -39,6 +40,9 @@ export default function App() {
         setCollections(cols)
         if (saved) setSettings(s => ({ ...s, ...saved }))
         if (cachedAnimes?.length) setAnimeList(cachedAnimes)
+        // abre direto em "Continuando" se há algo em andamento, senão cai no catálogo como sempre
+        const hasWatching = all.some(f => !!f.watching) || (cachedAnimes || []).some(a => a.list_status?.status === 'watching')
+        if (hasWatching) setPage('continue')
       } catch (e) { console.error(e) }
       finally {
         const elapsed = Date.now() - start
@@ -80,6 +84,10 @@ export default function App() {
     if (!collectionFilmeIds) return filmes
     return filmes.filter(f => collectionFilmeIds.includes(f.id))
   }, [filmes, collectionFilmeIds])
+
+  const continueCount = useMemo(() => (
+    filmes.filter(f => !!f.watching).length + animeList.filter(a => a.list_status?.status === 'watching').length
+  ), [filmes, animeList])
 
   const handleToggleWatched = useCallback(async (filme) => {
     const wasWatched = !!filme.watched_at
@@ -140,6 +148,7 @@ export default function App() {
         setPage={(p) => { setPage(p); if (p !== 'add') setEditFilme(null) }}
         count={filmes.length}
         animeCount={animeList.length}
+        continueCount={continueCount}
         onAddNew={handleAddNew}
         collections={collections}
         selectedCollection={selectedCollection}
@@ -148,6 +157,17 @@ export default function App() {
         showToast={showToast}
       />
       <main className="app-main">
+        {page === 'continue' && (
+          <ContinuePage
+            filmes={filmes}
+            animeList={animeList}
+            setAnimeList={setAnimeList}
+            onEdit={handleEdit}
+            onFilmeUpdated={handleFilmeUpdated}
+            setPage={(p) => { setPage(p); if (p !== 'add') setEditFilme(null) }}
+            showToast={showToast}
+          />
+        )}
         {page === 'catalog' && (
           <CatalogPage
             filmes={catalogFilmes}

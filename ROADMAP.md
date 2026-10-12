@@ -294,6 +294,75 @@ Os filtros rápidos do catálogo (DVD, Blu-ray, 4K UHD, Assistidos, Assistindo) 
 
 ---
 
+## Fase 12 — Continuar assistindo, lançamentos e qualidade de dados (v1.3.0) ✓ concluída
+
+### 12.1 Endpoint `episodes:getNextUp` — próximo episódio não visto ✓
+Hoje a tabela `episodios_assistidos` sabe *quais* episódios foram marcados, mas nada calcula qual é o **próximo**. Precisamos disso tanto pro painel "Continuar assistindo" (12.2) quanto pra pré-preencher o seletor de progresso (12.4).
+
+**Backend** (`electron/main.js`):
+```js
+ipcMain.handle('episodes:getNextUp', async (_, { filmeId, tmdbId }) => {
+  if (!isPositiveInt(filmeId)) throw new Error('Invalid filme ID')
+  if (!tmdbId) throw new Error('Sem TMDB ID')
+  const { seasons, last } = await fetchTmdbTvSummary(tmdbId)
+  if (!last) return null // nada foi ao ar ainda
+  const watchedRows = db.prepare('SELECT season_number, episode_number FROM episodios_assistidos WHERE filme_id = ?').all(filmeId)
+  const watchedBySeason = {}
+  for (const r of watchedRows) {
+    watchedBySeason[r.season_number] = Math.max(watchedBySeason[r.season_number] || 0, r.episode_number)
+  }
+  for (const s of seasons) {
+    const aired = s.season_number < last.season_number ? (s.episode_count || 0)
+      : s.season_number === last.season_number ? last.episode_number : 0
+    if (aired === 0) continue
+    const watched = watchedBySeason[s.season_number] || 0
+    if (watched < aired) return { season: s.season_number, episode: watched + 1, seasonName: s.name }
+  }
+  return 'caught_up' // viu tudo que já foi ao ar
+})
+```
+Assume visualização sequencial (o próximo não visto é sempre "o último marcado + 1" dentro da temporada) — coerente com o resto do app, que já assume isso no "até aqui".
+
+### 12.2 Painel "Continuar assistindo" + "Lançamentos da semana" ✓
+Nova página `ContinuePage.jsx`, acessível por um item novo na sidebar.
+
+**Seção "Continue assistindo":**
+- Pra cada `filme` com `watching=1` e `tmdb_id`: chama `episodes:getNextUp`, mostra pôster + título + "Próximo: T{season}E{episode}" + botão "✓ Marcar assistido" (chama `episodes:setWatched` pra esse episódio específico e atualiza a lista)
+- Pra cada anime do MAL com `list_status.status === 'watching'`: mostra "Episódio {num_episodes_watched + 1}" (sem chamada extra à API — é só aritmética dos dados já carregados) + botão que incrementa `num_episodes_watched` via `malUpdateAnime`
+- Item "em dia" (`getNextUp` retornou `'caught_up'`) não aparece nessa seção
+
+**Seção "📅 Lançamentos da semana":**
+- Filtra `filmes` com `watching=1` e `next_episode_air_date` dentro dos próximos 7 dias (campo já existe, populado pelo `episodes:refresh`)
+- Pra animes com `status === 'currently_airing'` e `broadcast`, calcula a próxima data a partir do dia da semana (`broadcast.day_of_the_week`) — não precisa de API nova, é cálculo local de data
+- Lista ordenada cronologicamente, com pôster + título + data/dia
+
+**Sidebar/navegação:**
+- Novo item "▶ Continuando" em `Sidebar.jsx`, entre "Minha Coleção" e "Animes"
+- `App.jsx`: o `page` inicial passa a ser `'continue'` automaticamente quando existe pelo menos 1 item elegível (série "Assistindo" ou anime "watching") após o carregamento inicial; senão continua caindo em `'catalog'` como hoje — evita tela vazia pra quem não tem nada em andamento
+
+### 12.3 Relatório de vínculos TMDB quebrados ✓
+A atualização em massa (10.2/10.3) já relata IDs inválidos por nome num toast — mas só aparece quando você roda a atualização, e some depois de alguns segundos. Em vez de criar um endpoint novo (a checagem já existe, via o mesmo `episodes:refresh`), a melhoria é só de **interface**:
+- Trocar o `showToast` de erro no fim de `handleBulkRefreshEpisodes` (`CatalogPage.jsx`) por um modal de relatório (reaproveita o padrão visual do `ConfirmModal`) listando os títulos com problema, cada um com um botão "Editar" que já abre a tela de edição direto — fica persistente até o usuário fechar, em vez de piscar e sumir
+
+### 12.4 Seletor de progresso pré-preenchido ✓
+O seletor "Estou em: Temporada X, Ep Y" (10.5/10.6, em `AddDiscPage.jsx`) sempre começa em T1E1. Ao editar um título que já tem episódios marcados, deveria sugerir o próximo.
+- Reaproveita o endpoint novo `episodes:getNextUp` (12.1): ao entrar em modo de edição com `filme.watching` true, chama o endpoint e usa o resultado (se não for `'caught_up'`) pra inicializar `currentSeason`/`currentEpisode`, em vez do padrão fixo 1/1
+
+### 12.5 Aviso de ambiguidade na busca ✓
+Pra evitar recorrência do caso do Smallville (ID errado escolhido na busca): em `AddDiscPage.jsx`, ao renderizar os resultados da busca TMDB/OMDb, comparar títulos normalizados (minúsculo, sem acento) entre os resultados — quando 2+ títulos muito parecidos aparecerem, mostrar um aviso "⚠ vários resultados parecidos — confira o ano antes de escolher" acima da lista. Heurística simples, só no cliente, sem chamada nova à API.
+
+### Resultado — Fase 12
+
+| # | Item | Status |
+|---|---|---|
+| 1 | 12.1 | Endpoint `episodes:getNextUp` | ✓ |
+| 2 | 12.2 | Painel "Continuando" (continue assistindo + lançamentos da semana) + nav na sidebar | ✓ |
+| 3 | 12.3 | Modal de relatório de vínculos TMDB quebrados | ✓ |
+| 4 | 12.4 | Seletor de progresso pré-preenchido com o próximo episódio real | ✓ |
+| 5 | 12.5 | Aviso de ambiguidade nos resultados de busca | ✓ |
+
+---
+
 ## Backlog de ideias (não detalhadas ainda)
 
 - **⚠ Risco encontrado na revisão (não é bug ativo hoje):** a categoria "Animação" é tratada como "série" pra fins de episódios (`SERIES_CATEGORIES`), mas também é usada pra filmes de animação avulsos (ex: "Demon Slayer: Mugen Train - O Filme" no catálogo atual). Hoje não quebra nada porque esse filme específico não tem `tmdb_id` salvo — mas se algum dia um filme de animação for adicionado com `tmdb_id` de **filme** (não de série), o painel de episódios tentaria buscar `/tv/{id}` com um ID que pertence ao namespace de filmes da TMDB, podendo trazer dados de uma série completamente diferente (sem erro, já que o ID "existe", só que pra outra coisa). Precisa de um campo extra (`tmdb_media_type: 'movie'|'tv'`) pra diferenciar com segurança — adiado por exigir migração de schema.

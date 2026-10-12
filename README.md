@@ -18,6 +18,9 @@ Aplicativo desktop para catalogar sua coleção pessoal de filmes, séries, docu
 - **Status "Assistindo"** para Série, Mini-série, Anime e Animação — contador próprio nas estatísticas; marcar como assistido encerra automaticamente o "assistindo" (e vice-versa), sem contar nos dois ao mesmo tempo
 - **Acompanhamento de episódios** — para séries/animes buscados pela TMDB (categoria Série, Mini-série, Anime ou Animação): marque episódios individualmente por temporada, use "até aqui" pra marcar várias de uma vez, veja quantos faltam, o episódio atual/próximo com data, e um badge "🆕" no card quando sai um episódio novo. Marcar "Assistido" sincroniza automaticamente todos os episódios já lançados; ao adicionar um título novo já marcando "Assistindo", um seletor deixa escolher em qual temporada/episódio você está. Um botão no catálogo atualiza os contadores de todas as séries/animes de uma vez. Nos animes do MAL, mostra o dia/horário de exibição semanal e quantos episódios faltam (sem duplicar o controle que já é sincronizado com a conta do MAL)
 - **Confirmação ao remover** — modal próprio (não o alerta genérico do navegador) pede confirmação antes de remover qualquer título, citando o nome pra evitar remoção acidental
+- **Painel "Continuando"** — aba que reúne tudo que está "Assistindo" (séries e animes) com o próximo episódio sugerido e um botão "✓ Visto" pra marcar sem abrir mais nada; inclui "📅 Lançamentos da semana" com a data dos próximos episódios de tudo que você acompanha. O app abre direto nessa tela quando há algo em andamento
+- **Aviso de vínculo quebrado com a TMDB** — se o ID salvo de um título não existir mais (a TMDB ocasionalmente mescla/remove entradas duplicadas), o app avisa quais títulos precisam ser re-adicionados em vez de mostrar silenciosamente "0 episódios"
+- **Aviso de ambiguidade na busca** — quando a busca retorna títulos muito parecidos, um aviso lembra de conferir o ano/pôster antes de escolher
 - **Catálogo** com visualização em grade ou lista, busca por texto (Ctrl+F) e três filtros combináveis: **formato** (DVD/Blu-ray/4K UHD/VHS/Digital — o que você possui), **status** (Assistidos/Assistindo) e **categoria** — dá pra combinar, ex: só os Blu-rays já assistidos
 - **Pôster fallback** — títulos sem imagem exibem fundo colorido único com iniciais, gerado a partir do título
 - **Estatísticas** — barra com totais por formato, % assistidos e último título adicionado; dropdown de categorias com contagem
@@ -155,6 +158,7 @@ catalogo-filmes/
 │   │   ├── AddDiscPage.jsx    # Adicionar / editar título e animes (OCR, busca, formulário)
 │   │   ├── AnimePage.jsx      # Lista de animes MAL com grade/lista, edição e exportação
 │   │   ├── CatalogPage.jsx    # Catálogo com filtros, estatísticas e exportação
+│   │   ├── ContinuePage.jsx   # Painel "Continuando" — continue assistindo + lançamentos da semana
 │   │   └── SettingsPage.jsx   # Configuração das chaves de API e MAL Client ID
 │   └── components/
 │       ├── Sidebar.jsx         # Navegação lateral com coleções, ordenação e badge animes
