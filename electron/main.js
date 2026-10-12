@@ -205,6 +205,20 @@ function createDatabase() {
       PRIMARY KEY (filme_id, colecao_id)
     )
   `)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS tags (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL UNIQUE,
+      created_at TEXT DEFAULT (datetime('now','localtime'))
+    )
+  `)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS filme_tag (
+      filme_id INTEGER NOT NULL,
+      tag_id INTEGER NOT NULL,
+      PRIMARY KEY (filme_id, tag_id)
+    )
+  `)
 }
 
 // ─── WINDOW ───────────────────────────────────────────────────────────────────
@@ -405,6 +419,57 @@ ipcMain.handle('colecoes:setForFilme', (_, { filmeId, colecaoIds }) => {
   db.prepare('DELETE FROM filme_colecao WHERE filme_id = ?').run(filmeId)
   const ins = db.prepare('INSERT INTO filme_colecao (filme_id, colecao_id) VALUES (?, ?)')
   for (const cid of colecaoIds) ins.run(filmeId, cid)
+  return true
+})
+
+// ─── IPC: TAGS ────────────────────────────────────────────────────────────────
+
+ipcMain.handle('tags:getAll', () =>
+  db.prepare(`
+    SELECT t.id, t.name, COUNT(ft.filme_id) AS count
+    FROM tags t LEFT JOIN filme_tag ft ON ft.tag_id = t.id
+    GROUP BY t.id ORDER BY t.name COLLATE NOCASE
+  `).all()
+)
+
+ipcMain.handle('tags:insert', (_, name) => {
+  const n = String(name || '').trim()
+  if (!n || n.length > 50) throw new Error('Nome de tag inválido')
+  try {
+    const r = db.prepare('INSERT INTO tags (name) VALUES (?)').run(n)
+    return db.prepare('SELECT * FROM tags WHERE id = ?').get(r.lastInsertRowid)
+  } catch (e) {
+    if (String(e.message).includes('UNIQUE')) {
+      return db.prepare('SELECT * FROM tags WHERE name = ? COLLATE NOCASE').get(n)
+    }
+    throw e
+  }
+})
+
+ipcMain.handle('tags:delete', (_, id) => {
+  if (!isPositiveInt(id)) throw new Error('Invalid ID')
+  db.prepare('DELETE FROM filme_tag WHERE tag_id = ?').run(id)
+  db.prepare('DELETE FROM tags WHERE id = ?').run(id)
+  return true
+})
+
+ipcMain.handle('tags:getFilmeIds', (_, tagId) => {
+  if (!isPositiveInt(tagId)) throw new Error('Invalid ID')
+  return db.prepare('SELECT filme_id FROM filme_tag WHERE tag_id = ?').all(tagId).map(r => r.filme_id)
+})
+
+ipcMain.handle('tags:getByFilme', (_, filmeId) => {
+  if (!isPositiveInt(filmeId)) throw new Error('Invalid ID')
+  return db.prepare('SELECT tag_id FROM filme_tag WHERE filme_id = ?').all(filmeId).map(r => r.tag_id)
+})
+
+ipcMain.handle('tags:setForFilme', (_, { filmeId, tagIds }) => {
+  if (!isPositiveInt(filmeId)) throw new Error('Invalid filmeId')
+  if (!Array.isArray(tagIds)) throw new Error('tagIds must be array')
+  if (tagIds.some(id => !isPositiveInt(id))) throw new Error('Invalid tagId in array')
+  db.prepare('DELETE FROM filme_tag WHERE filme_id = ?').run(filmeId)
+  const ins = db.prepare('INSERT INTO filme_tag (filme_id, tag_id) VALUES (?, ?)')
+  for (const tid of tagIds) ins.run(filmeId, tid)
   return true
 })
 

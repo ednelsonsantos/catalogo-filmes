@@ -53,6 +53,14 @@ contextBridge.exposeInMainWorld('api', {
   colecoesGetByFilme:  (id)     => ipcRenderer.invoke('colecoes:getByFilme', id),
   colecoesSetForFilme: (p)      => ipcRenderer.invoke('colecoes:setForFilme', p),
 
+  // Tags
+  tagsGetAll:          ()       => ipcRenderer.invoke('tags:getAll'),
+  tagsInsert:          (name)   => ipcRenderer.invoke('tags:insert', name),
+  tagsDelete:          (id)     => ipcRenderer.invoke('tags:delete', id),
+  tagsGetFilmeIds:     (id)     => ipcRenderer.invoke('tags:getFilmeIds', id),
+  tagsGetByFilme:      (id)     => ipcRenderer.invoke('tags:getByFilme', id),
+  tagsSetForFilme:     (p)      => ipcRenderer.invoke('tags:setForFilme', p),
+
   // Shell — allowlist enforced in main process
   openExternal:      (url)    => ipcRenderer.invoke('shell:openExternal', url),
 

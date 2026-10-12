@@ -397,6 +397,14 @@ Separada da nota do IMDb, igual já existia pros animes via MAL.
 - Nova opção de ordenação "Minha nota" no catálogo
 - Testado: coluna criada e migração confirmada no banco real
 
+### 13.5 Tags livres (v1.7.0) ✓
+Classificação livre, complementar à categoria fixa — pra agrupar por critérios que não cabem numa categoria ("natal", "maratona", "ver com a família"...).
+- Tabelas novas `tags` (`id`, `name` UNIQUE, `created_at`) e `filme_tag` (associação N:N, `PRIMARY KEY (filme_id, tag_id)`) — espelha exatamente o padrão já usado por `colecoes`/`filme_colecao`
+- IPC: `tags:getAll` (com contagem de uso via `LEFT JOIN`), `tags:insert` (trim, limite de 50 caracteres, UNIQUE tratado com fallback — se já existe com esse nome `COLLATE NOCASE`, retorna a existente em vez de duplicar), `tags:delete`, `tags:getFilmeIds`, `tags:getByFilme`, `tags:setForFilme` (delete-then-reinsert)
+- Formulário de adicionar/editar título: novo bloco "Tags" ao lado de "Coleções", em chips (`flex-wrap`), com criação inline "+ Nova"
+- Catálogo: novo filtro dropdown por tag (com contagem), combinável com os filtros já existentes (formato, status, categoria, busca)
+- Testado: tabelas `tags`/`filme_tag` confirmadas no banco real; build (`vite build` + `node --check`) e modo dev sem erros
+
 ---
 
 ## Backlog de ideias (não detalhadas ainda)
@@ -406,7 +414,7 @@ Separada da nota do IMDb, igual já existia pros animes via MAL.
 - ~~**Backup completo**~~ — **feito na v1.4.0**, ver Fase 13.2
 - ~~**Nota pessoal**~~ — **feita na v1.6.0**, ver Fase 13.4
 - ~~**Detecção de nova temporada**~~ / ~~**Notificação nativa do Windows**~~ — **feitas na v1.5.0**, ver Fase 13.3
-- **Tags livres** além da categoria fixa, com filtro por tag
+- ~~**Tags livres**~~ além da categoria fixa, com filtro por tag — **feita na v1.7.0**, ver Fase 13.5
 
 ---
 

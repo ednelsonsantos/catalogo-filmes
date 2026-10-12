@@ -36,6 +36,7 @@ export default function App() {
   const [page, setPage] = useState('catalog')
   const [filmes, setFilmes] = useState([])
   const [collections, setCollections] = useState([])
+  const [tags, setTags] = useState([])
   const [selectedCollection, setSelectedCollection] = useState(null)
   const [collectionFilmeIds, setCollectionFilmeIds] = useState(null)
   const [settings, setSettings] = useState({ omdbApiKey: '' })
@@ -52,14 +53,16 @@ export default function App() {
     const init = async () => {
       const start = Date.now()
       try {
-        const [all, cols, saved, cachedAnimes] = await Promise.all([
+        const [all, cols, allTags, saved, cachedAnimes] = await Promise.all([
           window.api.getAll(),
           window.api.colecoesGetAll(),
+          window.api.tagsGetAll(),
           window.api.getSettings(),
           window.api.malLoadCache(),
         ])
         setFilmes(all)
         setCollections(cols)
+        setTags(allTags)
         if (saved) setSettings(s => ({ ...s, ...saved }))
         if (cachedAnimes?.length) setAnimeList(cachedAnimes)
         // abre direto em "Continuando" se há algo em andamento, senão cai no catálogo como sempre
@@ -90,6 +93,11 @@ export default function App() {
   const refreshCollections = useCallback(async () => {
     const cols = await window.api.colecoesGetAll()
     setCollections(cols)
+  }, [])
+
+  const refreshTags = useCallback(async () => {
+    const allTags = await window.api.tagsGetAll()
+    setTags(allTags)
   }, [])
 
   const handleSelectCollection = useCallback(async (col) => {
@@ -138,19 +146,21 @@ export default function App() {
   const handleEdit = useCallback((filme) => { setEditFilme(filme); setPage('add') }, [])
   const handleAddNew = useCallback(() => { setEditFilme(null); setPage('add') }, [])
 
-  const handleSavedFilme = useCallback(async (savedId, colecaoIds) => {
+  const handleSavedFilme = useCallback(async (savedId, colecaoIds, tagIds) => {
     if (savedId != null) {
       await window.api.colecoesSetForFilme({ filmeId: savedId, colecaoIds: colecaoIds ?? [] })
+      await window.api.tagsSetForFilme({ filmeId: savedId, tagIds: tagIds ?? [] })
     }
     await refresh()
     await refreshCollections()
+    await refreshTags()
     if (selectedCollection) {
       const ids = await window.api.colecoesGetFilmeIds(selectedCollection.id)
       setCollectionFilmeIds(ids)
     }
     setPage('catalog')
     setEditFilme(null)
-  }, [refresh, refreshCollections, selectedCollection])
+  }, [refresh, refreshCollections, refreshTags, selectedCollection])
 
   if (loading) return (
     <div className="loading-screen">
@@ -194,6 +204,7 @@ export default function App() {
         {page === 'catalog' && (
           <CatalogPage
             filmes={catalogFilmes}
+            tags={tags}
             onEdit={handleEdit}
             onDelete={async () => { await refresh(); await refreshCollections(); if (selectedCollection) { const ids = await window.api.colecoesGetFilmeIds(selectedCollection.id); setCollectionFilmeIds(ids) } }}
             onToggleWatched={handleToggleWatched}
@@ -208,7 +219,9 @@ export default function App() {
             editFilme={editFilme}
             filmes={filmes}
             collections={collections}
+            tags={tags}
             onCollectionsChange={refreshCollections}
+            onTagsChange={refreshTags}
             onSaved={handleSavedFilme}
             showToast={showToast}
             animeList={animeList}

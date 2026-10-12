@@ -29,11 +29,13 @@ const STATUS_FILTERS = [
 
 const ALL_CATEGORIES = ['Filme', 'Série', 'Mini-série', 'Documentário', 'Animação', 'Anime', 'Show/Stand-up', 'Musical', 'Esporte', 'Streaming', 'Outro']
 
-export default function CatalogPage({ filmes, onEdit, onDelete, onToggleWatched, onFilmeUpdated, showToast, selectedCollection }) {
+export default function CatalogPage({ filmes, tags = [], onEdit, onDelete, onToggleWatched, onFilmeUpdated, showToast, selectedCollection }) {
   const [search, setSearch] = useState('')
   const [format, setFormat] = useState('all')
   const [watchStatus, setWatchStatus] = useState('all')
   const [category, setCategory] = useState('all')
+  const [tagFilter, setTagFilter] = useState('all')
+  const [tagFilmeIds, setTagFilmeIds] = useState(null)
   const [sort, setSort] = useState('title')
   const [viewMode, setViewMode] = useState('grid')
   const [detail, setDetail] = useState(null)
@@ -78,12 +80,17 @@ export default function CatalogPage({ filmes, onEdit, onDelete, onToggleWatched,
     }
   }, [trackableFilmes, onFilmeUpdated, showToast])
 
-  const hasActiveFilters = search || format !== 'all' || watchStatus !== 'all' || category !== 'all'
+  const hasActiveFilters = search || format !== 'all' || watchStatus !== 'all' || category !== 'all' || tagFilter !== 'all'
 
   const clearFilters = useCallback(() => {
-    setSearch(''); setFormat('all'); setWatchStatus('all'); setCategory('all')
+    setSearch(''); setFormat('all'); setWatchStatus('all'); setCategory('all'); setTagFilter('all')
     searchRef.current?.focus()
   }, [])
+
+  useEffect(() => {
+    if (tagFilter === 'all') { setTagFilmeIds(null); return }
+    window.api.tagsGetFilmeIds(Number(tagFilter)).then(ids => setTagFilmeIds(ids))
+  }, [tagFilter])
 
   // Ctrl+F foca na busca
   useEffect(() => {
@@ -120,6 +127,9 @@ export default function CatalogPage({ filmes, onEdit, onDelete, onToggleWatched,
     if (category !== 'all') {
       items = items.filter(f => (f.category || '') === category)
     }
+    if (tagFilmeIds) {
+      items = items.filter(f => tagFilmeIds.includes(f.id))
+    }
     items.sort((a, b) => {
       if (sort === 'title')  return (a.title || '').localeCompare(b.title || '', 'pt-BR')
       if (sort === 'year')   return (b.year || 0) - (a.year || 0)
@@ -130,7 +140,7 @@ export default function CatalogPage({ filmes, onEdit, onDelete, onToggleWatched,
       return 0
     })
     return items
-  }, [filmes, search, format, watchStatus, category, sort])
+  }, [filmes, search, format, watchStatus, category, tagFilmeIds, sort])
 
   const handleDelete = useCallback((filme) => {
     setConfirmingDelete(filme)
@@ -262,6 +272,14 @@ export default function CatalogPage({ filmes, onEdit, onDelete, onToggleWatched,
               <option key={c} value={c}>{c}{stats.categoryCounts[c] ? ` (${stats.categoryCounts[c]})` : ''}</option>
             ))}
           </select>
+          {tags.length > 0 && (
+            <select className="sort-select" value={tagFilter} onChange={e => setTagFilter(e.target.value)}>
+              <option value="all">Todas as tags</option>
+              {tags.map(t => (
+                <option key={t.id} value={t.id}>{t.name}{t.count ? ` (${t.count})` : ''}</option>
+              ))}
+            </select>
+          )}
           <select className="sort-select" value={sort} onChange={e => setSort(e.target.value)}>
             <option value="title">A → Z</option>
             <option value="year">Mais recente</option>

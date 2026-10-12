@@ -199,13 +199,16 @@ function fileToBase64(file) {
 
 // ─── Componente principal ─────────────────────────────────────────────────────
 
-export default function AddDiscPage({ settings, editFilme, filmes = [], collections = [], onCollectionsChange, onSaved, showToast, animeList = [], setAnimeList }) {
+export default function AddDiscPage({ settings, editFilme, filmes = [], collections = [], tags = [], onCollectionsChange, onTagsChange, onSaved, showToast, animeList = [], setAnimeList }) {
   const [tab, setTab] = useState('titulo')
   const [mode, setMode] = useState('photo')
   const [filme, setFilme] = useState(editFilme ? { ...editFilme } : { ...EMPTY })
   const [selectedCollections, setSelectedCollections] = useState([])
   const [creatingCollection, setCreatingCollection] = useState(false)
   const [newCollectionName, setNewCollectionName] = useState('')
+  const [selectedTags, setSelectedTags] = useState([])
+  const [creatingTag, setCreatingTag] = useState(false)
+  const [newTagName, setNewTagName] = useState('')
   const [coverPreview, setCoverPreview] = useState(null)
   const [coverFile, setCoverFile] = useState(null)
   const [ocrStatus, setOcrStatus] = useState(null)
@@ -238,6 +241,7 @@ export default function AddDiscPage({ settings, editFilme, filmes = [], collecti
     }
     if (editFilme?.id) {
       window.api.colecoesGetByFilme(editFilme.id).then(ids => setSelectedCollections(ids))
+      window.api.tagsGetByFilme(editFilme.id).then(ids => setSelectedTags(ids))
     }
   }, [editFilme])
 
@@ -304,6 +308,19 @@ export default function AddDiscPage({ settings, editFilme, filmes = [], collecti
       showToast(e.message || 'Erro ao criar coleção.', 'error')
     }
   }, [newCollectionName, onCollectionsChange, showToast])
+
+  const handleCreateTag = useCallback(async () => {
+    const name = newTagName.trim()
+    if (!name) { setCreatingTag(false); return }
+    try {
+      const tag = await window.api.tagsInsert(name)
+      setSelectedTags(prev => prev.includes(tag.id) ? prev : [...prev, tag.id])
+      setNewTagName(''); setCreatingTag(false)
+      onTagsChange?.()
+    } catch (e) {
+      showToast(e.message || 'Erro ao criar tag.', 'error')
+    }
+  }, [newTagName, onTagsChange, showToast])
 
   const handleCancel = useCallback(() => {
     setTab('titulo')
@@ -525,11 +542,11 @@ export default function AddDiscPage({ settings, editFilme, filmes = [], collecti
       }
 
       showToast(isEditing ? 'Atualizado!' : `"${filme.title}" adicionado!`, 'success')
-      onSaved(saved.id, selectedCollections)
+      onSaved(saved.id, selectedCollections, selectedTags)
     } catch (e) {
       console.error(e); showToast('Erro ao salvar.', 'error')
     } finally { setSaving(false) }
-  }, [filme, coverFile, isEditing, editFilme, onSaved, showToast, selectedCollections, watchedJustChecked, progressTouched, currentSeason, currentEpisode])
+  }, [filme, coverFile, isEditing, editFilme, onSaved, showToast, selectedCollections, selectedTags, watchedJustChecked, progressTouched, currentSeason, currentEpisode])
 
   // ── Drag & drop ──────────────────────────────────────────────────────────────
 
@@ -749,6 +766,50 @@ export default function AddDiscPage({ settings, editFilme, filmes = [], collecti
                       )}>
                       <span>{c.name}</span>
                       {checked && <span style={{ fontSize: 10, opacity: 0.7 }}>✓</span>}
+                    </label>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* Tags */}
+          <div className="field" style={{ marginTop: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <label style={{ margin: 0 }}>Tags</label>
+              <button
+                type="button"
+                className="btn btn-sm"
+                style={{ fontSize: 11, padding: '2px 8px' }}
+                onClick={() => { setCreatingTag(true); setNewTagName('') }}
+              >
+                + Nova
+              </button>
+            </div>
+
+            {creatingTag && (
+              <input
+                autoFocus
+                value={newTagName}
+                onChange={e => setNewTagName(e.target.value)}
+                placeholder="Nome da tag..."
+                onKeyDown={e => { if (e.key === 'Enter') handleCreateTag(); if (e.key === 'Escape') setCreatingTag(false) }}
+                onBlur={handleCreateTag}
+                style={{ marginTop: 6, width: '100%', padding: '6px 10px', background: 'var(--bg3)', border: '1px solid var(--border)', borderRadius: 6, color: 'var(--text)', fontSize: 12, outline: 'none' }}
+              />
+            )}
+
+            {tags.length > 0 && (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
+                {tags.map(t => {
+                  const checked = selectedTags.includes(t.id)
+                  return (
+                    <label key={t.id} className={`format-check ${checked ? 'active' : ''}`}
+                      style={{ cursor: 'pointer' }}
+                      onClick={() => setSelectedTags(prev =>
+                        checked ? prev.filter(id => id !== t.id) : [...prev, t.id]
+                      )}>
+                      {t.name}
                     </label>
                   )
                 })}
