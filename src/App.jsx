@@ -44,6 +44,22 @@ export default function App() {
   const [toast, setToast] = useState(null)
   const [editFilme, setEditFilme] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [appVersion, setAppVersion] = useState('')
+  const [updateStatus, setUpdateStatus] = useState({ enabled: false, state: 'idle' })
+  const [updateBannerDismissed, setUpdateBannerDismissed] = useState(false)
+
+  useEffect(() => {
+    window.api.appGetVersion().then(setAppVersion).catch(() => {})
+    window.api.updaterGetStatus().then(setUpdateStatus).catch(() => {})
+    // cada aviso substitui o anterior inteiro, pra não sobrar mensagem de erro/percentual de um estado antigo
+    return window.api.onUpdaterStatus(s => setUpdateStatus({ enabled: true, ...s }))
+  }, [])
+
+  const checkForUpdates = useCallback(async () => {
+    const s = await window.api.updaterCheck()
+    setUpdateStatus(s)
+    setUpdateBannerDismissed(false)
+  }, [])
 
   const showToast = useCallback((message, type = 'success') => {
     setToast({ message, type, id: Date.now() })
@@ -232,7 +248,7 @@ export default function App() {
           <AnimePage settings={settings} showToast={showToast} animeList={animeList} setAnimeList={setAnimeList} />
         )}
         {page === 'settings' && (
-          <SettingsPage settings={settings} showToast={showToast} onSave={async (s) => {
+          <SettingsPage settings={settings} showToast={showToast} appVersion={appVersion} updateStatus={updateStatus} onCheckUpdates={checkForUpdates} onSave={async (s) => {
             await window.api.saveSettings(s)
             const updated = await window.api.getSettings()
             setSettings(updated)
@@ -240,6 +256,15 @@ export default function App() {
           }} />
         )}
       </main>
+      {updateStatus.state === 'ready' && !updateBannerDismissed && (
+        <div className="update-banner" role="status">
+          <span>⬆ Versão <strong>{updateStatus.version}</strong> baixada. Ela também é instalada sozinha quando você fechar o app.</span>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button className="btn btn-sm" onClick={() => setUpdateBannerDismissed(true)}>Depois</button>
+            <button className="btn btn-sm btn-primary" onClick={() => window.api.updaterInstall()}>Reiniciar e atualizar</button>
+          </div>
+        </div>
+      )}
       {toast && <Toast key={toast.id} message={toast.message} type={toast.type} onDone={() => setToast(null)} />}
     </div>
   )

@@ -1,7 +1,19 @@
 import React, { useState } from 'react'
 import ConfirmModal from '../components/ConfirmModal.jsx'
 
-export default function SettingsPage({ settings, onSave, showToast }) {
+function updateStatusText(s) {
+  if (!s.enabled) return 'A atualização automática só funciona no app instalado.'
+  switch (s.state) {
+    case 'checking':    return 'Procurando atualizações...'
+    case 'up-to-date':  return 'Você está na versão mais recente.'
+    case 'downloading': return `Baixando a versão ${s.version}... ${s.percent || 0}%`
+    case 'ready':       return `Versão ${s.version} baixada — reinicie para instalar (ou ela é instalada ao fechar o app).`
+    case 'error':       return `Não foi possível verificar: ${s.message}`
+    default:            return 'O app procura atualizações sozinho alguns segundos depois de abrir.'
+  }
+}
+
+export default function SettingsPage({ settings, onSave, showToast, appVersion, updateStatus = { enabled: false, state: 'idle' }, onCheckUpdates }) {
   const [form, setForm] = useState({ omdbApiKey: '', tmdbApiKey: '', malClientId: '' })
   const [showKey, setShowKey] = useState(false)
   const [showTmdbKey, setShowTmdbKey] = useState(false)
@@ -217,6 +229,29 @@ export default function SettingsPage({ settings, onSave, showToast }) {
           <p style={{ fontSize: 11, color: 'var(--text3)', marginTop: 10, lineHeight: 1.6 }}>
             O backup inclui o banco de dados, capas, chaves de API e cache dos animes num único arquivo .zip.
             Restaurar <strong style={{ color: 'var(--text)' }}>substitui tudo</strong> que está no app agora pelo conteúdo do arquivo escolhido, e recarrega o app.
+          </p>
+        </div>
+
+        {/* Atualizações */}
+        <div className="card">
+          <h2 style={{ fontSize: 15, fontWeight: 600, marginBottom: 6 }}>Atualizações</h2>
+          <p style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 12 }}>
+            Versão instalada: <strong data-testid="app-version" style={{ color: 'var(--text)' }}>{appVersion}</strong>
+          </p>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+            <button
+              className="btn"
+              onClick={onCheckUpdates}
+              disabled={!updateStatus.enabled || ['checking', 'downloading', 'ready'].includes(updateStatus.state)}
+            >
+              ⟳ Verificar atualizações
+            </button>
+            {updateStatus.state === 'ready' && (
+              <button className="btn btn-primary" onClick={() => window.api.updaterInstall()}>Reiniciar e atualizar</button>
+            )}
+          </div>
+          <p data-testid="update-status" style={{ fontSize: 12, color: updateStatus.state === 'error' ? 'var(--red)' : 'var(--text2)', marginTop: 10 }}>
+            {updateStatusText(updateStatus)}
           </p>
         </div>
 

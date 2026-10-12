@@ -32,6 +32,7 @@ Aplicativo desktop para catalogar sua coleção pessoal de filmes, séries, docu
 - **Banco de dados local** SQLite — seus dados ficam no computador, sem nuvem
 - **Backup e restauração** — um clique em Configurações empacota banco de dados, capas, pôsteres de anime, cache e chaves de API num único `.zip`; restaurar substitui tudo e recarrega o app com os dados do backup
 - **Ícone personalizado** — logo do app no instalador, atalhos e barra de tarefas
+- **Atualização automática** — ao abrir, o app procura uma versão nova nos releases do GitHub, baixa em segundo plano e oferece "Reiniciar e atualizar" (ou instala sozinho ao fechar); em Configurações dá pra ver a versão instalada e verificar na hora
 - **MyAnimeList integrado** — conecte sua conta MAL via OAuth2 PKCE, carregue sua lista de animes, edite status/nota/episódios e sincronize de volta ao site
 - **Lista de animes persistente** — cache em disco, carregada automaticamente ao abrir o app sem precisar recarregar do MAL
 - **Pôsteres de animes offline** — baixados para disco na primeira carga e exibidos sem depender de URLs externas (funciona no executável empacotado)
@@ -160,6 +161,18 @@ npm run build
 ```
 
 O instalador Windows (`.exe`) é gerado na pasta `dist-electron/`.
+
+### Publicar uma versão (atualização automática)
+
+Os apps instalados se atualizam a partir dos **releases do GitHub** deste repositório. Para publicar:
+
+```bash
+# token do GitHub com permissão de escrita em "Contents" neste repositório
+set GH_TOKEN=seu_token        # PowerShell: $env:GH_TOKEN = "seu_token"
+npm run release
+```
+
+O `electron-builder` compila, cria um release **rascunho** com a tag `v<versão>` e envia o instalador, o `.blockmap` e o `latest.yml`. Depois é só abrir o rascunho no GitHub e publicar — a partir daí os apps instalados encontram a versão nova.
 
 ---
 

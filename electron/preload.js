@@ -62,6 +62,17 @@ contextBridge.exposeInMainWorld('api', {
   tagsGetByFilme:      (id)     => ipcRenderer.invoke('tags:getByFilme', id),
   tagsSetForFilme:     (p)      => ipcRenderer.invoke('tags:setForFilme', p),
 
+  // Versão e atualização automática
+  appGetVersion:     ()       => ipcRenderer.invoke('app:getVersion'),
+  updaterGetStatus:  ()       => ipcRenderer.invoke('updater:getStatus'),
+  updaterCheck:      ()       => ipcRenderer.invoke('updater:check'),
+  updaterInstall:    ()       => ipcRenderer.invoke('updater:install'),
+  onUpdaterStatus: (cb) => {
+    const listener = (_e, status) => cb(status)
+    ipcRenderer.on('updater:status', listener)
+    return () => ipcRenderer.removeListener('updater:status', listener)
+  },
+
   // Shell — allowlist enforced in main process
   openExternal:      (url)    => ipcRenderer.invoke('shell:openExternal', url),
 

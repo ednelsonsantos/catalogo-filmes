@@ -446,6 +446,16 @@ Ordem combinada: 14.1 testes de interface → 14.2 atualização automática →
 - Regra registrada no `CLAUDE.md`: rodar `npm run test:ui` antes de compilar e acrescentar um teste a cada bug de interface corrigido
 - A suíte Jest antiga (`tests/`, segurança) continua fora do repositório, como antes
 
+### 14.2 Atualização automática (v1.10.0) ✓
+- `electron-updater` 6.3.9 com provider `github` (`ednelsonsantos/catalogo-filmes`, repositório público — sem token pra baixar). O `electron-builder` gera o `app-update.yml` dentro do app e o `latest.yml` junto do instalador
+- Fluxo: 5 s depois de abrir, procura versão nova → baixa em segundo plano → aviso "Versão X baixada" com **Reiniciar e atualizar** (`quitAndInstall`) ou **Depois** (instala sozinho ao fechar, `autoInstallOnAppQuit`)
+- Card "Atualizações" em Configurações: versão instalada (`app.getVersion()`), status (procurando / atualizado / baixando % / pronta / erro) e botão "Verificar atualizações"
+- Erros traduzidos e resumidos (o erro bruto traz stack e cabeçalhos HTTP): "nenhuma versão publicada no GitHub ainda", "sem conexão com o servidor de atualizações"
+- Desligado fora do app instalado. Pra testar: `CATALOGO_UPDATE_FEED` (só fora do empacotado) aponta pra um servidor local `generic`; o app grava um `dev-app-update.yml` na pasta de dados (o download exige a config em disco, não só a URL) e **nunca instala ao fechar** nesse modo
+- `npm run build` agora é `--publish never`; `npm run release` publica (precisa de `GH_TOKEN`)
+- Testes (`e2e/atualizacao.spec.js`, servidor HTTP local com um "instalador" de bytes aleatórios): versão nova baixa sozinha e mostra o aviso; já atualizado; servidor fora do ar; desligado em dev. Os testes também pegaram dois problemas reais: o aviso cobria o botão "Configurações" da sidebar (movido pra direita dela) e o erro mostrava o stack trace inteiro
+- Conferido no app empacotado: `electron-updater` dentro do `app.asar`, consulta ao GitHub funcionando ("nenhuma versão publicada" enquanto não houver release)
+
 ---
 
 ## Backlog de ideias (não detalhadas ainda)

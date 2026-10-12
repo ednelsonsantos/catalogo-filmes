@@ -18,6 +18,9 @@ function findTmdbKey() {
 const TMDB_KEY = findTmdbKey()
 
 const test = base.extend({
+  // variáveis de ambiente extras pro processo do app (ex: CATALOGO_UPDATE_FEED)
+  appEnv: [{}, { option: true }],
+
   // eslint-disable-next-line no-empty-pattern
   userDataDir: async ({}, use) => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'catalogo-e2e-'))
@@ -26,8 +29,8 @@ const test = base.extend({
     fs.rmSync(dir, { recursive: true, force: true })
   },
 
-  electronApp: async ({ userDataDir }, use) => {
-    const env = { ...process.env, VITE_DEV_URL: DEV_URL, CATALOGO_USER_DATA: userDataDir }
+  electronApp: async ({ userDataDir, appEnv }, use) => {
+    const env = { ...process.env, VITE_DEV_URL: DEV_URL, CATALOGO_USER_DATA: userDataDir, ...appEnv }
     delete env.ELECTRON_RUN_AS_NODE
     const app = await electron.launch({ args: ['.'], cwd: ROOT, env })
     await use(app)

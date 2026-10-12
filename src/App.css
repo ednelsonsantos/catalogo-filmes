@@ -1,6 +1,16 @@
 .app-layout { display: flex; height: 100vh; overflow: hidden; }
 .app-main { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
 
+.update-banner {
+  /* à direita da sidebar (220px), pra não cobrir a navegação; os toasts ficam no canto direito */
+  position: fixed; left: 244px; bottom: 24px; z-index: 998; max-width: 440px;
+  display: flex; flex-direction: column; gap: 10px;
+  background: var(--bg2); border: 1px solid var(--border2); border-radius: 10px;
+  padding: 12px 14px; font-size: 13px; color: var(--text2);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.45);
+}
+.update-banner strong { color: var(--text); }
+
 .spinner {
   width: 28px; height: 28px;
   border: 2px solid var(--border2); border-top-color: var(--accent);
