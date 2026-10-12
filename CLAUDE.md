@@ -11,3 +11,7 @@ Sempre que corrigir um bug ou implementar uma melhoria/funcionalidade nova, **at
 Várias correções/melhorias pequenas feitas na mesma sessão antes de gerar o executável podem ser agrupadas num único bump (não precisa gerar um `.exe` por commit).
 
 O nome do instalador gerado pelo `electron-builder` (`Meu Catálogo Setup <version>.exe`) vem direto desse campo. Sem atualizar, o build sempre sobrescreve o mesmo arquivo com o mesmo nome, mesmo que o conteúdo tenha mudado bastante — dificulta saber qual instalador é qual depois.
+
+## Testes antes de compilar
+
+Antes de gerar o instalador, rode `npm run test:ui` (testes de interface em `e2e/`, Playwright + Electron) e só compile com tudo passando. Ao corrigir um bug de interface, acrescente um teste em `e2e/` que reproduza o problema. Os testes usam uma pasta de dados temporária — nunca o catálogo real.

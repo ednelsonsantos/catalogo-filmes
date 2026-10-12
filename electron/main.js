@@ -2,6 +2,11 @@ const { app, BrowserWindow, ipcMain, dialog, shell } = require('electron')
 const path = require('path')
 const fs = require('fs')
 
+// Testes automatizados rodam com uma pasta de dados descartável, nunca com o catálogo real
+if (!app.isPackaged && process.env.CATALOGO_USER_DATA) {
+  app.setPath('userData', process.env.CATALOGO_USER_DATA)
+}
+
 let mainWindow
 let db
 

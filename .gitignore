@@ -17,6 +17,8 @@ out/
 
 # Testes
 tests/
+test-results/
+playwright-report/
 
 # Variáveis de ambiente
 .env

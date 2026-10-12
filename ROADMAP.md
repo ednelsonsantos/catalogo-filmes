@@ -433,6 +433,21 @@ Achados do roteiro de testes feito pelo usuário antes de compilar:
 
 ---
 
+## Fase 14 — Infraestrutura e evolução (em andamento)
+
+Ordem combinada: 14.1 testes de interface → 14.2 atualização automática → 14.3 dividir `AddDiscPage.jsx` → 14.4 `safe.directory` do git → depois estatísticas, "Onde assistir" no card/filtro, importação de lista e notificações com o app aberto.
+
+### 14.1 Testes automatizados de interface ✓
+- **Playwright** (`@playwright/test` 1.48, só o suporte a Electron — nenhum navegador baixado) em `e2e/`, rodando com `npm run test:ui`
+- Cada teste abre o app real (`_electron.launch`) contra um Vite na porta 5199, com uma **pasta de dados descartável**: `main.js` aceita `CATALOGO_USER_DATA` (só fora do app empacotado) e chama `app.setPath('userData', ...)` antes de qualquer acesso. A chave da TMDB é copiada da configuração local (ou `TMDB_API_KEY`); sem chave, os testes que dependem da TMDB são pulados
+- Diálogos nativos de arquivo (backup/restauração) são substituídos por respostas fixas no processo principal via `electronApp.evaluate(({ dialog }) => ...)`
+- Arquivos em CommonJS: o carregador ESM do Playwright 1.48 trava em silêncio no Node 24
+- 11 testes cobrindo o roteiro manual: pasta isolada, ordenação "Minha nota", "0" solto (validado reintroduzindo o bug de propósito — o teste falha), tags (criar sem duplicar por caixa, filtrar, limpar filtros, remover com cancelar/confirmar), "até aqui" e seletor "Próximo a assistir" (incluindo clique errado à frente e a aba Continuando), vínculo TMDB por IMDb ao abrir o detalhe, painel de episódios só em séries, backup + restauração sem tela escura, cancelamento do diálogo de restauração
+- Regra registrada no `CLAUDE.md`: rodar `npm run test:ui` antes de compilar e acrescentar um teste a cada bug de interface corrigido
+- A suíte Jest antiga (`tests/`, segurança) continua fora do repositório, como antes
+
+---
+
 ## Backlog de ideias (não detalhadas ainda)
 
 - ~~**⚠ Risco:** categoria "Animação" tratada como série pra fins de episódios, mesmo quando é um filme avulso~~ — **corrigido na v1.3.1**, ver Fase 13.1

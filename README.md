@@ -141,6 +141,18 @@ A suite de testes (Jest) cobre validações de segurança do processo principal 
 npm test
 ```
 
+#### Testes de interface (Playwright + Electron)
+
+Ficam em `e2e/` e abrem o app de verdade, clicando na interface como um usuário: catálogo, ordenação, tags, episódios ("até aqui" / "Próximo a assistir"), detalhes ("Onde assistir"), backup e restauração (os diálogos nativos de arquivo são simulados no processo principal).
+
+```bash
+npm run test:ui
+```
+
+- Cada teste roda com uma **pasta de dados temporária** (`CATALOGO_USER_DATA`, só aceita fora do app empacotado), apagada no fim — o catálogo real nunca é tocado
+- Os testes de episódios e detalhes usam a API da TMDB: a chave vem da variável `TMDB_API_KEY` ou da configuração local do app; sem chave, eles são pulados
+- Rode antes de gerar um instalador
+
 ### Build para distribuição
 
 ```bash
@@ -171,6 +183,7 @@ catalogo-filmes/
 │       ├── DiscDetailModal.jsx # Modal de detalhes
 │       ├── EpisodesPanel.jsx   # Acompanhamento de episódios por temporada (TMDB)
 │       └── ConfirmModal.jsx    # Modal de confirmação genérico (ex: remover título)
+├── e2e/                   # Testes de interface (Playwright) — npm run test:ui
 ├── colecao.html           # Página standalone para publicar no site
 ├── dev-runner.js          # Script de desenvolvimento com detecção automática de porta
 └── package.json

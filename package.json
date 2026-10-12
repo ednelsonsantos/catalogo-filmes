@@ -10,7 +10,8 @@
     "postinstall": "electron-rebuild -f -w better-sqlite3",
     "rebuild": "electron-rebuild -f -w better-sqlite3",
     "test": "jest --forceExit",
-    "test:watch": "jest --watch"
+    "test:watch": "jest --watch",
+    "test:ui": "playwright test -c e2e/playwright.config.js"
   },
   "jest": {
     "testEnvironment": "node",
@@ -27,6 +28,7 @@
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
+    "@playwright/test": "^1.48.2",
     "@vitejs/plugin-react": "^4.2.0",
     "concurrently": "^8.2.0",
     "electron": "^32.3.3",
