@@ -421,6 +421,12 @@ Achados do roteiro de testes feito pelo usuário antes de compilar:
 - **Ordenação "Minha nota"**: maior primeiro, empate em ordem alfabética, sem nota no fim (antes "sem nota" e nota 0 empatavam)
 - **Notificações do Windows**: faltava `app.setAppUserModelId` (precisa bater com o `appId` do instalador). No modo dev o Windows pode continuar sem exibir, já que não existe atalho instalado com esse ID
 
+### 13.8 "Até aqui" = assisti tudo até este episódio (v1.8.3) ✓
+- O botão "até aqui" do painel de episódios só marcava dentro da temporada aberta: não preenchia temporadas anteriores nem desfazia marcações à frente. Agora usa o mesmo `episodes:markProgress` do seletor (com `episode + 1` como "próximo a assistir"): marca temporadas anteriores inteiras, marca até o episódio clicado e desmarca o que vier depois, avisando quantos foram desmarcados
+- O seletor "Próximo a assistir" no formulário de edição só era preenchido ao abrir; agora acompanha qualquer mudança feita no painel (contador `episodesVersion` disparado pelo `onUpdated`) e zera o `progressTouched`, pra salvar o formulário não reaplicar um valor antigo
+- Clique individual passou a avisar o formulário só depois de gravar no banco (antes o seletor podia ler o estado anterior)
+- Testado no app rodando (Electron com `--remote-debugging-port`, cliques reais na interface via CDP): "até aqui" em T2E13 do Smallville → seletor em T2E14, banco com T1 completa (21) + T2 E1–E13 e T3 desmarcada; marcar/desmarcar T2E14 → seletor T2E15/T2E14; aba Continuando mostrando "Próximo: T2E14"
+
 ---
 
 ## Backlog de ideias (não detalhadas ainda)

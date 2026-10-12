@@ -230,6 +230,7 @@ export default function AddDiscPage({ settings, editFilme, filmes = [], collecti
   const [currentSeason, setCurrentSeason] = useState(1)
   const [currentEpisode, setCurrentEpisode] = useState(1)
   const [progressTouched, setProgressTouched] = useState(false)
+  const [episodesVersion, setEpisodesVersion] = useState(0)
   const fileRef = useRef()
   const isEditing = !!editFilme
 
@@ -259,6 +260,7 @@ export default function AddDiscPage({ settings, editFilme, filmes = [], collecti
   }, [filme.tmdb_id, filme.category])
 
   // Ao editar um título "Assistindo", sugere o próximo episódio não visto em vez de sempre T1E1
+  // Também roda de novo quando o painel de episódios muda a contagem, pra o seletor acompanhar
   useEffect(() => {
     if (!isEditing || !filme.watching || !filme.tmdb_id || filme.tmdb_media_type !== 'tv' || !SERIES_CATEGORIES.includes(filme.category)) return
     let cancelled = false
@@ -267,11 +269,13 @@ export default function AddDiscPage({ settings, editFilme, filmes = [], collecti
         if (cancelled || !res || res === 'caught_up') return
         setCurrentSeason(res.season)
         setCurrentEpisode(res.episode)
+        // o painel já gravou no banco; salvar o formulário não deve reaplicar um valor antigo do seletor
+        setProgressTouched(false)
       })
       .catch(() => {})
     return () => { cancelled = true }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isEditing, filme.id, filme.tmdb_id, filme.watching])
+  }, [isEditing, filme.id, filme.tmdb_id, filme.watching, episodesVersion])
 
   // Resultados de busca com título muito parecido — alerta pra conferir o ano antes de escolher
   // (achado real: um ID errado foi salvo pra uma série por engano numa busca ambígua)
@@ -954,13 +958,16 @@ export default function AddDiscPage({ settings, editFilme, filmes = [], collecti
             <EpisodesPanel
               filme={filme}
               showToast={showToast}
-              onUpdated={(updated) => setFilme(f => ({
-                ...f,
-                episodes_aired: updated.episodes_aired,
-                next_episode_air_date: updated.next_episode_air_date,
-                last_episode_check: updated.last_episode_check,
-                episodes_watched_count: updated.episodes_watched_count,
-              }))}
+              onUpdated={(updated) => {
+                setFilme(f => ({
+                  ...f,
+                  episodes_aired: updated.episodes_aired,
+                  next_episode_air_date: updated.next_episode_air_date,
+                  last_episode_check: updated.last_episode_check,
+                  episodes_watched_count: updated.episodes_watched_count,
+                }))
+                setEpisodesVersion(v => v + 1)
+              }}
             />
           )}
 

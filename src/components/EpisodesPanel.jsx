@@ -69,28 +69,31 @@ export default function EpisodesPanel({ filme, onUpdated, showToast }) {
     const nextSet = new Set(watchedSet)
     isWatched ? nextSet.delete(key) : nextSet.add(key)
     setWatchedSet(nextSet)
-    onUpdated?.({ ...filme, episodes_watched_count: nextSet.size })
     try {
       await window.api.episodesSetWatched({ filmeId: filme.id, season: seasonNumber, episode: episodeNumber, watched: !isWatched })
+      onUpdated?.({ ...filme, episodes_watched_count: nextSet.size })
     } catch {
       showToast?.('Erro ao salvar episódio.', 'error')
       loadWatched()
     }
   }
 
+  // "Assisti tudo até aqui": marca as temporadas anteriores inteiras e desmarca o que vier depois
   const markUpTo = async (seasonNumber, episodeNumber) => {
-    const episodes = seasonEpisodes[seasonNumber] || []
-    const toMark = episodes
-      .filter(e => e.episode_number <= episodeNumber && e.air_date && e.air_date <= today)
-      .map(e => ({ season: seasonNumber, episode: e.episode_number }))
-    const nextSet = new Set(watchedSet)
-    toMark.forEach(({ season, episode }) => nextSet.add(`${season}-${episode}`))
-    setWatchedSet(nextSet)
-    onUpdated?.({ ...filme, episodes_watched_count: nextSet.size })
+    const removed = [...watchedSet].filter(k => {
+      const [s, e] = k.split('-').map(Number)
+      return s > seasonNumber || (s === seasonNumber && e > episodeNumber)
+    }).length
     try {
-      await window.api.episodesSetWatchedBulk({ filmeId: filme.id, episodes: toMark, watched: true })
-    } catch {
-      showToast?.('Erro ao marcar episódios.', 'error')
+      const updated = await window.api.episodesMarkProgress({ filmeId: filme.id, tmdbId, season: seasonNumber, episode: episodeNumber + 1 })
+      await loadWatched()
+      onUpdated?.(updated)
+      showToast?.(
+        `Visto até T${seasonNumber}E${episodeNumber}` + (removed ? ` — ${removed} episódio(s) depois disso desmarcado(s)` : ''),
+        'success'
+      )
+    } catch (e) {
+      showToast?.(e.message || 'Erro ao marcar episódios.', 'error')
       loadWatched()
     }
   }
@@ -215,7 +218,7 @@ export default function EpisodesPanel({ filme, onUpdated, showToast }) {
                         {aired && (
                           <button className="btn btn-sm" style={{ fontSize: 10, padding: '2px 6px', flexShrink: 0 }}
                             onClick={() => markUpTo(s.season_number, e.episode_number)}
-                            title="Marcar todos até este episódio">
+                            title="Assisti tudo até este episódio (inclui temporadas anteriores; desmarca os seguintes)">
                             até aqui
                           </button>
                         )}
