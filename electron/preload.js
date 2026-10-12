@@ -17,6 +17,14 @@ contextBridge.exposeInMainWorld('api', {
   tmdbDetails:       (p)      => ipcRenderer.invoke('tmdb:details', p),
   tmdbSearchTv:      (p)      => ipcRenderer.invoke('tmdb:searchTv', p),
   tmdbTvDetails:     (p)      => ipcRenderer.invoke('tmdb:tvDetails', p),
+  tmdbTvSeasonDetails: (p)    => ipcRenderer.invoke('tmdb:tvSeasonDetails', p),
+
+  // Episódios (acompanhamento por temporada/episódio)
+  episodesGetWatched:    (filmeId) => ipcRenderer.invoke('episodes:getWatched', filmeId),
+  episodesSetWatched:    (p)       => ipcRenderer.invoke('episodes:setWatched', p),
+  episodesSetWatchedBulk: (p)      => ipcRenderer.invoke('episodes:setWatchedBulk', p),
+  episodesRefresh:       (p)       => ipcRenderer.invoke('episodes:refresh', p),
+  episodesMarkProgress:  (p)       => ipcRenderer.invoke('episodes:markProgress', p),
 
   // Capas
   saveCover:         (p)      => ipcRenderer.invoke('cover:save', p),

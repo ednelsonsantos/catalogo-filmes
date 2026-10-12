@@ -28,6 +28,14 @@ function sanitizeExt(ext) {
   return String(ext || '').replace(/[^a-zA-Z0-9]/g, '').slice(0, 10) || 'jpg'
 }
 
+function getFilmeById(id) {
+  return db.prepare(`
+    SELECT f.*,
+      (SELECT COUNT(*) FROM episodios_assistidos e WHERE e.filme_id = f.id) AS episodes_watched_count
+    FROM filmes f WHERE f.id = ?
+  `).get(id)
+}
+
 function assertCoversPath(filePath) {
   const coversDir = path.resolve(path.join(app.getPath('userData'), 'covers'))
   const resolved  = path.resolve(filePath)
@@ -159,6 +167,19 @@ function createDatabase() {
   if (!columns.includes('category'))   db.exec("ALTER TABLE filmes ADD COLUMN category TEXT DEFAULT ''")
   if (!columns.includes('tmdb_id'))    db.exec("ALTER TABLE filmes ADD COLUMN tmdb_id TEXT DEFAULT ''")
   if (!columns.includes('watching'))   db.exec('ALTER TABLE filmes ADD COLUMN watching INTEGER DEFAULT 0')
+  if (!columns.includes('episodes_aired'))        db.exec('ALTER TABLE filmes ADD COLUMN episodes_aired INTEGER')
+  if (!columns.includes('next_episode_air_date'))  db.exec('ALTER TABLE filmes ADD COLUMN next_episode_air_date TEXT')
+  if (!columns.includes('last_episode_check'))     db.exec('ALTER TABLE filmes ADD COLUMN last_episode_check TEXT')
+
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS episodios_assistidos (
+      filme_id INTEGER NOT NULL,
+      season_number INTEGER NOT NULL,
+      episode_number INTEGER NOT NULL,
+      watched_at TEXT,
+      PRIMARY KEY (filme_id, season_number, episode_number)
+    )
+  `)
 
   db.exec(`
     CREATE TABLE IF NOT EXISTS colecoes (
@@ -274,7 +295,11 @@ app.on('before-quit', () => {
 // ─── IPC: FILMES ──────────────────────────────────────────────────────────────
 
 ipcMain.handle('db:getAll', () =>
-  db.prepare('SELECT * FROM filmes ORDER BY title COLLATE NOCASE').all()
+  db.prepare(`
+    SELECT f.*,
+      (SELECT COUNT(*) FROM episodios_assistidos e WHERE e.filme_id = f.id) AS episodes_watched_count
+    FROM filmes f ORDER BY f.title COLLATE NOCASE
+  `).all()
 )
 
 ipcMain.handle('db:insert', (_, filme) => {
@@ -287,7 +312,7 @@ ipcMain.handle('db:insert', (_, filme) => {
       @poster_url, @cover_path, @language, @country, @category, @tmdb_id)
   `)
   const result = stmt.run({ ...filme, watching: filme.watching ? 1 : 0 })
-  return db.prepare('SELECT * FROM filmes WHERE id = ?').get(result.lastInsertRowid)
+  return getFilmeById(result.lastInsertRowid)
 })
 
 ipcMain.handle('db:update', (_, filme) => {
@@ -300,7 +325,7 @@ ipcMain.handle('db:update', (_, filme) => {
       language=@language, country=@country, category=@category, tmdb_id=@tmdb_id
     WHERE id=@id
   `).run({ ...filme, watching: filme.watching ? 1 : 0 })
-  return db.prepare('SELECT * FROM filmes WHERE id = ?').get(filme.id)
+  return getFilmeById(filme.id)
 })
 
 ipcMain.handle('db:delete', (_, id) => {
@@ -412,6 +437,134 @@ ipcMain.handle('tmdb:tvDetails', async (_, { id }) => {
   if (!_tmdbKey) throw new Error('TMDB API key not configured')
   if (!isPositiveInt(id)) throw new Error('Invalid TMDB ID')
   return omdbFetch(`https://api.themoviedb.org/3/tv/${id}?append_to_response=credits&language=pt-BR&api_key=${_tmdbKey}`)
+})
+
+ipcMain.handle('tmdb:tvSeasonDetails', async (_, { id, season }) => {
+  if (!_tmdbKey) throw new Error('TMDB API key not configured')
+  if (!isPositiveInt(id)) throw new Error('Invalid TMDB ID')
+  if (!Number.isInteger(season) || season < 0) throw new Error('Invalid season number')
+  return omdbFetch(`https://api.themoviedb.org/3/tv/${id}/season/${season}?language=pt-BR&api_key=${_tmdbKey}`)
+})
+
+// ─── IPC: EPISÓDIOS ───────────────────────────────────────────────────────────
+
+ipcMain.handle('episodes:getWatched', (_, filmeId) => {
+  if (!isPositiveInt(filmeId)) throw new Error('Invalid filme ID')
+  return db.prepare('SELECT season_number, episode_number, watched_at FROM episodios_assistidos WHERE filme_id = ?').all(filmeId)
+})
+
+ipcMain.handle('episodes:setWatched', (_, { filmeId, season, episode, watched }) => {
+  if (!isPositiveInt(filmeId)) throw new Error('Invalid filme ID')
+  if (!Number.isInteger(season) || season < 0) throw new Error('Invalid season number')
+  if (!isPositiveInt(episode)) throw new Error('Invalid episode number')
+  if (watched) {
+    db.prepare(`
+      INSERT INTO episodios_assistidos (filme_id, season_number, episode_number, watched_at)
+      VALUES (?, ?, ?, datetime('now','localtime'))
+      ON CONFLICT(filme_id, season_number, episode_number) DO NOTHING
+    `).run(filmeId, season, episode)
+  } else {
+    db.prepare('DELETE FROM episodios_assistidos WHERE filme_id = ? AND season_number = ? AND episode_number = ?').run(filmeId, season, episode)
+  }
+  return true
+})
+
+ipcMain.handle('episodes:setWatchedBulk', (_, { filmeId, episodes, watched }) => {
+  if (!isPositiveInt(filmeId)) throw new Error('Invalid filme ID')
+  if (!Array.isArray(episodes)) throw new Error('episodes must be an array')
+  const insert = db.prepare(`
+    INSERT INTO episodios_assistidos (filme_id, season_number, episode_number, watched_at)
+    VALUES (?, ?, ?, datetime('now','localtime'))
+    ON CONFLICT(filme_id, season_number, episode_number) DO NOTHING
+  `)
+  const del = db.prepare('DELETE FROM episodios_assistidos WHERE filme_id = ? AND season_number = ? AND episode_number = ?')
+  const tx = db.transaction((items) => {
+    for (const { season, episode } of items) {
+      if (!Number.isInteger(season) || season < 0 || !isPositiveInt(episode)) continue
+      if (watched) insert.run(filmeId, season, episode)
+      else del.run(filmeId, season, episode)
+    }
+  })
+  tx(episodes)
+  return true
+})
+
+async function fetchTmdbTvSummary(tmdbId) {
+  const data = await omdbFetch(`https://api.themoviedb.org/3/tv/${tmdbId}?language=pt-BR&api_key=${_tmdbKey}`)
+  if (data.success === false) {
+    throw new Error(`ID TMDB ${tmdbId} inválido ou removido — re-adicione o título pela busca para corrigir o vínculo`)
+  }
+  const last = data.last_episode_to_air
+  const seasons = (data.seasons || []).filter(s => s.season_number >= 1)
+  let episodesAired = 0
+  if (last) {
+    for (const s of seasons) {
+      if (s.season_number < last.season_number) episodesAired += (s.episode_count || 0)
+      else if (s.season_number === last.season_number) episodesAired += (last.episode_number || 0)
+    }
+  }
+  const nextAirDate = data.next_episode_to_air?.air_date || null
+  return { episodesAired, nextAirDate, seasons, last }
+}
+
+// Gera os pares (temporada, episódio) de 1 até o limite informado, varrendo as temporadas anteriores inteiras
+function pairsUpTo(seasons, boundSeason, boundEpisode) {
+  const pairs = []
+  for (const s of seasons) {
+    if (s.season_number < boundSeason) {
+      for (let ep = 1; ep <= (s.episode_count || 0); ep++) pairs.push({ season: s.season_number, episode: ep })
+    } else if (s.season_number === boundSeason) {
+      for (let ep = 1; ep <= boundEpisode; ep++) pairs.push({ season: s.season_number, episode: ep })
+    }
+  }
+  return pairs
+}
+
+function bulkInsertWatched(filmeId, pairs) {
+  if (!pairs.length) return
+  const insert = db.prepare(`
+    INSERT INTO episodios_assistidos (filme_id, season_number, episode_number, watched_at)
+    VALUES (?, ?, ?, datetime('now','localtime'))
+    ON CONFLICT(filme_id, season_number, episode_number) DO NOTHING
+  `)
+  const tx = db.transaction((items) => {
+    for (const { season, episode } of items) insert.run(filmeId, season, episode)
+  })
+  tx(pairs)
+}
+
+ipcMain.handle('episodes:refresh', async (_, { filmeId, tmdbId, markAllWatched }) => {
+  if (!isPositiveInt(filmeId)) throw new Error('Invalid filme ID')
+  if (!_tmdbKey) throw new Error('TMDB API key not configured')
+  if (!tmdbId) throw new Error('Título sem TMDB ID — adicione pela busca pra ter episódios')
+  const { episodesAired, nextAirDate, seasons, last } = await fetchTmdbTvSummary(tmdbId)
+
+  if (markAllWatched && last) {
+    bulkInsertWatched(filmeId, pairsUpTo(seasons, last.season_number, last.episode_number))
+  }
+
+  db.prepare(`
+    UPDATE filmes SET episodes_aired = ?, next_episode_air_date = ?, last_episode_check = datetime('now','localtime')
+    WHERE id = ?
+  `).run(episodesAired, nextAirDate, filmeId)
+  return getFilmeById(filmeId)
+})
+
+ipcMain.handle('episodes:markProgress', async (_, { filmeId, tmdbId, season, episode }) => {
+  if (!isPositiveInt(filmeId)) throw new Error('Invalid filme ID')
+  if (!_tmdbKey) throw new Error('TMDB API key not configured')
+  if (!tmdbId) throw new Error('Título sem TMDB ID — adicione pela busca pra ter episódios')
+  if (!Number.isInteger(season) || season < 1) throw new Error('Invalid season number')
+  if (!Number.isInteger(episode) || episode < 1) throw new Error('Invalid episode number')
+  const { episodesAired, nextAirDate, seasons } = await fetchTmdbTvSummary(tmdbId)
+
+  bulkInsertWatched(filmeId, pairsUpTo(seasons, season, episode))
+
+  db.prepare(`
+    UPDATE filmes SET episodes_aired = ?, next_episode_air_date = ?, last_episode_check = datetime('now','localtime')
+    WHERE id = ?
+  `).run(episodesAired, nextAirDate, filmeId)
+  return getFilmeById(filmeId)
 })
 
 // ─── IPC: SHELL ───────────────────────────────────────────────────────────────
@@ -658,7 +811,7 @@ ipcMain.handle('mal:search', async (_, { query, limit = 20 }) => {
   await malRefreshIfNeeded()
   if (!query || String(query).trim().length === 0) throw new Error('Query vazia')
   const q = encodeURIComponent(String(query).trim().slice(0, 100))
-  const fields = 'id,title,alternative_titles,main_picture,num_episodes,mean,start_date,genres,media_type'
+  const fields = 'id,title,alternative_titles,main_picture,num_episodes,mean,start_date,genres,media_type,broadcast,status'
   const res = await malFetch(`https://api.myanimelist.net/v2/anime?q=${q}&limit=${limit}&fields=${fields}`, {
     headers: { Authorization: `Bearer ${_malAccessToken}` },
   })
@@ -669,7 +822,7 @@ ipcMain.handle('mal:search', async (_, { query, limit = 20 }) => {
 
 ipcMain.handle('mal:getAnimeList', async (_, { status = 'completed', limit = 1000 } = {}) => {
   await malRefreshIfNeeded()
-  const fields = 'id,title,alternative_titles,main_picture,num_episodes,mean,start_date,genres,media_type,my_list_status'
+  const fields = 'id,title,alternative_titles,main_picture,num_episodes,mean,start_date,genres,media_type,my_list_status,broadcast,status'
   const url = `https://api.myanimelist.net/v2/users/@me/animelist?fields=${fields}&status=${status}&limit=${limit}&nsfw=true`
   const res = await malFetch(url, {
     headers: { Authorization: `Bearer ${_malAccessToken}` },

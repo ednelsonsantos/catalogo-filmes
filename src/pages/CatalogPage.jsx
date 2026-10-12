@@ -1,6 +1,8 @@
 import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react'
 import DiscCard from '../components/DiscCard.jsx'
 import DiscDetailModal from '../components/DiscDetailModal.jsx'
+import ConfirmModal from '../components/ConfirmModal.jsx'
+import { SERIES_CATEGORIES } from '../constants.js'
 import './CatalogPage.css'
 
 const IconSearch = () => (<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>)
@@ -19,15 +21,47 @@ const FILTERS = [
 
 const ALL_CATEGORIES = ['Filme', 'Série', 'Mini-série', 'Documentário', 'Animação', 'Anime', 'Show/Stand-up', 'Musical', 'Esporte', 'Streaming', 'Outro']
 
-export default function CatalogPage({ filmes, onEdit, onDelete, onToggleWatched, showToast, selectedCollection }) {
+export default function CatalogPage({ filmes, onEdit, onDelete, onToggleWatched, onFilmeUpdated, showToast, selectedCollection }) {
   const [search, setSearch] = useState('')
   const [format, setFormat] = useState('all')
   const [category, setCategory] = useState('all')
   const [sort, setSort] = useState('title')
   const [viewMode, setViewMode] = useState('grid')
   const [detail, setDetail] = useState(null)
+  const [confirmingDelete, setConfirmingDelete] = useState(null)
   const [exporting, setExporting] = useState(false)
+  const [bulkRefreshing, setBulkRefreshing] = useState(null) // { done, total } ou null
   const searchRef = useRef(null)
+
+  const trackableFilmes = useMemo(
+    () => filmes.filter(f => f.tmdb_id && SERIES_CATEGORIES.includes(f.category)),
+    [filmes]
+  )
+
+  const handleBulkRefreshEpisodes = useCallback(async () => {
+    const targets = trackableFilmes
+    if (targets.length === 0) return
+    setBulkRefreshing({ done: 0, total: targets.length })
+    let okCount = 0
+    const failed = []
+    for (let i = 0; i < targets.length; i++) {
+      const f = targets[i]
+      try {
+        const updated = await window.api.episodesRefresh({ filmeId: f.id, tmdbId: f.tmdb_id, markAllWatched: false })
+        onFilmeUpdated?.(updated)
+        okCount++
+      } catch {
+        failed.push(f.title)
+      }
+      setBulkRefreshing({ done: i + 1, total: targets.length })
+    }
+    setBulkRefreshing(null)
+    if (failed.length > 0) {
+      showToast(`${okCount} atualizados. ID inválido/removido em: ${failed.join(', ')} — remova e re-adicione pela busca.`, 'info')
+    } else {
+      showToast(`${okCount} séries/animes atualizados!`, 'success')
+    }
+  }, [trackableFilmes, onFilmeUpdated, showToast])
 
   const hasActiveFilters = search || format !== 'all' || category !== 'all'
 
@@ -81,12 +115,18 @@ export default function CatalogPage({ filmes, onEdit, onDelete, onToggleWatched,
     return items
   }, [filmes, search, format, category, sort])
 
-  const handleDelete = useCallback(async (filme) => {
-    if (!confirm(`Remover "${filme.title}" da coleção?`)) return
+  const handleDelete = useCallback((filme) => {
+    setConfirmingDelete(filme)
+  }, [])
+
+  const confirmDelete = useCallback(async () => {
+    const filme = confirmingDelete
+    if (!filme) return
+    setConfirmingDelete(null)
     await window.api.delete(filme.id)
     onDelete(); setDetail(null)
     showToast(`"${filme.title}" removido.`, 'info')
-  }, [onDelete, showToast])
+  }, [confirmingDelete, onDelete, showToast])
 
   const handleExport = useCallback(async (type) => {
     setExporting(true)
@@ -165,6 +205,16 @@ export default function CatalogPage({ filmes, onEdit, onDelete, onToggleWatched,
               ↳ {selectedCollection.name}
             </span>
           )}
+          {trackableFilmes.length > 0 && (
+            <button
+              className="btn btn-sm"
+              onClick={handleBulkRefreshEpisodes}
+              disabled={!!bulkRefreshing}
+              title="Busca na TMDB quantos episódios já saíram pra todas as séries/animes do catálogo (não marca nada como assistido)"
+            >
+              {bulkRefreshing ? `Atualizando ${bulkRefreshing.done}/${bulkRefreshing.total}…` : `↻ Atualizar episódios (${trackableFilmes.length})`}
+            </button>
+          )}
           <button className="btn btn-sm" onClick={() => handleExport('csv')} disabled={exporting} title={selectedCollection ? `Exportar coleção "${selectedCollection.name}"` : 'Exportar tudo'}><IconExport /> CSV</button>
           <button className="btn btn-sm" onClick={() => handleExport('xlsx')} disabled={exporting} title={selectedCollection ? `Exportar coleção "${selectedCollection.name}"` : 'Exportar tudo'}><IconExport /> Excel</button>
           <button className="btn btn-sm" onClick={() => handleExport('site')} disabled={exporting} title={selectedCollection ? `Exportar coleção "${selectedCollection.name}"` : 'Exportar tudo'}><IconExport /> Site</button>
@@ -238,7 +288,19 @@ export default function CatalogPage({ filmes, onEdit, onDelete, onToggleWatched,
       {detail && (
         <DiscDetailModal filme={detail} onClose={() => setDetail(null)}
           onEdit={() => { onEdit(detail); setDetail(null) }}
-          onDelete={() => handleDelete(detail)} />
+          onDelete={() => handleDelete(detail)}
+          onUpdated={(updated) => { setDetail(updated); onFilmeUpdated?.(updated) }}
+          showToast={showToast} />
+      )}
+
+      {confirmingDelete && (
+        <ConfirmModal
+          title="Remover título"
+          message={`Tem certeza que quer remover "${confirmingDelete.title}" da sua coleção? Essa ação não pode ser desfeita.`}
+          confirmLabel="Remover"
+          onConfirm={confirmDelete}
+          onCancel={() => setConfirmingDelete(null)}
+        />
       )}
     </div>
   )

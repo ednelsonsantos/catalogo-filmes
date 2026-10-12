@@ -5,6 +5,7 @@ import AddDiscPage from './pages/AddDiscPage.jsx'
 import SettingsPage from './pages/SettingsPage.jsx'
 import AnimePage from './pages/AnimePage.jsx'
 import Toast from './components/Toast.jsx'
+import { SERIES_CATEGORIES } from './constants.js'
 import appIcon from '../icon.png'
 import './App.css'
 
@@ -88,7 +89,18 @@ export default function App() {
       // marcar como assistido agora encerra o "assistindo" (não soma nos dois contadores)
       watching: wasWatched ? filme.watching : false,
     }
-    await window.api.update(updated)
+    let saved = await window.api.update(updated)
+
+    // Marcou "Assistido" agora: sincroniza episódios já lançados pra séries/animes da TMDB
+    if (!wasWatched && updated.tmdb_id && SERIES_CATEGORIES.includes(updated.category)) {
+      try { saved = await window.api.episodesRefresh({ filmeId: updated.id, tmdbId: updated.tmdb_id, markAllWatched: true }) }
+      catch (e) { console.error('Erro ao sincronizar episódios:', e) }
+    }
+
+    setFilmes(prev => prev.map(f => f.id === saved.id ? saved : f))
+  }, [])
+
+  const handleFilmeUpdated = useCallback((updated) => {
     setFilmes(prev => prev.map(f => f.id === updated.id ? updated : f))
   }, [])
 
@@ -142,6 +154,7 @@ export default function App() {
             onEdit={handleEdit}
             onDelete={async () => { await refresh(); await refreshCollections(); if (selectedCollection) { const ids = await window.api.colecoesGetFilmeIds(selectedCollection.id); setCollectionFilmeIds(ids) } }}
             onToggleWatched={handleToggleWatched}
+            onFilmeUpdated={handleFilmeUpdated}
             showToast={showToast}
             selectedCollection={selectedCollection}
           />

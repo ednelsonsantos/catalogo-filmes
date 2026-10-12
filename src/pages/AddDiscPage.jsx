@@ -1,5 +1,7 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react'
 import { createWorker } from 'tesseract.js'
+import { SERIES_CATEGORIES } from '../constants.js'
+import EpisodesPanel from '../components/EpisodesPanel.jsx'
 import './AddDiscPage.css'
 
 // ─── Constantes MAL ───────────────────────────────────────────────────────────
@@ -31,9 +33,6 @@ const MAL_SCORE_LABELS = {
 const ALL_FORMATS = ['DVD', 'Blu-ray', '4K UHD', 'VHS', 'Digital']
 
 const ALL_CATEGORIES = ['', 'Filme', 'Série', 'Mini-série', 'Documentário', 'Animação', 'Anime', 'Show/Stand-up', 'Musical', 'Esporte', 'Streaming', 'Outro']
-
-// Categorias seriadas, onde faz sentido marcar "Assistindo" (em andamento)
-const SERIES_CATEGORIES = ['Série', 'Mini-série', 'Anime', 'Animação']
 
 const EMPTY = {
   title: '', original_title: '', year: '', format: '', formats: '',
@@ -211,6 +210,15 @@ export default function AddDiscPage({ settings, editFilme, filmes = [], collecti
   const [duplicateWarning, setDuplicateWarning] = useState(null)
   const [saving, setSaving] = useState(false)
   const [isDragging, setIsDragging] = useState(false)
+  // true quando o checkbox "Assistido" foi marcado (de desmarcado pra marcado) nesta sessão de edição —
+  // dispara a sincronização de episódios no save, independente do estado com que a edição começou
+  const [watchedJustChecked, setWatchedJustChecked] = useState(false)
+  const lastWatchedDateRef = useRef(null)
+  // Seletor rápido "estou na temporada X, episódio Y", usado só ao adicionar (sem id ainda pro painel completo)
+  const [tvSeasonsMeta, setTvSeasonsMeta] = useState(null)
+  const [currentSeason, setCurrentSeason] = useState(1)
+  const [currentEpisode, setCurrentEpisode] = useState(1)
+  const [progressTouched, setProgressTouched] = useState(false)
   const fileRef = useRef()
   const isEditing = !!editFilme
 
@@ -225,7 +233,34 @@ export default function AddDiscPage({ settings, editFilme, filmes = [], collecti
     }
   }, [editFilme])
 
+  // Busca as temporadas (só número + qtd de episódios) pro seletor rápido "estou na temporada X, ep Y"
+  useEffect(() => {
+    if (!filme.tmdb_id || !SERIES_CATEGORIES.includes(filme.category)) { setTvSeasonsMeta(null); return }
+    let cancelled = false
+    window.api.tmdbTvDetails({ id: Number(filme.tmdb_id) })
+      .then(data => {
+        if (cancelled || data.success === false) return
+        setTvSeasonsMeta((data.seasons || []).filter(s => s.season_number >= 1))
+      })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [filme.tmdb_id, filme.category])
+
   const setField = useCallback((key, value) => setFilme(f => ({ ...f, [key]: value })), [])
+
+  const toggleWatched = useCallback(() => {
+    setFilme(f => {
+      const turningOn = !f.watched_at
+      if (turningOn) {
+        setWatchedJustChecked(true)
+        return { ...f, watched_at: lastWatchedDateRef.current || 'watched', watching: false }
+      }
+      // guarda a data antes de limpar, pra restaurar se marcar de novo nesta sessão
+      if (f.watched_at && f.watched_at !== 'watched') lastWatchedDateRef.current = f.watched_at
+      setWatchedJustChecked(false)
+      return { ...f, watched_at: '' }
+    })
+  }, [])
 
   const handleCreateCollection = useCallback(async () => {
     const name = newCollectionName.trim()
@@ -442,12 +477,29 @@ export default function AddDiscPage({ settings, editFilme, filmes = [], collecti
         await window.api.update({ ...saved, cover_path: savedPath })
       }
 
+      // Sincroniza episódios pra séries/animes com TMDB
+      if (filme.tmdb_id && SERIES_CATEGORIES.includes(filme.category)) {
+        const tmdbId = Number(filme.tmdb_id)
+        try {
+          if (watchedJustChecked && filme.watched_at) {
+            // Marcou "Assistido" nesta sessão: marca todos os episódios já lançados
+            await window.api.episodesRefresh({ filmeId: saved.id, tmdbId, markAllWatched: true })
+          } else if (!isEditing && filme.watching && progressTouched) {
+            // Adicionando e informou "estou na temporada X, ep Y": marca até ali
+            await window.api.episodesMarkProgress({ filmeId: saved.id, tmdbId, season: currentSeason, episode: currentEpisode })
+          } else if (!isEditing) {
+            // Título novo: já popula quantos episódios existem, sem marcar nada
+            await window.api.episodesRefresh({ filmeId: saved.id, tmdbId, markAllWatched: false })
+          }
+        } catch (e) { console.error('Erro ao sincronizar episódios:', e) }
+      }
+
       showToast(isEditing ? 'Atualizado!' : `"${filme.title}" adicionado!`, 'success')
       onSaved(saved.id, selectedCollections)
     } catch (e) {
       console.error(e); showToast('Erro ao salvar.', 'error')
     } finally { setSaving(false) }
-  }, [filme, coverFile, isEditing, editFilme, onSaved, showToast, selectedCollections])
+  }, [filme, coverFile, isEditing, editFilme, onSaved, showToast, selectedCollections, watchedJustChecked, progressTouched, currentSeason, currentEpisode])
 
   // ── Drag & drop ──────────────────────────────────────────────────────────────
 
@@ -571,7 +623,10 @@ export default function AddDiscPage({ settings, editFilme, filmes = [], collecti
             <input
               type="date"
               value={filme.watched_at && filme.watched_at !== 'watched' ? filme.watched_at : ''}
-              onChange={e => setField('watched_at', e.target.value || (filme.watched_at ? 'watched' : ''))}
+              onChange={e => {
+                if (e.target.value && !filme.watched_at) setWatchedJustChecked(true)
+                setField('watched_at', e.target.value || (filme.watched_at ? 'watched' : ''))
+              }}
               style={{ padding: '8px 10px', background: 'var(--bg3)', border: '1px solid var(--border)', borderRadius: '8px', color: 'var(--text)', fontSize: 13, outline: 'none', colorScheme: 'dark' }}
             />
           </div>
@@ -579,12 +634,7 @@ export default function AddDiscPage({ settings, editFilme, filmes = [], collecti
             <label
               className={`format-check ${filme.watched_at ? 'active' : ''}`}
               style={{ cursor: 'pointer' }}
-              onClick={() => setFilme(f => ({
-                ...f,
-                watched_at: f.watched_at ? '' : 'watched',
-                // marcar como assistido agora encerra o "assistindo"
-                watching: f.watched_at ? f.watching : false,
-              }))}
+              onClick={toggleWatched}
             >
               ✓ Assistido
             </label>
@@ -603,6 +653,30 @@ export default function AddDiscPage({ settings, editFilme, filmes = [], collecti
               </label>
             )}
           </div>
+
+          {!isEditing && filme.watching && filme.tmdb_id && SERIES_CATEGORIES.includes(filme.category) && tvSeasonsMeta?.length > 0 && (
+            <div style={{ marginTop: 8, display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+              <span style={{ fontSize: 12, color: 'var(--text3)' }}>Estou em:</span>
+              <select
+                value={currentSeason}
+                onChange={e => { setCurrentSeason(Number(e.target.value)); setCurrentEpisode(1); setProgressTouched(true) }}
+                style={{ padding: '4px 8px', background: 'var(--bg3)', border: '1px solid var(--border)', borderRadius: 6, color: 'var(--text)', fontSize: 12 }}
+              >
+                {tvSeasonsMeta.map(s => (
+                  <option key={s.season_number} value={s.season_number}>Temporada {s.season_number}</option>
+                ))}
+              </select>
+              <select
+                value={currentEpisode}
+                onChange={e => { setCurrentEpisode(Number(e.target.value)); setProgressTouched(true) }}
+                style={{ padding: '4px 8px', background: 'var(--bg3)', border: '1px solid var(--border)', borderRadius: 6, color: 'var(--text)', fontSize: 12 }}
+              >
+                {Array.from({ length: tvSeasonsMeta.find(s => s.season_number === currentSeason)?.episode_count || 1 }, (_, i) => i + 1).map(n => (
+                  <option key={n} value={n}>Ep {n}</option>
+                ))}
+              </select>
+            </div>
+          )}
 
           {/* Coleções */}
           <div className="field" style={{ marginTop: 12 }}>
@@ -775,6 +849,20 @@ export default function AddDiscPage({ settings, editFilme, filmes = [], collecti
 
           {(mode === 'manual' || isEditing) && (
             <FormFields filme={filme} setField={setField} />
+          )}
+
+          {isEditing && filme.tmdb_id && SERIES_CATEGORIES.includes(filme.category) && (
+            <EpisodesPanel
+              filme={filme}
+              showToast={showToast}
+              onUpdated={(updated) => setFilme(f => ({
+                ...f,
+                episodes_aired: updated.episodes_aired,
+                next_episode_air_date: updated.next_episode_air_date,
+                last_episode_check: updated.last_episode_check,
+                episodes_watched_count: updated.episodes_watched_count,
+              }))}
+            />
           )}
 
           <div style={{ marginTop: 20, display: 'flex', gap: 10 }}>

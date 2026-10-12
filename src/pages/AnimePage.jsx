@@ -25,6 +25,17 @@ const FILTER_OPTIONS = [
   { value: 'dropped',       label: 'Abandonados' },
 ]
 
+const WEEKDAY_LABELS = {
+  monday: 'segunda', tuesday: 'terça', wednesday: 'quarta', thursday: 'quinta',
+  friday: 'sexta', saturday: 'sábado', sunday: 'domingo',
+}
+
+function formatBroadcast(broadcast) {
+  if (!broadcast?.day_of_the_week) return null
+  const day = WEEKDAY_LABELS[broadcast.day_of_the_week] || broadcast.day_of_the_week
+  return broadcast.start_time ? `Toda ${day}, ${broadcast.start_time}` : `Toda ${day}`
+}
+
 const SCORE_LABELS = {
   0: 'Sem nota', 1: '(1) Horrível', 2: '(2) Terrível', 3: '(3) Muito ruim',
   4: '(4) Ruim', 5: '(5) Médio', 6: '(6) Bom', 7: '(7) Muito bom',
@@ -354,6 +365,7 @@ function AnimeCard({ node, listStatus, onClick }) {
   const statusLabel = STATUS_LABELS[listStatus?.status] || listStatus?.status || ''
   const myScore     = listStatus?.score > 0 ? listStatus.score : null
   const malScore    = node.mean ? Number(node.mean).toFixed(2) : null
+  const missing     = node.num_episodes > 0 ? node.num_episodes - (listStatus?.num_episodes_watched || 0) : 0
 
   // fallback para animes adicionados via busca (sem _cachedPoster ainda)
   useEffect(() => {
@@ -381,6 +393,16 @@ function AnimeCard({ node, listStatus, onClick }) {
             style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
         ) : (
           <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28 }}>🎌</div>
+        )}
+
+        {missing > 0 && (
+          <div style={{
+            position: 'absolute', top: 5, left: 5,
+            background: 'rgba(245,158,11,0.9)', color: '#fff',
+            fontSize: 9, fontWeight: 700, padding: '2px 5px', borderRadius: 4,
+          }}>
+            faltam {missing}
+          </div>
         )}
 
         {/* Badge status */}
@@ -449,6 +471,7 @@ function AnimeListRow({ node, listStatus, onClick }) {
       .catch(() => {})
   }, [node.id])
 
+  const missing = node.num_episodes > 0 ? node.num_episodes - (listStatus?.num_episodes_watched || 0) : 0
   const epsLabel = node.num_episodes > 0
     ? `${node.num_episodes} ep`
     : listStatus?.num_episodes_watched > 0
@@ -494,6 +517,11 @@ function AnimeListRow({ node, listStatus, onClick }) {
       {epsLabel && (
         <span style={{ fontSize: 12, color: 'var(--text3)', flexShrink: 0, minWidth: 60, textAlign: 'right' }}>
           {epsLabel}
+        </span>
+      )}
+      {missing > 0 && (
+        <span style={{ fontSize: 10, fontWeight: 700, color: '#f59e0b', background: 'rgba(245,158,11,0.12)', padding: '2px 6px', borderRadius: 4, flexShrink: 0 }}>
+          faltam {missing}
         </span>
       )}
 
@@ -619,6 +647,9 @@ function AnimeEditModal({ anime, onSave, onClose }) {
               {node.start_date && (
                 <span style={{ fontSize: 11, color: 'var(--text3)' }}>{node.start_date.slice(0, 4)}</span>
               )}
+              {node.status === 'currently_airing' && formatBroadcast(node.broadcast) && (
+                <span style={{ fontSize: 11, color: '#4a9eff' }}>📅 {formatBroadcast(node.broadcast)}</span>
+              )}
               {(node.genres || []).slice(0, 3).map(g => (
                 <span key={g.id} style={{
                   fontSize: 10, color: 'var(--text2)',
@@ -662,7 +693,12 @@ function AnimeEditModal({ anime, onSave, onClose }) {
             <label style={{ display: 'flex', justifyContent: 'space-between' }}>
               <span>Episódios assistidos</span>
               {totalEps > 0 && (
-                <span style={{ color: 'var(--text3)', fontWeight: 400 }}>de {totalEps}</span>
+                <span style={{ color: 'var(--text3)', fontWeight: 400 }}>
+                  de {totalEps}
+                  {totalEps - form.num_episodes_watched > 0 && (
+                    <span style={{ color: '#f59e0b', fontWeight: 600 }}> · faltam {totalEps - form.num_episodes_watched}</span>
+                  )}
+                </span>
               )}
             </label>
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>

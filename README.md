@@ -16,6 +16,8 @@ Aplicativo desktop para catalogar sua coleção pessoal de filmes, séries, docu
 - **Categoria obrigatória** — Filme, Série, Mini-série, Documentário, Animação, Anime, Show/Stand-up, Musical, Esporte, Streaming, Outro; o app avisa se tentar salvar sem selecionar uma
 - **Marcar como assistido** com ou sem data, diretamente no card sem abrir o modal
 - **Status "Assistindo"** para Série, Mini-série, Anime e Animação — contador próprio nas estatísticas; marcar como assistido encerra automaticamente o "assistindo" (e vice-versa), sem contar nos dois ao mesmo tempo
+- **Acompanhamento de episódios** — para séries/animes buscados pela TMDB (categoria Série, Mini-série, Anime ou Animação): marque episódios individualmente por temporada, use "até aqui" pra marcar várias de uma vez, veja quantos faltam, o episódio atual/próximo com data, e um badge "🆕" no card quando sai um episódio novo. Marcar "Assistido" sincroniza automaticamente todos os episódios já lançados; ao adicionar um título novo já marcando "Assistindo", um seletor deixa escolher em qual temporada/episódio você está. Um botão no catálogo atualiza os contadores de todas as séries/animes de uma vez. Nos animes do MAL, mostra o dia/horário de exibição semanal e quantos episódios faltam (sem duplicar o controle que já é sincronizado com a conta do MAL)
+- **Confirmação ao remover** — modal próprio (não o alerta genérico do navegador) pede confirmação antes de remover qualquer título, citando o nome pra evitar remoção acidental
 - **Catálogo** com visualização em grade ou lista, filtros por formato, categoria e busca por texto (Ctrl+F)
 - **Pôster fallback** — títulos sem imagem exibem fundo colorido único com iniciais, gerado a partir do título
 - **Estatísticas** — barra com totais por formato, % assistidos e último título adicionado; dropdown de categorias com contagem
@@ -157,7 +159,9 @@ catalogo-filmes/
 │   └── components/
 │       ├── Sidebar.jsx         # Navegação lateral com coleções, ordenação e badge animes
 │       ├── DiscCard.jsx        # Card do título (grade e lista) com toggle assistido
-│       └── DiscDetailModal.jsx # Modal de detalhes
+│       ├── DiscDetailModal.jsx # Modal de detalhes
+│       ├── EpisodesPanel.jsx   # Acompanhamento de episódios por temporada (TMDB)
+│       └── ConfirmModal.jsx    # Modal de confirmação genérico (ex: remover título)
 ├── colecao.html           # Página standalone para publicar no site
 ├── dev-runner.js          # Script de desenvolvimento com detecção automática de porta
 └── package.json

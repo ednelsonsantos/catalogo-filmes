@@ -5,6 +5,14 @@ function getFormats(filme) {
   return (filme.formats || filme.format || '').split(',').map(f => f.trim()).filter(Boolean)
 }
 
+function getEpisodeInfo(filme) {
+  if (filme.episodes_aired == null) return null
+  const watched = filme.episodes_watched_count || 0
+  const today = new Date().toISOString().slice(0, 10)
+  const isNew = !!filme.next_episode_air_date && filme.next_episode_air_date <= today
+  return { label: `${watched}/${filme.episodes_aired} eps`, isNew }
+}
+
 export default function DiscCard({ filme, viewMode, onClick, onEdit, onDelete, onToggleWatched }) {
   const [coverSrc, setCoverSrc] = useState(null)
 
@@ -22,6 +30,7 @@ export default function DiscCard({ filme, viewMode, onClick, onEdit, onDelete, o
   }, [filme.cover_path, filme.poster_url])
 
   const formats = getFormats(filme)
+  const episodeInfo = getEpisodeInfo(filme)
 
   if (viewMode === 'list') {
     return (
@@ -45,6 +54,11 @@ export default function DiscCard({ filme, viewMode, onClick, onEdit, onDelete, o
         <div className="list-right" onClick={e => e.stopPropagation()}>
           <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
             {filme.watching && <span className="format-badge watching-badge">Assistindo</span>}
+            {episodeInfo && (
+              <span className="format-badge episode-badge">
+                {episodeInfo.isNew ? '🆕 ' : ''}{episodeInfo.label}
+              </span>
+            )}
             {formats.map(f => <span key={f} className="format-badge">{f}</span>)}
           </div>
           {onToggleWatched && (
@@ -81,7 +95,14 @@ export default function DiscCard({ filme, viewMode, onClick, onEdit, onDelete, o
         <span className="format-badge-overlay">
           {[filme.category, ...formats].filter(Boolean).join(' · ') || '—'}
         </span>
-        {filme.watching && <span className="watching-overlay">▶ Assistindo</span>}
+        {(filme.watching || episodeInfo) && (
+          <div className="bottom-left-stack">
+            {filme.watching && <span className="watching-overlay">▶ Assistindo</span>}
+            {episodeInfo && (
+              <span className="episode-overlay">{episodeInfo.isNew ? '🆕 ' : ''}{episodeInfo.label}</span>
+            )}
+          </div>
+        )}
         {onToggleWatched && (
           <button
             className={`watched-toggle ${filme.watched_at ? 'watched-toggle--on' : ''}`}
