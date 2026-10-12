@@ -124,6 +124,7 @@ export default function CatalogPage({ filmes, onEdit, onDelete, onToggleWatched,
       if (sort === 'title')  return (a.title || '').localeCompare(b.title || '', 'pt-BR')
       if (sort === 'year')   return (b.year || 0) - (a.year || 0)
       if (sort === 'rating') return parseFloat(b.imdb_rating || 0) - parseFloat(a.imdb_rating || 0)
+      if (sort === 'myRating') return (b.my_rating || 0) - (a.my_rating || 0)
       if (sort === 'added')  return b.id - a.id
       if (sort === 'watched') return (b.watched_at || '').localeCompare(a.watched_at || '')
       return 0
@@ -264,7 +265,8 @@ export default function CatalogPage({ filmes, onEdit, onDelete, onToggleWatched,
           <select className="sort-select" value={sort} onChange={e => setSort(e.target.value)}>
             <option value="title">A → Z</option>
             <option value="year">Mais recente</option>
-            <option value="rating">Melhor nota</option>
+            <option value="rating">Melhor nota (IMDb)</option>
+            <option value="myRating">Minha nota</option>
             <option value="watched">Assistido recentemente</option>
             <option value="added">Adicionado por último</option>
           </select>

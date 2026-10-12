@@ -38,7 +38,7 @@ const EMPTY = {
   title: '', original_title: '', year: '', format: '', formats: '',
   watched_at: '', watching: false, genre: '', director: '', cast: '', runtime: '',
   imdb_rating: '', synopsis: '', poster_url: '', language: '', country: '', cover_path: null,
-  category: '', tmdb_id: '', tmdb_media_type: '',
+  category: '', tmdb_id: '', tmdb_media_type: '', my_rating: '',
 }
 
 const TMDB_IMG = 'https://image.tmdb.org/t/p/w500'
@@ -1266,6 +1266,15 @@ function FormFields({ filme, setField }) {
         <div className="field">
           <label>Nota IMDb</label>
           <input value={filme.imdb_rating || ''} onChange={e => setField('imdb_rating', e.target.value)} placeholder="8.5" />
+        </div>
+        <div className="field">
+          <label>Minha nota</label>
+          <input
+            type="number" min="0" max="10" step="1"
+            value={filme.my_rating ?? ''}
+            onChange={e => setField('my_rating', e.target.value === '' ? '' : Number(e.target.value))}
+            placeholder="0-10"
+          />
         </div>
       </div>
       <div className="form-row">

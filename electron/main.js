@@ -179,6 +179,7 @@ function createDatabase() {
       WHERE tmdb_media_type = '' AND tmdb_id != '' AND category IN ('Série','Mini-série','Anime','Animação')
     `)
   }
+  if (!columns.includes('my_rating')) db.exec('ALTER TABLE filmes ADD COLUMN my_rating INTEGER')
 
   db.exec(`
     CREATE TABLE IF NOT EXISTS episodios_assistidos (
@@ -315,12 +316,17 @@ ipcMain.handle('db:insert', (_, filme) => {
   const stmt = db.prepare(`
     INSERT INTO filmes (title, original_title, year, format, formats, watched_at, watching,
       genre, director, cast, runtime, imdb_rating, imdb_id, synopsis,
-      poster_url, cover_path, language, country, category, tmdb_id, tmdb_media_type)
+      poster_url, cover_path, language, country, category, tmdb_id, tmdb_media_type, my_rating)
     VALUES (@title, @original_title, @year, @format, @formats, @watched_at, @watching,
       @genre, @director, @cast, @runtime, @imdb_rating, @imdb_id, @synopsis,
-      @poster_url, @cover_path, @language, @country, @category, @tmdb_id, @tmdb_media_type)
+      @poster_url, @cover_path, @language, @country, @category, @tmdb_id, @tmdb_media_type, @my_rating)
   `)
-  const result = stmt.run({ ...filme, watching: filme.watching ? 1 : 0, tmdb_media_type: filme.tmdb_media_type || '' })
+  const result = stmt.run({
+    ...filme,
+    watching: filme.watching ? 1 : 0,
+    tmdb_media_type: filme.tmdb_media_type || '',
+    my_rating: filme.my_rating === '' || filme.my_rating == null ? null : Number(filme.my_rating),
+  })
   return getFilmeById(result.lastInsertRowid)
 })
 
@@ -332,9 +338,14 @@ ipcMain.handle('db:update', (_, filme) => {
       genre=@genre, director=@director, cast=@cast, runtime=@runtime,
       imdb_rating=@imdb_rating, imdb_id=@imdb_id, synopsis=@synopsis, poster_url=@poster_url,
       language=@language, country=@country, category=@category, tmdb_id=@tmdb_id,
-      tmdb_media_type=@tmdb_media_type
+      tmdb_media_type=@tmdb_media_type, my_rating=@my_rating
     WHERE id=@id
-  `).run({ ...filme, watching: filme.watching ? 1 : 0, tmdb_media_type: filme.tmdb_media_type || '' })
+  `).run({
+    ...filme,
+    watching: filme.watching ? 1 : 0,
+    tmdb_media_type: filme.tmdb_media_type || '',
+    my_rating: filme.my_rating === '' || filme.my_rating == null ? null : Number(filme.my_rating),
+  })
   return getFilmeById(filme.id)
 })
 

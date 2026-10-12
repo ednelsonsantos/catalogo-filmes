@@ -389,6 +389,14 @@ Tudo no app vive só localmente — sem isso, um disco com defeito leva a coleç
 - Mapa `WEEKDAY_INDEX` extraído pra `constants.js`, compartilhado entre `ContinuePage.jsx` e `App.jsx`
 - Testado: dados reais do catálogo não geram falso positivo (nenhuma das 8 séries "Assistido" hoje tem gap entre aferido e visto) — confirma que a correção da 10.7 preservou o estado correto sem reintroduzir o bug original (Oz continua 56/56)
 
+### 13.4 Nota pessoal (v1.6.0) ✓
+Separada da nota do IMDb, igual já existia pros animes via MAL.
+- Nova coluna `my_rating` (0–10, `NULL` se não avaliado) em `filmes`
+- Campo "Minha nota" no formulário, ao lado de "Nota IMDb"
+- Exibida no modal de detalhes junto com a nota do IMDb
+- Nova opção de ordenação "Minha nota" no catálogo
+- Testado: coluna criada e migração confirmada no banco real
+
 ---
 
 ## Backlog de ideias (não detalhadas ainda)
@@ -396,7 +404,7 @@ Tudo no app vive só localmente — sem isso, um disco com defeito leva a coleç
 - ~~**⚠ Risco:** categoria "Animação" tratada como série pra fins de episódios, mesmo quando é um filme avulso~~ — **corrigido na v1.3.1**, ver Fase 13.1
 - **Onde assistir** — badge com os serviços de streaming (Netflix, Prime Video...) via `/tv|movie/{id}/watch/providers` da TMDB. *Nota: isso é só exibir informação, diferente de "integração com serviços de streaming" citado abaixo em Fora do escopo, que seria reprodução/sincronização real.*
 - ~~**Backup completo**~~ — **feito na v1.4.0**, ver Fase 13.2
-- **Nota pessoal** separada da nota IMDb, igual já existe pra anime via MAL
+- ~~**Nota pessoal**~~ — **feita na v1.6.0**, ver Fase 13.4
 - ~~**Detecção de nova temporada**~~ / ~~**Notificação nativa do Windows**~~ — **feitas na v1.5.0**, ver Fase 13.3
 - **Tags livres** além da categoria fixa, com filtro por tag
 

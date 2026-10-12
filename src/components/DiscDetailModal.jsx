@@ -70,6 +70,7 @@ export default function DiscDetailModal({ filme, onClose, onEdit, onDelete, onUp
             ))}
             {liveFilme.runtime && liveFilme.runtime !== 'N/A' && <span style={{ fontSize: 12, color: 'var(--text3)' }}>⏱ {liveFilme.runtime}</span>}
             {liveFilme.imdb_rating && liveFilme.imdb_rating !== 'N/A' && <span style={{ fontSize: 12, color: 'var(--accent)', fontWeight: 600 }}>★ {liveFilme.imdb_rating} IMDb</span>}
+            {liveFilme.my_rating != null && liveFilme.my_rating !== '' && <span style={{ fontSize: 12, color: '#4a9eff', fontWeight: 600 }}>★ {liveFilme.my_rating}/10 Minha nota</span>}
           </div>
 
           {/* Assistindo */}
