@@ -267,6 +267,31 @@ O painel completo de episódios exige um `id` no banco (a tabela `episodios_assi
 - Qualquer série/anime novo com TMDB, mesmo sem marcar Assistindo/Assistido, já sai do salvamento com `episodes_aired` calculado — o badge "X/Y eps" aparece direto no card sem precisar abrir e clicar em "Atualizar episódios" manualmente
 - Esse seletor só aparece ao **adicionar** (`!isEditing`) — ao editar, o painel completo de episódios (com checkbox por episódio) já cobre esse caso com mais precisão
 
+### 10.6 Correção: badge "0/N eps" em séries antigas já "Assistindo" (v1.1.1) ✓
+Séries marcadas "Assistindo" antes da Fase 8 existir não têm nenhum episódio marcado individualmente — o contador correto mostra "0 vistos" porque o app genuinamente não sabe até onde você chegou. Pra corrigir isso rápido sem precisar abrir temporada por temporada no painel completo:
+- O seletor "Estou em: Temporada X, Ep Y" (criado em 10.5 só pra adicionar) passou a aparecer **também ao editar** um título com "Assistindo" marcado
+- Ao editar, mudar o seletor mostra o aviso "marca tudo até aqui ao salvar" e aplica a marcação em lote (`episodes:markProgress`) ao clicar em "Salvar alterações"
+
+### 10.7 Correção: badge "0/N eps" em títulos já "Assistido" (v1.1.2) ✓
+Diagnosticado com dados reais do banco: itens em "Assistindo" sincronizavam certo (confirmado — "A Escuta", "Smallville", "Dr. House" já tinham episódios marcados corretamente via o seletor da 10.6). O problema era só em **"Assistido"**: o botão de atualização em massa (10.2) sempre chamava `markAllWatched: false`, então populava `episodes_aired` em todo o catálogo mas nunca marcava nada como visto — mesmo em títulos que já estavam "Assistido" há tempos (ex: "Oz", com 56 episódios aferidos e 0 vistos). Títulos marcados/remarcados como "Assistido" **depois** do fix da 8.5 ficaram corretos (ex: "Ted Lasso" 44/44); os de antes ficaram travados em zero até alguém abrir um por um.
+- `handleBulkRefreshEpisodes` agora passa `markAllWatched: !!f.watched_at` — ao rodar a atualização em massa, qualquer título já "Assistido" é automaticamente sincronizado como 100% visto, de uma vez, sem precisar abrir item por item
+
+### 10.8 Causa raiz real do "0" solto no modal de detalhes (v1.1.3) ✓
+O usuário mandou print: um "0" aparecia sozinho, sem estilo, entre os badges (categoria/ano/formato) e a linha "✓ Assistido em ...". Não tinha nada a ver com contagem de episódios — era um bug clássico de JSX: `watching` é salvo como `INTEGER` no SQLite (0 ou 1), não booleano. Em `{filme.watching && <div>...</div>}`, quando `watching` é `0`, o React não trata como "falso e não renderiza nada" — `0` é um valor renderizável em React, então ele literalmente imprime o caractere "0" na tela.
+- Corrigido em todo lugar que usava `filme.watching &&` (ou `liveFilme.watching &&`) direto num JSX: `DiscDetailModal.jsx`, `DiscCard.jsx` (grade e lista) e o seletor de progresso em `AddDiscPage.jsx` — todos trocados para `!!filme.watching &&`, forçando conversão pra booleano real antes da checagem
+- Revisão nos demais campos numéricos (notas do MAL, score) confirmou que já tratavam o zero corretamente (`score > 0 ? valor : null`) — o bug era específico do campo `watching`
+
+---
+
+## Fase 11 — Separação dos filtros de formato e status (v1.2.0) ✓ concluída
+
+### 11.1 Dois eixos independentes no lugar de um grupo único ✓
+Os filtros rápidos do catálogo (DVD, Blu-ray, 4K UHD, Assistidos, Assistindo) viviam todos no mesmo grupo de seleção única — misturava **formato** (o que você possui) com **status** (o que já assistiu), dois eixos sem relação entre si. Na prática isso impedia combinar os dois (ex: não dava pra ver só os Blu-rays já assistidos — selecionar um desmarcava o outro).
+- Estado `format` (formato) e novo estado `watchStatus` (status) agora são independentes — a lista é filtrada pelos dois juntos (E lógico), não um ou outro
+- Dois grupos de botões separados na toolbar, cada um com seu "Todos" próprio
+- Adicionados **VHS** e **Digital** à barra de filtro de formato — existiam como opção ao cadastrar mas não tinham botão de filtro rápido
+- Blu-ray e 4K UHD continuam como filtros separados (decisão deliberada: para quem coleciona, costumam ser mídias físicas distintas, compradas à parte)
+
 ---
 
 ## Backlog de ideias (não detalhadas ainda)

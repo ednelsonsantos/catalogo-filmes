@@ -484,8 +484,8 @@ export default function AddDiscPage({ settings, editFilme, filmes = [], collecti
           if (watchedJustChecked && filme.watched_at) {
             // Marcou "Assistido" nesta sessão: marca todos os episódios já lançados
             await window.api.episodesRefresh({ filmeId: saved.id, tmdbId, markAllWatched: true })
-          } else if (!isEditing && filme.watching && progressTouched) {
-            // Adicionando e informou "estou na temporada X, ep Y": marca até ali
+          } else if (filme.watching && progressTouched) {
+            // Informou "estou na temporada X, ep Y" (adicionando ou editando): marca até ali
             await window.api.episodesMarkProgress({ filmeId: saved.id, tmdbId, season: currentSeason, episode: currentEpisode })
           } else if (!isEditing) {
             // Título novo: já popula quantos episódios existem, sem marcar nada
@@ -654,7 +654,7 @@ export default function AddDiscPage({ settings, editFilme, filmes = [], collecti
             )}
           </div>
 
-          {!isEditing && filme.watching && filme.tmdb_id && SERIES_CATEGORIES.includes(filme.category) && tvSeasonsMeta?.length > 0 && (
+          {!!filme.watching && filme.tmdb_id && SERIES_CATEGORIES.includes(filme.category) && tvSeasonsMeta?.length > 0 && (
             <div style={{ marginTop: 8, display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
               <span style={{ fontSize: 12, color: 'var(--text3)' }}>Estou em:</span>
               <select
@@ -675,6 +675,9 @@ export default function AddDiscPage({ settings, editFilme, filmes = [], collecti
                   <option key={n} value={n}>Ep {n}</option>
                 ))}
               </select>
+              {isEditing && progressTouched && (
+                <span style={{ fontSize: 11, color: 'var(--text3)' }}>marca tudo até aqui ao salvar</span>
+              )}
             </div>
           )}
 

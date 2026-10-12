@@ -10,11 +10,19 @@ const IconExport = () => (<svg width="15" height="15" viewBox="0 0 24 24" fill="
 const IconGrid = () => (<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>)
 const IconList = () => (<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>)
 
-const FILTERS = [
+// Formato = o que você possui (a mídia física/digital). Eixo independente do status de visualização.
+const FORMAT_FILTERS = [
   { id: 'all', label: 'Todos' },
   { id: 'DVD', label: 'DVD' },
   { id: 'Blu-ray', label: 'Blu-ray' },
   { id: '4K UHD', label: '4K UHD' },
+  { id: 'VHS', label: 'VHS' },
+  { id: 'Digital', label: 'Digital' },
+]
+
+// Status = se você já assistiu ou está assistindo. Combina com o filtro de formato (ex: Blu-ray + Assistidos).
+const STATUS_FILTERS = [
+  { id: 'all', label: 'Todos' },
   { id: 'assistidos', label: '✓ Assistidos' },
   { id: 'assistindo', label: '▶ Assistindo' },
 ]
@@ -24,6 +32,7 @@ const ALL_CATEGORIES = ['Filme', 'Série', 'Mini-série', 'Documentário', 'Anim
 export default function CatalogPage({ filmes, onEdit, onDelete, onToggleWatched, onFilmeUpdated, showToast, selectedCollection }) {
   const [search, setSearch] = useState('')
   const [format, setFormat] = useState('all')
+  const [watchStatus, setWatchStatus] = useState('all')
   const [category, setCategory] = useState('all')
   const [sort, setSort] = useState('title')
   const [viewMode, setViewMode] = useState('grid')
@@ -47,7 +56,9 @@ export default function CatalogPage({ filmes, onEdit, onDelete, onToggleWatched,
     for (let i = 0; i < targets.length; i++) {
       const f = targets[i]
       try {
-        const updated = await window.api.episodesRefresh({ filmeId: f.id, tmdbId: f.tmdb_id, markAllWatched: false })
+        // Títulos já marcados "Assistido" (de antes dessa funcionalidade existir) são sincronizados
+        // como totalmente vistos — "Assistido" sempre implicou "vi tudo", só não estava registrado episódio a episódio
+        const updated = await window.api.episodesRefresh({ filmeId: f.id, tmdbId: f.tmdb_id, markAllWatched: !!f.watched_at })
         onFilmeUpdated?.(updated)
         okCount++
       } catch {
@@ -63,10 +74,10 @@ export default function CatalogPage({ filmes, onEdit, onDelete, onToggleWatched,
     }
   }, [trackableFilmes, onFilmeUpdated, showToast])
 
-  const hasActiveFilters = search || format !== 'all' || category !== 'all'
+  const hasActiveFilters = search || format !== 'all' || watchStatus !== 'all' || category !== 'all'
 
   const clearFilters = useCallback(() => {
-    setSearch(''); setFormat('all'); setCategory('all')
+    setSearch(''); setFormat('all'); setWatchStatus('all'); setCategory('all')
     searchRef.current?.focus()
   }, [])
 
@@ -94,12 +105,13 @@ export default function CatalogPage({ filmes, onEdit, onDelete, onToggleWatched,
         f.cast?.toLowerCase().includes(q)
       )
     }
-    if (format === 'assistidos') {
-      items = items.filter(f => !!f.watched_at)
-    } else if (format === 'assistindo') {
-      items = items.filter(f => !!f.watching)
-    } else if (format !== 'all') {
+    if (format !== 'all') {
       items = items.filter(f => (f.formats || f.format || '').split(',').map(x => x.trim()).includes(format))
+    }
+    if (watchStatus === 'assistidos') {
+      items = items.filter(f => !!f.watched_at)
+    } else if (watchStatus === 'assistindo') {
+      items = items.filter(f => !!f.watching)
     }
     if (category !== 'all') {
       items = items.filter(f => (f.category || '') === category)
@@ -113,7 +125,7 @@ export default function CatalogPage({ filmes, onEdit, onDelete, onToggleWatched,
       return 0
     })
     return items
-  }, [filmes, search, format, category, sort])
+  }, [filmes, search, format, watchStatus, category, sort])
 
   const handleDelete = useCallback((filme) => {
     setConfirmingDelete(filme)
@@ -229,9 +241,14 @@ export default function CatalogPage({ filmes, onEdit, onDelete, onToggleWatched,
           {search && <button className="clear-search" onClick={() => setSearch('')}>✕</button>}
         </div>
         <div className="toolbar-right">
-          <div className="filter-group">
-            {FILTERS.map(f => (
+          <div className="filter-group" title="Formato — o que você possui">
+            {FORMAT_FILTERS.map(f => (
               <button key={f.id} className={`filter-btn ${format === f.id ? 'active' : ''}`} onClick={() => setFormat(f.id)}>{f.label}</button>
+            ))}
+          </div>
+          <div className="filter-group" title="Status — o que você já assistiu">
+            {STATUS_FILTERS.map(f => (
+              <button key={f.id} className={`filter-btn ${watchStatus === f.id ? 'active' : ''}`} onClick={() => setWatchStatus(f.id)}>{f.label}</button>
             ))}
           </div>
           <select className="sort-select" value={category} onChange={e => setCategory(e.target.value)}>

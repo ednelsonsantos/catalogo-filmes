@@ -53,7 +53,7 @@ export default function DiscCard({ filme, viewMode, onClick, onEdit, onDelete, o
         </div>
         <div className="list-right" onClick={e => e.stopPropagation()}>
           <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-            {filme.watching && <span className="format-badge watching-badge">Assistindo</span>}
+            {!!filme.watching && <span className="format-badge watching-badge">Assistindo</span>}
             {episodeInfo && (
               <span className="format-badge episode-badge">
                 {episodeInfo.isNew ? '🆕 ' : ''}{episodeInfo.label}
@@ -95,9 +95,9 @@ export default function DiscCard({ filme, viewMode, onClick, onEdit, onDelete, o
         <span className="format-badge-overlay">
           {[filme.category, ...formats].filter(Boolean).join(' · ') || '—'}
         </span>
-        {(filme.watching || episodeInfo) && (
+        {(!!filme.watching || episodeInfo) && (
           <div className="bottom-left-stack">
-            {filme.watching && <span className="watching-overlay">▶ Assistindo</span>}
+            {!!filme.watching && <span className="watching-overlay">▶ Assistindo</span>}
             {episodeInfo && (
               <span className="episode-overlay">{episodeInfo.isNew ? '🆕 ' : ''}{episodeInfo.label}</span>
             )}

@@ -73,7 +73,7 @@ export default function DiscDetailModal({ filme, onClose, onEdit, onDelete, onUp
           </div>
 
           {/* Assistindo */}
-          {liveFilme.watching && (
+          {!!liveFilme.watching && (
             <div style={{ fontSize: 12, color: '#4a9eff', display: 'flex', alignItems: 'center', gap: 5 }}>
               <span>▶</span>
               <span>Assistindo</span>
