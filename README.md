@@ -24,6 +24,7 @@ Aplicativo desktop para catalogar sua coleção pessoal de filmes, séries, docu
 - **Notificação nativa + nova temporada** — ao abrir o app, notifica episódios que saem hoje e avisa (notificação + badge no card) quando uma série marcada "Assistido" ganhou episódios novos desde a última vez que foi sincronizada
 - **Aviso de vínculo quebrado com a TMDB** — se o ID salvo de um título não existir mais (a TMDB ocasionalmente mescla/remove entradas duplicadas), o app avisa quais títulos precisam ser re-adicionados em vez de mostrar silenciosamente "0 episódios"
 - **Aviso de ambiguidade na busca** — quando a busca retorna títulos muito parecidos, um aviso lembra de conferir o ano/pôster antes de escolher
+- **Onde assistir** — modal de detalhes mostra os logos dos serviços de streaming por assinatura (Netflix, Globoplay, Prime Video...) disponíveis no Brasil pra aquele título, via TMDB
 - **Catálogo** com visualização em grade ou lista, busca por texto (Ctrl+F) e filtros combináveis: **formato** (DVD/Blu-ray/4K UHD/VHS/Digital — o que você possui), **status** (Assistidos/Assistindo), **categoria** e **tag** — dá pra combinar, ex: só os Blu-rays já assistidos com a tag "maratona"
 - **Pôster fallback** — títulos sem imagem exibem fundo colorido único com iniciais, gerado a partir do título
 - **Estatísticas** — barra com totais por formato, % assistidos e último título adicionado; dropdown de categorias com contagem

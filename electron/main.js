@@ -532,6 +532,17 @@ ipcMain.handle('tmdb:tvSeasonDetails', async (_, { id, season }) => {
   return omdbFetch(`https://api.themoviedb.org/3/tv/${id}/season/${season}?language=pt-BR&api_key=${_tmdbKey}`)
 })
 
+// Onde assistir (streaming) — só o que está disponível em modo assinatura (flatrate) na região BR
+ipcMain.handle('tmdb:watchProviders', async (_, { id, mediaType }) => {
+  if (!_tmdbKey) throw new Error('TMDB API key not configured')
+  if (!isPositiveInt(id)) throw new Error('Invalid TMDB ID')
+  if (mediaType !== 'movie' && mediaType !== 'tv') throw new Error('Invalid media type')
+  const data = await omdbFetch(`https://api.themoviedb.org/3/${mediaType}/${id}/watch/providers?api_key=${_tmdbKey}`)
+  const br = data?.results?.BR
+  if (!br) return []
+  return (br.flatrate || []).map(p => ({ id: p.provider_id, name: p.provider_name, logo: p.logo_path }))
+})
+
 // ─── IPC: EPISÓDIOS ───────────────────────────────────────────────────────────
 
 ipcMain.handle('episodes:getWatched', (_, filmeId) => {

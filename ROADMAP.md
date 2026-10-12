@@ -405,12 +405,19 @@ Classificação livre, complementar à categoria fixa — pra agrupar por crité
 - Catálogo: novo filtro dropdown por tag (com contagem), combinável com os filtros já existentes (formato, status, categoria, busca)
 - Testado: tabelas `tags`/`filme_tag` confirmadas no banco real; build (`vite build` + `node --check`) e modo dev sem erros
 
+### 13.6 Onde assistir (v1.8.0) ✓
+Badge de streaming no modal de detalhes, só exibindo informação (sem reprodução/sincronização).
+- Novo IPC `tmdb:watchProviders({ id, mediaType })` — chama `/movie|tv/{id}/watch/providers` da TMDB, filtra pela região `BR` e retorna só o modo `flatrate` (assinatura; ignora aluguel/compra, que não é o que interessa pra "o que já tenho pra assistir")
+- Busca é por item (`tmdb_id` + `tmdb_media_type`), disparada ao abrir o modal de detalhes — não entra no catálogo em grade pra não multiplicar chamadas à API por título visível
+- Exibe os logos dos serviços (Netflix, Globoplay, Prime Video...) direto da CDN de imagens da TMDB; nada aparece se não houver nenhum serviço de assinatura disponível na região
+- Testado: chamada direta à API confirmada com dados reais do catálogo (ex: "Origem" → Globoplay; "Oz" → nenhum, sem erro); build e modo dev sem erros
+
 ---
 
 ## Backlog de ideias (não detalhadas ainda)
 
 - ~~**⚠ Risco:** categoria "Animação" tratada como série pra fins de episódios, mesmo quando é um filme avulso~~ — **corrigido na v1.3.1**, ver Fase 13.1
-- **Onde assistir** — badge com os serviços de streaming (Netflix, Prime Video...) via `/tv|movie/{id}/watch/providers` da TMDB. *Nota: isso é só exibir informação, diferente de "integração com serviços de streaming" citado abaixo em Fora do escopo, que seria reprodução/sincronização real.*
+- ~~**Onde assistir**~~ — badge com os serviços de streaming (Netflix, Prime Video...) via `/tv|movie/{id}/watch/providers` da TMDB — **feito na v1.8.0**, ver Fase 13.6
 - ~~**Backup completo**~~ — **feito na v1.4.0**, ver Fase 13.2
 - ~~**Nota pessoal**~~ — **feita na v1.6.0**, ver Fase 13.4
 - ~~**Detecção de nova temporada**~~ / ~~**Notificação nativa do Windows**~~ — **feitas na v1.5.0**, ver Fase 13.3

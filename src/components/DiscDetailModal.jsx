@@ -5,8 +5,17 @@ import { SERIES_CATEGORIES } from '../constants.js'
 export default function DiscDetailModal({ filme, onClose, onEdit, onDelete, onUpdated, showToast }) {
   const [coverSrc, setCoverSrc] = useState(null)
   const [liveFilme, setLiveFilme] = useState(filme)
+  const [providers, setProviders] = useState([])
 
   useEffect(() => { setLiveFilme(filme) }, [filme])
+
+  useEffect(() => {
+    setProviders([])
+    if (!liveFilme.tmdb_id || !liveFilme.tmdb_media_type) return
+    window.api.tmdbWatchProviders({ id: Number(liveFilme.tmdb_id), mediaType: liveFilme.tmdb_media_type })
+      .then(setProviders)
+      .catch(() => setProviders([]))
+  }, [liveFilme.tmdb_id, liveFilme.tmdb_media_type])
 
   useEffect(() => {
     const load = async () => {
@@ -108,6 +117,15 @@ export default function DiscDetailModal({ filme, onClose, onEdit, onDelete, onUp
             {liveFilme.country && <InfoRow label="País" value={liveFilme.country} />}
             {liveFilme.language && <InfoRow label="Idioma" value={liveFilme.language} />}
           </div>
+
+          {providers.length > 0 && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              <span style={{ fontSize: 12, color: 'var(--text3)' }}>Onde assistir:</span>
+              {providers.map(p => (
+                <img key={p.id} src={`https://image.tmdb.org/t/p/w45${p.logo}`} alt={p.name} title={p.name} style={{ width: 28, height: 28, borderRadius: 6 }} />
+              ))}
+            </div>
+          )}
 
           {hasEpisodes && (
             <EpisodesPanel filme={liveFilme} onUpdated={handleEpisodesUpdated} showToast={showToast} />
