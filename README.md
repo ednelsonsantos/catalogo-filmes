@@ -185,7 +185,7 @@ catalogo-filmes/
 │   └── preload.js       # Bridge segura entre Electron e React (contextBridge)
 ├── src/
 │   ├── pages/
-│   │   ├── AddDiscPage.jsx    # Adicionar / editar título e animes (OCR, busca, formulário)
+│   │   ├── AddDiscPage.jsx    # Adicionar / editar título: estado, busca, OCR e salvar (monta os componentes de components/add)
 │   │   ├── AnimePage.jsx      # Lista de animes MAL com grade/lista, edição e exportação
 │   │   ├── CatalogPage.jsx    # Catálogo com filtros, estatísticas e exportação
 │   │   ├── ContinuePage.jsx   # Painel "Continuando" — continue assistindo + lançamentos da semana
@@ -195,7 +195,19 @@ catalogo-filmes/
 │       ├── DiscCard.jsx        # Card do título (grade e lista) com toggle assistido
 │       ├── DiscDetailModal.jsx # Modal de detalhes
 │       ├── EpisodesPanel.jsx   # Acompanhamento de episódios por temporada (TMDB)
-│       └── ConfirmModal.jsx    # Modal de confirmação genérico (ex: remover título)
+│       ├── ConfirmModal.jsx    # Modal de confirmação genérico (ex: remover título)
+│       └── add/                # Partes do formulário de adicionar/editar
+│           ├── CoverPicker.jsx        # Capa (clique/arraste) + status do OCR
+│           ├── TitleSearchPanel.jsx   # Busca OMDb/TMDB, resultados, avisos de duplicata/ambiguidade
+│           ├── FormFields.jsx         # Campos do título (nome, ano, notas, elenco...)
+│           ├── ProgressSelector.jsx   # "Próximo a assistir" (temporada/episódio)
+│           ├── CollectionsPicker.jsx  # Coleções com criação na hora
+│           ├── TagsPicker.jsx         # Tags com criação e remoção
+│           ├── AnimeSearchSection.jsx # Aba "Adicionar Anime" (busca no MAL)
+│           └── AnimeAddModal.jsx      # Status/nota/episódios ao adicionar anime no MAL
+│   └── utils/
+│       ├── titleMappers.js     # Converte respostas OMDb/TMDB no formato do app
+│       └── ocr.js              # OCR local da capa (Tesseract) e leitura de arquivo
 ├── e2e/                   # Testes de interface (Playwright) — npm run test:ui
 ├── colecao.html           # Página standalone para publicar no site
 ├── dev-runner.js          # Script de desenvolvimento com detecção automática de porta

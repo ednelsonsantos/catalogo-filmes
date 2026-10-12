@@ -461,6 +461,12 @@ Ordem combinada: 14.1 testes de interface → 14.2 atualização automática →
 - Corrigido nos dois lados: `imdb_id` no objeto vazio do formulário e valores padrão pra todos os campos opcionais no `db:insert` (o `db:update` continua exigindo todos, pra nunca apagar um campo em silêncio)
 - Testes novos: preencher manualmente (validações de título/categoria, formatos, nota, coleção criada na hora), "Assistido"/"Assistindo" na edição, aba de anime sem MAL, busca de série na TMDB com progresso informado ao adicionar, aviso de título já na coleção
 
+### 14.3 Divisão do `AddDiscPage.jsx` ✓
+Refatoração sem mudança de comportamento: de **1.411 para 540 linhas**. A página ficou com o estado do formulário, a busca, o OCR e o salvar; o resto saiu para:
+- `src/utils/titleMappers.js` (conversores OMDb/TMDB → título, `normalizeTitle`, `TMDB_IMG`) e `src/utils/ocr.js` (Tesseract + `fileToBase64`)
+- `src/components/add/`: `CoverPicker` (capa + arrastar + status do OCR, com o estado de "arrastando" dentro dele), `TitleSearchPanel` (busca, resultados, aviso de ambiguidade e de duplicata), `FormFields`, `ProgressSelector`, `CollectionsPicker` e `TagsPicker` (cada um com seu próprio estado de "criando"/"removendo"), `AnimeSearchSection` e `AnimeAddModal` (com as constantes do MAL, que só eles usam)
+- Os blocos foram recortados por intervalo exato de linhas com um script (sem redigitar código) e a suíte de 20 testes de interface passou igual antes e depois — incluindo os 5 testes de adicionar título escritos justamente pra proteger esta mudança
+
 ---
 
 ## Backlog de ideias (não detalhadas ainda)
