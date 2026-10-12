@@ -372,6 +372,15 @@ Risco encontrado na revisão da Fase 10: a categoria "Animação" é usada tanto
 - **Migração com backfill**: itens já cadastrados com categoria seriada + `tmdb_id` (que só podem ter chegado lá usando a trilha de série) recebem `tmdb_media_type = 'tv'` automaticamente — testado e confirmado: as 11 séries existentes no catálogo preservaram o acompanhamento de episódios sem precisar reeditar nada
 - Todo ponto que decide "isso tem episódios" (painel de detalhes, seletor de progresso, atualização em massa, painel "Continuando", sincronização ao marcar Assistido) agora exige `tmdb_media_type === 'tv'`, além da categoria
 
+### 13.2 Backup e restauração completos (v1.4.0) ✓
+Tudo no app vive só localmente — sem isso, um disco com defeito leva a coleção toda junto. Novo card "Backup" em Configurações:
+- **Fazer backup**: empacota `catalogo.db`, `covers/`, `mal-posters/`, `mal-cache.json` e `settings.json` (inclui as chaves de API) num único `.zip`, escolhido via diálogo nativo "Salvar como"
+- Antes de empacotar, força um `PRAGMA wal_checkpoint(TRUNCATE)` — o SQLite roda em modo WAL por padrão, então escritas recentes podem estar só no `.db-wal` e não no `.db` principal ainda; sem o checkpoint o backup podia sair incompleto
+- **Restaurar backup**: diálogo nativo "Abrir arquivo", valida que o zip tem um `catalogo.db` dentro, fecha a conexão do banco, extrai tudo por cima do `userData` (sobrescrevendo) e reinicia o app automaticamente (`app.relaunch()`) pra carregar os dados restaurados do zero — evita tentar recarregar o estado da interface em memória de forma parcial/arriscada
+- Confirmação obrigatória antes de restaurar (reaproveita o `ConfirmModal`), já que substitui tudo sem volta
+- Dependência nova: `adm-zip` (JS puro, sem compilação nativa)
+- Testado sem precisar da UI: mecânica de zip/extração validada à parte (133 entradas, checksum SHA-256 do `catalogo.db` idêntico antes/depois do round-trip) — só o fluxo com os diálogos nativos de arquivo fica pendente de confirmação manual, já que não dá pra automatizar clique em diálogo do SO
+
 ---
 
 ## Backlog de ideias (não detalhadas ainda)

@@ -723,6 +723,62 @@ ipcMain.handle('export:siteJson', async (_e, { filmeIds } = {}) => {
   return { success: true }
 })
 
+// ─── IPC: BACKUP ──────────────────────────────────────────────────────────────
+
+ipcMain.handle('backup:create', async () => {
+  const AdmZip = require('adm-zip')
+  const userDataPath = app.getPath('userData')
+  const { filePath, canceled } = await dialog.showSaveDialog(mainWindow, {
+    title: 'Fazer backup completo',
+    defaultPath: path.join(app.getPath('documents'), `meu-catalogo-backup-${new Date().toISOString().slice(0, 10)}.zip`),
+    filters: [{ name: 'Backup ZIP', extensions: ['zip'] }],
+  })
+  if (!filePath || canceled) return { success: false }
+
+  // SQLite roda em modo WAL — escritas recentes podem estar só no .db-wal, não no .db principal ainda.
+  // TRUNCATE força tudo de volta pro arquivo principal e zera o WAL, garantindo um snapshot completo e consistente.
+  if (db) { try { db.pragma('wal_checkpoint(TRUNCATE)') } catch {} }
+
+  const zip = new AdmZip()
+  const dbPath = path.join(userDataPath, 'catalogo.db')
+  if (fs.existsSync(dbPath)) zip.addLocalFile(dbPath)
+  const coversDir = path.join(userDataPath, 'covers')
+  if (fs.existsSync(coversDir)) zip.addLocalFolder(coversDir, 'covers')
+  const postersDir = path.join(userDataPath, 'mal-posters')
+  if (fs.existsSync(postersDir)) zip.addLocalFolder(postersDir, 'mal-posters')
+  const cachePath = path.join(userDataPath, 'mal-cache.json')
+  if (fs.existsSync(cachePath)) zip.addLocalFile(cachePath)
+  const settingsPath = path.join(userDataPath, 'settings.json')
+  if (fs.existsSync(settingsPath)) zip.addLocalFile(settingsPath)
+
+  zip.writeZip(filePath)
+  return { success: true, filePath }
+})
+
+ipcMain.handle('backup:restore', async () => {
+  const AdmZip = require('adm-zip')
+  const { filePaths, canceled } = await dialog.showOpenDialog(mainWindow, {
+    title: 'Restaurar backup',
+    filters: [{ name: 'Backup ZIP', extensions: ['zip'] }],
+    properties: ['openFile'],
+  })
+  if (canceled || !filePaths[0]) return { success: false }
+
+  const zip = new AdmZip(filePaths[0])
+  const entryNames = zip.getEntries().map(e => e.entryName)
+  if (!entryNames.includes('catalogo.db')) {
+    throw new Error('Arquivo inválido: catalogo.db não encontrado dentro do backup')
+  }
+
+  const userDataPath = app.getPath('userData')
+  if (db) { try { db.close() } catch {}; db = null }
+  zip.extractAllTo(userDataPath, true)
+
+  // reinicia o app do zero pra recarregar tudo com os dados restaurados
+  app.relaunch()
+  app.exit(0)
+})
+
 // ─── IPC: SETTINGS ────────────────────────────────────────────────────────────
 
 ipcMain.handle('settings:get', () => {

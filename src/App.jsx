@@ -196,7 +196,7 @@ export default function App() {
           <AnimePage settings={settings} showToast={showToast} animeList={animeList} setAnimeList={setAnimeList} />
         )}
         {page === 'settings' && (
-          <SettingsPage settings={settings} onSave={async (s) => {
+          <SettingsPage settings={settings} showToast={showToast} onSave={async (s) => {
             await window.api.saveSettings(s)
             const updated = await window.api.getSettings()
             setSettings(updated)

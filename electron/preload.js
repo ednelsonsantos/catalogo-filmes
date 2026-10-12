@@ -40,6 +40,10 @@ contextBridge.exposeInMainWorld('api', {
   getSettings:       ()       => ipcRenderer.invoke('settings:get'),
   saveSettings:      (data)   => ipcRenderer.invoke('settings:save', data),
 
+  // Backup
+  backupCreate:      ()       => ipcRenderer.invoke('backup:create'),
+  backupRestore:     ()       => ipcRenderer.invoke('backup:restore'),
+
   // Coleções
   colecoesGetAll:      ()       => ipcRenderer.invoke('colecoes:getAll'),
   colecoesInsert:      (name)   => ipcRenderer.invoke('colecoes:insert', name),

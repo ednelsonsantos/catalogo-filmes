@@ -1,10 +1,39 @@
 import React, { useState } from 'react'
+import ConfirmModal from '../components/ConfirmModal.jsx'
 
-export default function SettingsPage({ settings, onSave }) {
+export default function SettingsPage({ settings, onSave, showToast }) {
   const [form, setForm] = useState({ omdbApiKey: '', tmdbApiKey: '', malClientId: '' })
   const [showKey, setShowKey] = useState(false)
   const [showTmdbKey, setShowTmdbKey] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [backingUp, setBackingUp] = useState(false)
+  const [confirmingRestore, setConfirmingRestore] = useState(false)
+  const [restoring, setRestoring] = useState(false)
+
+  const handleBackup = async () => {
+    setBackingUp(true)
+    try {
+      const res = await window.api.backupCreate()
+      if (res.success) showToast?.('Backup criado com sucesso!', 'success')
+    } catch (e) {
+      showToast?.(e.message || 'Erro ao criar backup.', 'error')
+    } finally {
+      setBackingUp(false)
+    }
+  }
+
+  const handleRestore = async () => {
+    setConfirmingRestore(false)
+    setRestoring(true)
+    try {
+      const res = await window.api.backupRestore()
+      // se chegou aqui com sucesso o app já vai fechar/reiniciar sozinho (app.relaunch)
+      if (res && res.success === false) setRestoring(false) // usuário cancelou o diálogo de arquivo
+    } catch (e) {
+      showToast?.(e.message || 'Erro ao restaurar backup.', 'error')
+      setRestoring(false)
+    }
+  }
 
   const openExternal = (url) => {
     if (window.api?.openExternal) window.api.openExternal(url)
@@ -171,6 +200,26 @@ export default function SettingsPage({ settings, onSave }) {
           </div>
         </div>
 
+        {/* Backup */}
+        <div className="card">
+          <h2 style={{ fontSize: 15, fontWeight: 600, marginBottom: 6 }}>Backup</h2>
+          <p style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 16 }}>
+            Tudo fica só no seu computador — sem isso, um disco com defeito leva sua coleção toda junto.
+          </p>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+            <button className="btn btn-primary" onClick={handleBackup} disabled={backingUp}>
+              {backingUp ? 'Gerando...' : '💾 Fazer backup'}
+            </button>
+            <button className="btn btn-danger" onClick={() => setConfirmingRestore(true)} disabled={restoring}>
+              {restoring ? 'Restaurando...' : '📂 Restaurar backup'}
+            </button>
+          </div>
+          <p style={{ fontSize: 11, color: 'var(--text3)', marginTop: 10, lineHeight: 1.6 }}>
+            O backup inclui o banco de dados, capas, chaves de API e cache dos animes num único arquivo .zip.
+            Restaurar <strong style={{ color: 'var(--text)' }}>substitui tudo</strong> que está no app agora pelo conteúdo do arquivo escolhido, e reinicia o app.
+          </p>
+        </div>
+
         {/* Passos */}
         <div className="card" style={{ background: 'transparent' }}>
           <h2 style={{ fontSize: 14, fontWeight: 600, marginBottom: 14 }}>Como obter a chave OMDb</h2>
@@ -193,6 +242,16 @@ export default function SettingsPage({ settings, onSave }) {
           {saved ? '✓ Salvo' : 'Salvar configurações'}
         </button>
       </div>
+
+      {confirmingRestore && (
+        <ConfirmModal
+          title="Restaurar backup"
+          message="Isso vai substituir TUDO que está no app agora (coleção, animes, configurações) pelo conteúdo do arquivo de backup escolhido, e reiniciar o app. Essa ação não pode ser desfeita."
+          confirmLabel="Restaurar"
+          onConfirm={handleRestore}
+          onCancel={() => setConfirmingRestore(false)}
+        />
+      )}
     </div>
   )
 }
