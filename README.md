@@ -30,7 +30,7 @@ Aplicativo desktop para catalogar sua coleção pessoal de filmes, séries, docu
 - **Estatísticas** — barra com totais por formato, % assistidos e último título adicionado; dropdown de categorias com contagem
 - **Exportar** coleção para CSV, Excel ou JSON — exporta tudo ou apenas a coleção selecionada na sidebar
 - **Banco de dados local** SQLite — seus dados ficam no computador, sem nuvem
-- **Backup e restauração** — um clique em Configurações empacota banco de dados, capas, pôsteres de anime, cache e chaves de API num único `.zip`; restaurar substitui tudo e reinicia o app com os dados do backup
+- **Backup e restauração** — um clique em Configurações empacota banco de dados, capas, pôsteres de anime, cache e chaves de API num único `.zip`; restaurar substitui tudo e recarrega o app com os dados do backup
 - **Ícone personalizado** — logo do app no instalador, atalhos e barra de tarefas
 - **MyAnimeList integrado** — conecte sua conta MAL via OAuth2 PKCE, carregue sua lista de animes, edite status/nota/episódios e sincronize de volta ao site
 - **Lista de animes persistente** — cache em disco, carregada automaticamente ao abrir o app sem precisar recarregar do MAL

@@ -27,7 +27,7 @@ export default function SettingsPage({ settings, onSave, showToast }) {
     setRestoring(true)
     try {
       const res = await window.api.backupRestore()
-      // se chegou aqui com sucesso o app já vai fechar/reiniciar sozinho (app.relaunch)
+      // com sucesso a janela é recarregada pelo processo principal logo em seguida
       if (res && res.success === false) setRestoring(false) // usuário cancelou o diálogo de arquivo
     } catch (e) {
       showToast?.(e.message || 'Erro ao restaurar backup.', 'error')
@@ -216,7 +216,7 @@ export default function SettingsPage({ settings, onSave, showToast }) {
           </div>
           <p style={{ fontSize: 11, color: 'var(--text3)', marginTop: 10, lineHeight: 1.6 }}>
             O backup inclui o banco de dados, capas, chaves de API e cache dos animes num único arquivo .zip.
-            Restaurar <strong style={{ color: 'var(--text)' }}>substitui tudo</strong> que está no app agora pelo conteúdo do arquivo escolhido, e reinicia o app.
+            Restaurar <strong style={{ color: 'var(--text)' }}>substitui tudo</strong> que está no app agora pelo conteúdo do arquivo escolhido, e recarrega o app.
           </p>
         </div>
 
@@ -246,7 +246,7 @@ export default function SettingsPage({ settings, onSave, showToast }) {
       {confirmingRestore && (
         <ConfirmModal
           title="Restaurar backup"
-          message="Isso vai substituir TUDO que está no app agora (coleção, animes, configurações) pelo conteúdo do arquivo de backup escolhido, e reiniciar o app. Essa ação não pode ser desfeita."
+          message="Isso vai substituir TUDO que está no app agora (coleção, animes, configurações) pelo conteúdo do arquivo de backup escolhido, e recarregar o app. Essa ação não pode ser desfeita."
           confirmLabel="Restaurar"
           onConfirm={handleRestore}
           onCancel={() => setConfirmingRestore(false)}

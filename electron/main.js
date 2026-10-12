@@ -859,11 +859,18 @@ ipcMain.handle('backup:restore', async () => {
 
   const userDataPath = app.getPath('userData')
   if (db) { try { db.close() } catch {}; db = null }
+  // WAL/SHM antigos não podem ser aplicados por cima do banco restaurado
+  for (const ext of ['-wal', '-shm']) {
+    try { fs.rmSync(path.join(userDataPath, 'catalogo.db' + ext), { force: true }) } catch {}
+  }
   zip.extractAllTo(userDataPath, true)
 
-  // reinicia o app do zero pra recarregar tudo com os dados restaurados
-  app.relaunch()
-  app.exit(0)
+  // Recarrega dentro do mesmo processo: app.relaunch() no modo dev derruba o Vite junto (tela escura)
+  _omdbKey = ''; _tmdbKey = ''
+  _malClientId = ''; _malAccessToken = ''; _malRefreshToken = ''; _malTokenExpiry = 0
+  createDatabase()
+  setTimeout(() => mainWindow?.webContents.reload(), 100)
+  return { success: true }
 })
 
 // ─── IPC: SETTINGS ────────────────────────────────────────────────────────────
