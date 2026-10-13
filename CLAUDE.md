@@ -14,7 +14,7 @@ O nome do instalador gerado pelo `electron-builder` (`Meu Catálogo Setup <versi
 
 ## Publicação (atualização automática)
 
-Os apps instalados se atualizam pelos releases do GitHub (`electron-updater`, config `publish` no `package.json`). `npm run build` só compila (`--publish never`); `npm run release` compila e envia um release rascunho, e precisa de `GH_TOKEN` (peça ao usuário, nunca grave em arquivo). Publicar no GitHub é visível para outros — confirme com o usuário antes. O `latest.yml` e o `.blockmap` só precisam existir até o envio; a limpeza do `dist-electron` (deixar só o `.exe` novo) vem depois da publicação.
+Os apps instalados se atualizam pelos releases do GitHub (`electron-updater`, config `publish` no `package.json`). Para publicar use **`npm run publicar -- patch|minor|major`** (`scripts/publicar.js`): ele faz bump de versão, testes, commit + push, build, envio e publicação do release e a limpeza do `dist-electron`. O token vem da variável `GH_TOKEN` do usuário do Windows (o script lê do registro se o terminal não tiver) — nunca peça pra colar o token no chat nem grave em arquivo. Publicar no GitHub é visível para outros: confirme com o usuário antes de rodar sem `--simular`. `npm run build` continua só compilando (`--publish never`).
 
 ## Testes antes de compilar
 

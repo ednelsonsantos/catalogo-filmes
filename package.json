@@ -12,7 +12,8 @@
     "rebuild": "electron-rebuild -f -w better-sqlite3",
     "test": "jest --forceExit",
     "test:watch": "jest --watch",
-    "test:ui": "playwright test -c e2e/playwright.config.js"
+    "test:ui": "playwright test -c e2e/playwright.config.js",
+    "publicar": "node scripts/publicar.js"
   },
   "jest": {
     "testEnvironment": "node",

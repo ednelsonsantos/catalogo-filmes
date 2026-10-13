@@ -167,15 +167,22 @@ O instalador Windows (`.exe`) é gerado na pasta `dist-electron/`.
 
 ### Publicar uma versão (atualização automática)
 
-Os apps instalados se atualizam a partir dos **releases do GitHub** deste repositório. Para publicar:
+Os apps instalados se atualizam a partir dos **releases do GitHub** deste repositório. Uma vez só, salve um token do GitHub (fine-grained, só este repositório, permissão **Contents: Read and write**) no seu usuário do Windows:
 
-```bash
-# token do GitHub com permissão de escrita em "Contents" neste repositório
-set GH_TOKEN=seu_token        # PowerShell: $env:GH_TOKEN = "seu_token"
-npm run release
+```powershell
+setx GH_TOKEN 'github_pat_...'
 ```
 
-O `electron-builder` compila, cria um release **rascunho** com a tag `v<versão>` e envia o instalador, o `.blockmap` e o `latest.yml`. Depois é só abrir o rascunho no GitHub e publicar — a partir daí os apps instalados encontram a versão nova.
+Depois, cada publicação é um comando:
+
+```bash
+npm run publicar -- patch     # correção de bug        (1.11.0 → 1.11.1)
+npm run publicar -- minor     # melhoria/funcionalidade (1.11.0 → 1.12.0)
+npm run publicar -- major     # quebra compatibilidade  (1.11.0 → 2.0.0)
+npm run publicar -- minor --simular   # só confere, sem publicar nada
+```
+
+O comando (`scripts/publicar.js`): lê o `GH_TOKEN` (do terminal ou, se o terminal foi aberto antes do `setx`, direto do usuário do Windows — o valor nunca é impresso) → exige o código sem alterações pendentes → sobe a versão e confere que é maior que a publicada → roda `npm run test:ui` (se falhar, desfaz a versão e para) → commit "Versão X" + push → compila e envia instalador, `.blockmap` e `latest.yml` → publica o release → limpa `dist-electron` deixando só o instalador novo.
 
 ---
 
