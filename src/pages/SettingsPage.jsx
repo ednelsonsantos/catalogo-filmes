@@ -26,8 +26,11 @@ export default function SettingsPage({ settings, onSave, showToast, appVersion, 
   useEffect(() => { window.api.prefsGet().then(setPrefs).catch(() => {}) }, [])
 
   const togglePref = async (key) => {
-    const updated = await window.api.prefsSet({ [key]: !prefs[key] })
-    setPrefs(updated)
+    const value = !prefs[key]
+    // marca na hora; a gravação no processo principal confirma (ou corrige) em seguida
+    setPrefs(p => ({ ...p, [key]: value }))
+    try { setPrefs(await window.api.prefsSet({ [key]: value })) }
+    catch { setPrefs(await window.api.prefsGet()) }
   }
 
   const handleBackup = async () => {

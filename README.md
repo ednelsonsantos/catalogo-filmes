@@ -66,7 +66,7 @@ O app foi desenvolvido com práticas de segurança para aplicações Electron:
 | Camada | Tecnologia |
 |---|---|
 | Interface | React 18 + Vite 5 |
-| Desktop | Electron 32 |
+| Desktop | Electron 44 |
 | Banco de dados | better-sqlite3 (SQLite local) |
 | OCR | Tesseract.js 5 (local, sem internet) |
 | Metadados | OMDb API + TMDB API |
@@ -118,7 +118,7 @@ Permite carregar, editar e sincronizar sua lista de animes diretamente do MAL. R
 ## Instalação para desenvolvimento
 
 ### Pré-requisitos
-- Node.js 18+
+- Node.js 22+ (exigido pelo better-sqlite3 13)
 - npm
 
 ### Passos
@@ -135,7 +135,9 @@ npm install
 npm run dev
 ```
 
-> O `postinstall` executa `electron-rebuild` automaticamente para compilar o `better-sqlite3` contra a versão correta do Electron.
+> O `better-sqlite3` (v13) já vem com o binário pronto para Windows/macOS/Linux (N-API, estável entre versões do Electron) — não há nada pra compilar.
+>
+> O npm 11+ bloqueia scripts de instalação por padrão: se o `npm run dev` reclamar que o Electron não foi instalado, rode `node node_modules/electron/install.js` (baixa o executável do Electron) ou libere com `npm install-scripts approve electron`.
 
 ### Testes
 

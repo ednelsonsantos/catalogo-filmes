@@ -1,6 +1,6 @@
 {
   "name": "catalogo-filmes",
-  "version": "1.11.1",
+  "version": "1.12.0",
   "description": "Catálogo pessoal de filmes, séries, documentários e outros formatos",
   "main": "electron/main.js",
   "scripts": {
@@ -8,8 +8,6 @@
     "build": "vite build && electron-builder --publish never",
     "release": "vite build && electron-builder --publish always",
     "preview": "vite preview",
-    "postinstall": "electron-rebuild -f -w better-sqlite3",
-    "rebuild": "electron-rebuild -f -w better-sqlite3",
     "test": "jest --forceExit",
     "test:watch": "jest --watch",
     "test:ui": "playwright test -c e2e/playwright.config.js",
@@ -23,7 +21,7 @@
   },
   "dependencies": {
     "adm-zip": "^0.6.1",
-    "better-sqlite3": "^12.6.2",
+    "better-sqlite3": "^13.0.3",
     "electron-updater": "^6.8.9",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
@@ -31,12 +29,11 @@
     "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
   },
   "devDependencies": {
-    "@playwright/test": "^1.48.2",
+    "@playwright/test": "^1.63.0",
     "@vitejs/plugin-react": "^4.2.0",
     "concurrently": "^8.2.0",
-    "electron": "^32.3.3",
-    "electron-builder": "^25.1.8",
-    "electron-rebuild": "^3.2.9",
+    "electron": "^44.4.5",
+    "electron-builder": "^26.16.1",
     "jest": "^30.3.0",
     "vite": "^5.0.0",
     "wait-on": "^7.2.0"
@@ -56,11 +53,12 @@
       "dist/**/*",
       "electron/**/*",
       "icon.png",
-      "node_modules/better-sqlite3/build/**/*",
       "node_modules/better-sqlite3/lib/**/*",
-      "node_modules/better-sqlite3/package.json"
+      "node_modules/better-sqlite3/package.json",
+      "node_modules/better-sqlite3/prebuilds/win32-x64.node",
+      "!node_modules/better-sqlite3/prebuilds/{darwin,linux,linuxmusl,win32-arm64}*"
     ],
-    "npmRebuild": true,
+    "npmRebuild": false,
     "publish": [
       {
         "provider": "github",
