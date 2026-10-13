@@ -59,7 +59,12 @@
 
 .disc-meta-grid { padding: 10px 12px; }
 .disc-title-grid { font-size: 12px; font-weight: 500; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.disc-year-grid { font-size: 11px; color: var(--text3); margin-top: 2px; }
+.disc-year-grid { font-size: 11px; color: var(--text3); margin-top: 2px; display: flex; align-items: center; justify-content: space-between; gap: 6px; min-height: 16px; }
+
+.provider-logos { display: inline-flex; align-items: center; gap: 3px; flex-shrink: 0; }
+.provider-logos img { width: 16px; height: 16px; border-radius: 4px; display: block; }
+.provider-more { font-size: 10px; color: var(--text3); margin-left: 1px; }
+.list-right .provider-logos img { width: 20px; height: 20px; }
 
 /* List */
 .disc-list-item {

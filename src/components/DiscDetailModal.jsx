@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import EpisodesPanel from './EpisodesPanel.jsx'
 import { SERIES_CATEGORIES } from '../constants.js'
+import { parseProviders, providerLogo } from '../utils/providers.js'
 
 export default function DiscDetailModal({ filme, onClose, onEdit, onDelete, onUpdated, showToast }) {
   const [coverSrc, setCoverSrc] = useState(null)
@@ -10,11 +11,18 @@ export default function DiscDetailModal({ filme, onClose, onEdit, onDelete, onUp
   useEffect(() => { setLiveFilme(filme) }, [filme])
 
   useEffect(() => {
-    setProviders([])
+    const cached = parseProviders(liveFilme)
+    setProviders(cached || [])
     if (!liveFilme.tmdb_id && !liveFilme.imdb_id) return
+    // o processo principal devolve o cache se estiver em dia; senão busca na TMDB e grava
     window.api.tmdbWatchProviders(liveFilme.id)
-      .then(setProviders)
-      .catch(() => setProviders([]))
+      .then(list => {
+        setProviders(list)
+        const json = JSON.stringify(list)
+        if (json !== liveFilme.providers) onUpdated?.({ ...liveFilme, providers: json })
+      })
+      .catch(() => {})
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [liveFilme.id, liveFilme.tmdb_id, liveFilme.imdb_id])
 
   useEffect(() => {
@@ -122,7 +130,7 @@ export default function DiscDetailModal({ filme, onClose, onEdit, onDelete, onUp
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
               <span style={{ fontSize: 12, color: 'var(--text3)' }}>Onde assistir:</span>
               {providers.map(p => (
-                <img key={p.id} src={`https://image.tmdb.org/t/p/w45${p.logo}`} alt={p.name} title={p.name} style={{ width: 28, height: 28, borderRadius: 6 }} />
+                <img key={p.id} src={providerLogo(p)} alt={p.name} title={p.name} style={{ width: 28, height: 28, borderRadius: 6 }} />
               ))}
             </div>
           )}

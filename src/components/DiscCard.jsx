@@ -1,5 +1,18 @@
 import React, { useState, useEffect } from 'react'
+import { parseProviders, providerLogo } from '../utils/providers.js'
 import './DiscCard.css'
+
+function ProviderLogos({ providers, max = 3 }) {
+  if (!providers?.length) return null
+  const shown = providers.slice(0, max)
+  const rest = providers.length - shown.length
+  return (
+    <span className="provider-logos" title={providers.map(p => p.name).join(', ')}>
+      {shown.map(p => <img key={p.id} src={providerLogo(p)} alt={p.name} />)}
+      {rest > 0 && <span className="provider-more">+{rest}</span>}
+    </span>
+  )
+}
 
 function getFormats(filme) {
   return (filme.formats || filme.format || '').split(',').map(f => f.trim()).filter(Boolean)
@@ -33,6 +46,7 @@ export default function DiscCard({ filme, viewMode, onClick, onEdit, onDelete, o
 
   const formats = getFormats(filme)
   const episodeInfo = getEpisodeInfo(filme)
+  const providers = parseProviders(filme)
 
   if (viewMode === 'list') {
     return (
@@ -63,6 +77,7 @@ export default function DiscCard({ filme, viewMode, onClick, onEdit, onDelete, o
               </span>
             )}
             {formats.map(f => <span key={f} className="format-badge">{f}</span>)}
+            <ProviderLogos providers={providers} />
           </div>
           {onToggleWatched && (
             <button
@@ -120,7 +135,10 @@ export default function DiscCard({ filme, viewMode, onClick, onEdit, onDelete, o
       </div>
       <div className="disc-meta-grid">
         <div className="disc-title-grid">{filme.title}</div>
-        <div className="disc-year-grid">{filme.year || '—'}</div>
+        <div className="disc-year-grid">
+          <span>{filme.year || '—'}</span>
+          <ProviderLogos providers={providers} />
+        </div>
       </div>
     </div>
   )

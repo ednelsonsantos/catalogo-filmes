@@ -3,6 +3,7 @@ import DiscCard from '../components/DiscCard.jsx'
 import DiscDetailModal from '../components/DiscDetailModal.jsx'
 import ConfirmModal from '../components/ConfirmModal.jsx'
 import { SERIES_CATEGORIES } from '../constants.js'
+import { parseProviders } from '../utils/providers.js'
 import './CatalogPage.css'
 
 const IconSearch = () => (<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>)
@@ -36,6 +37,7 @@ export default function CatalogPage({ filmes, tags = [], onEdit, onDelete, onTog
   const [category, setCategory] = useState('all')
   const [tagFilter, setTagFilter] = useState('all')
   const [tagFilmeIds, setTagFilmeIds] = useState(null)
+  const [providerFilter, setProviderFilter] = useState('all')
   const [sort, setSort] = useState('title')
   const [viewMode, setViewMode] = useState('grid')
   const [detail, setDetail] = useState(null)
@@ -80,10 +82,10 @@ export default function CatalogPage({ filmes, tags = [], onEdit, onDelete, onTog
     }
   }, [trackableFilmes, onFilmeUpdated, showToast])
 
-  const hasActiveFilters = search || format !== 'all' || watchStatus !== 'all' || category !== 'all' || tagFilter !== 'all'
+  const hasActiveFilters = search || format !== 'all' || watchStatus !== 'all' || category !== 'all' || tagFilter !== 'all' || providerFilter !== 'all'
 
   const clearFilters = useCallback(() => {
-    setSearch(''); setFormat('all'); setWatchStatus('all'); setCategory('all'); setTagFilter('all')
+    setSearch(''); setFormat('all'); setWatchStatus('all'); setCategory('all'); setTagFilter('all'); setProviderFilter('all')
     searchRef.current?.focus()
   }, [])
 
@@ -130,6 +132,13 @@ export default function CatalogPage({ filmes, tags = [], onEdit, onDelete, onTog
     if (tagFilmeIds) {
       items = items.filter(f => tagFilmeIds.includes(f.id))
     }
+    if (providerFilter === 'any') {
+      items = items.filter(f => parseProviders(f)?.length > 0)
+    } else if (providerFilter === 'none') {
+      items = items.filter(f => parseProviders(f)?.length === 0)
+    } else if (providerFilter !== 'all') {
+      items = items.filter(f => parseProviders(f)?.some(p => String(p.id) === providerFilter))
+    }
     items.sort((a, b) => {
       if (sort === 'title')  return (a.title || '').localeCompare(b.title || '', 'pt-BR')
       if (sort === 'year')   return (b.year || 0) - (a.year || 0)
@@ -143,7 +152,24 @@ export default function CatalogPage({ filmes, tags = [], onEdit, onDelete, onTog
       return 0
     })
     return items
-  }, [filmes, search, format, watchStatus, category, tagFilmeIds, sort])
+  }, [filmes, search, format, watchStatus, category, tagFilmeIds, providerFilter, sort])
+
+  // Serviços presentes na coleção (pelo cache do "Onde assistir"), do mais comum pro menos
+  const providerOptions = useMemo(() => {
+    const byId = new Map()
+    let checked = 0
+    for (const f of filmes) {
+      const list = parseProviders(f)
+      if (!list) continue
+      checked++
+      for (const p of list) {
+        const cur = byId.get(p.id) || { id: p.id, name: p.name, count: 0 }
+        cur.count++
+        byId.set(p.id, cur)
+      }
+    }
+    return { checked, list: [...byId.values()].sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, 'pt-BR')) }
+  }, [filmes])
 
   const handleDelete = useCallback((filme) => {
     setConfirmingDelete(filme)
@@ -280,6 +306,16 @@ export default function CatalogPage({ filmes, tags = [], onEdit, onDelete, onTog
               <option value="all">Todas as tags</option>
               {tags.map(t => (
                 <option key={t.id} value={t.id}>{t.name}{t.count ? ` (${t.count})` : ''}</option>
+              ))}
+            </select>
+          )}
+          {providerOptions.checked > 0 && (
+            <select className="sort-select" data-testid="provider-filter" value={providerFilter} onChange={e => setProviderFilter(e.target.value)}>
+              <option value="all">Onde assistir: todos</option>
+              <option value="any">Em algum streaming</option>
+              <option value="none">Em nenhum streaming</option>
+              {providerOptions.list.map(p => (
+                <option key={p.id} value={String(p.id)}>{p.name} ({p.count})</option>
               ))}
             </select>
           )}

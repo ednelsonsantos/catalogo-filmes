@@ -20,6 +20,7 @@ contextBridge.exposeInMainWorld('api', {
   tmdbTvDetails:     (p)      => ipcRenderer.invoke('tmdb:tvDetails', p),
   tmdbTvSeasonDetails: (p)    => ipcRenderer.invoke('tmdb:tvSeasonDetails', p),
   tmdbWatchProviders:  (p)    => ipcRenderer.invoke('tmdb:watchProviders', p),
+  providersRefreshStale: ()   => ipcRenderer.invoke('providers:refreshStale'),
 
   // Episódios (acompanhamento por temporada/episódio)
   episodesGetWatched:    (filmeId) => ipcRenderer.invoke('episodes:getWatched', filmeId),

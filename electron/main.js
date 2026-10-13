@@ -185,6 +185,9 @@ function createDatabase() {
     `)
   }
   if (!columns.includes('my_rating')) db.exec('ALTER TABLE filmes ADD COLUMN my_rating INTEGER')
+  // cache do "Onde assistir": JSON [{id,name,logo}], NULL = nunca verificado
+  if (!columns.includes('providers'))            db.exec('ALTER TABLE filmes ADD COLUMN providers TEXT')
+  if (!columns.includes('providers_checked_at')) db.exec('ALTER TABLE filmes ADD COLUMN providers_checked_at TEXT')
 
   db.exec(`
     CREATE TABLE IF NOT EXISTS episodios_assistidos (
@@ -460,7 +463,10 @@ ipcMain.handle('db:update', (_, filme) => {
       genre=@genre, director=@director, cast=@cast, runtime=@runtime,
       imdb_rating=@imdb_rating, imdb_id=@imdb_id, synopsis=@synopsis, poster_url=@poster_url,
       language=@language, country=@country, category=@category, tmdb_id=@tmdb_id,
-      tmdb_media_type=@tmdb_media_type, my_rating=@my_rating
+      tmdb_media_type=@tmdb_media_type, my_rating=@my_rating,
+      -- vínculo com a TMDB mudou: o cache do "Onde assistir" era de outro título
+      providers = CASE WHEN COALESCE(tmdb_id, '') = COALESCE(@tmdb_id, '') THEN providers ELSE NULL END,
+      providers_checked_at = CASE WHEN COALESCE(tmdb_id, '') = COALESCE(@tmdb_id, '') THEN providers_checked_at ELSE NULL END
     WHERE id=@id
   `).run({
     ...filme,
@@ -636,9 +642,46 @@ ipcMain.handle('tmdb:tvSeasonDetails', async (_, { id, season }) => {
 })
 
 // Onde assistir (streaming) — só o que está disponível em modo assinatura (flatrate) na região BR
+const PROVIDERS_TTL_DAYS = 7
+
+function cachedProviders(filme) {
+  if (filme.providers == null || !filme.providers_checked_at) return null
+  const age = (Date.now() - new Date(filme.providers_checked_at.replace(' ', 'T') + 'Z').getTime()) / 86400000
+  if (!(age < PROVIDERS_TTL_DAYS)) return null
+  try { return JSON.parse(filme.providers) } catch { return null }
+}
+
+async function fetchAndCacheProviders(filmeId) {
+  const list = await fetchProviders(filmeId)
+  db.prepare("UPDATE filmes SET providers = ?, providers_checked_at = datetime('now') WHERE id = ?").run(JSON.stringify(list), filmeId)
+  return list
+}
+
 ipcMain.handle('tmdb:watchProviders', async (_, filmeId) => {
   if (!_tmdbKey) throw new Error('TMDB API key not configured')
   if (!isPositiveInt(filmeId)) throw new Error('Invalid filme ID')
+  const filme = getFilmeById(filmeId)
+  if (!filme) return []
+  return cachedProviders(filme) ?? fetchAndCacheProviders(filmeId)
+})
+
+// Atualiza em sequência os títulos com cache vencido (roda em segundo plano ao abrir o app)
+ipcMain.handle('providers:refreshStale', async () => {
+  if (!_tmdbKey) return { updated: 0 }
+  const rows = db.prepare(`
+    SELECT * FROM filmes
+    WHERE (COALESCE(tmdb_id, '') != '' OR imdb_id LIKE 'tt%')
+      AND (providers IS NULL OR providers_checked_at IS NULL
+           OR providers_checked_at < datetime('now', '-${PROVIDERS_TTL_DAYS} days'))
+  `).all()
+  let updated = 0
+  for (const f of rows) {
+    try { await fetchAndCacheProviders(f.id); updated++ } catch {}
+  }
+  return { updated }
+})
+
+async function fetchProviders(filmeId) {
   const filme = getFilmeById(filmeId)
   if (!filme) return []
   let id = Number(filme.tmdb_id) || 0
@@ -658,8 +701,11 @@ ipcMain.handle('tmdb:watchProviders', async (_, filmeId) => {
   const data = await omdbFetch(`https://api.themoviedb.org/3/${mediaType}/${id}/watch/providers?api_key=${_tmdbKey}`)
   const br = data?.results?.BR
   if (!br) return []
-  return (br.flatrate || []).map(p => ({ id: p.provider_id, name: p.provider_name, logo: p.logo_path }))
-})
+  // "Netflix Standard with Ads" etc. só repetem o serviço principal
+  return (br.flatrate || [])
+    .filter(p => !/with ads/i.test(p.provider_name))
+    .map(p => ({ id: p.provider_id, name: p.provider_name, logo: p.logo_path }))
+}
 
 // ─── IPC: EPISÓDIOS ───────────────────────────────────────────────────────────
 

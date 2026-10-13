@@ -25,7 +25,9 @@
 .clear-search { background: none; border: none; color: var(--text3); cursor: pointer; font-size: 11px; padding: 2px; }
 .clear-search:hover { color: var(--text); }
 
-.toolbar-right { display: flex; gap: 8px; align-items: center; }
+/* quebra em mais linhas quando há muitos filtros (tags, "Onde assistir"), em vez de vazar pra fora da tela */
+.toolbar-right { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; min-width: 0; max-width: 100%; }
+.sort-select { max-width: 220px; }
 
 .filter-group {
   display: flex; background: var(--bg2);

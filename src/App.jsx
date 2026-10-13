@@ -86,6 +86,12 @@ export default function App() {
         const hasWatching = all.some(f => !!f.watching) || (cachedAnimes || []).some(a => a.list_status?.status === 'watching')
         if (hasWatching) setPage('continue')
         notifyNewEpisodes(all, cachedAnimes || [])
+        // "Onde assistir" do card/filtro: atualiza em segundo plano só o que tem cache vencido (7 dias)
+        if (saved?.tmdbConfigured) {
+          window.api.providersRefreshStale()
+            .then(r => { if (r.updated) return window.api.getAll().then(setFilmes) })
+            .catch(() => {})
+        }
       } catch (e) { console.error(e) }
       finally {
         const elapsed = Date.now() - start

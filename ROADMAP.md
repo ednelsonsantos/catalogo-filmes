@@ -474,6 +474,16 @@ Refatoração sem mudança de comportamento: de **1.411 para 540 linhas**. A pá
 - **Decisão pelos dados reais**: quase todos os títulos assistidos estão sem data (`watched_at = 'watched'`) e os 305 episódios foram marcados em lote no mesmo mês — um gráfico "por mês" como destaque mostraria uma barra só. A atividade dos 12 meses ficou como seção secundária, avisando quantos títulos estão sem data e que marcações em lote contam no mês em que foram feitas
 - Testes: dados conhecidos (horas = 120 + 90 + 6 × 45 = 480 min → 8 h, título sem duração avisado, média 7, empates de formato em ordem alfabética, décadas, notas, 12 colunas de atividade, títulos sem data) e coleção vazia sem quebrar. Conferido visualmente com o catálogo real (só leitura)
 
+### 14.6 "Onde assistir" no card e como filtro (v1.11.0) ✓
+- **Cache no banco**: colunas `providers` (JSON `[{id,name,logo}]`, `NULL` = nunca verificado) e `providers_checked_at` (UTC). Validade de 7 dias
+- `tmdb:watchProviders` devolve o cache em dia ou busca e grava; `providers:refreshStale` atualiza em sequência só os títulos vencidos que têm vínculo (TMDB ou IMDb). O app chama ao abrir, em segundo plano, e recarrega a lista se algo mudou
+- Variantes "with Ads" (ex: "Netflix Standard with Ads") são descartadas — só repetiam o serviço principal
+- Editar o título trocando o `tmdb_id` zera o cache no próprio `UPDATE` (`CASE` comparando o valor antigo com o novo), pra não mostrar serviços de outro título
+- Card: até 3 logos + "+N" (nome de todos no tooltip), na grade ao lado do ano e na lista junto dos formatos. Detalhe mostra o cache na hora e atualiza
+- Filtro "Onde assistir" no catálogo (só aparece quando há algo verificado): todos / em algum streaming / em nenhum (verificado e vazio — o que nunca foi verificado não entra) / cada serviço com contagem
+- **Correção de layout achada no print**: com os selects de tags e streaming, a barra de filtros ficava mais larga que a janela (391px de rolagem horizontal a 1280px; a lista "deslizava" ao trocar a visualização). `.toolbar-right` agora quebra linha. Teste comprova: falha sem a correção, passa com ela
+- Testes: cache gravado direto no banco de teste pelo processo principal (sem depender do que está em cada streaming hoje): logos e "+N", tooltip, opções do filtro com contagem, filtrar por serviço/algum/nenhum, limpar filtros, visão em lista, cache preservado em outras edições e descartado ao trocar o vínculo; com a TMDB: verificação em segundo plano ao abrir grava o cache
+
 ### 14.4 `safe.directory` do git ✓
 A pasta do projeto pertence a outro usuário do Windows (SID diferente, provavelmente de uma instalação anterior), e o git recusava rodar ("dubious ownership"). Registrada com `git config --global --add safe.directory "E:/Projetos aplicativos/catalogo-filmes"` — o git volta a funcionar sem o `-c safe.directory=...` em cada comando
 
