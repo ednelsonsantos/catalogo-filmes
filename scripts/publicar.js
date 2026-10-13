@@ -9,7 +9,7 @@
 // O token vem da variável GH_TOKEN; se o terminal foi aberto antes do `setx`, lê direto do usuário do Windows.
 // O valor do token nunca é impresso.
 
-const { spawnSync, execSync } = require('node:child_process')
+const { spawnSync, execSync, execFileSync } = require('node:child_process')
 const fs = require('node:fs')
 const path = require('node:path')
 
@@ -36,7 +36,8 @@ function readToken() {
   if (process.env.GH_TOKEN) return process.env.GH_TOKEN.trim()
   if (process.platform !== 'win32') return ''
   try {
-    const out = execSync('reg query HKCU\\Environment /v GH_TOKEN', { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] })
+    // sem shell: rodando pelo Git Bash, o shell comia a barra de HKCU\Environment
+    const out = execFileSync('reg', ['query', 'HKCU\\Environment', '/v', 'GH_TOKEN'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] })
     return (out.match(/GH_TOKEN\s+REG_\w+\s+(\S+)/) || [])[1] || ''
   } catch { return '' }
 }
@@ -124,16 +125,38 @@ async function gh(token, method, url, body) {
   ok(`main enviado${bump ? `, com o commit "Versão ${version}"` : ''}`)
 
   step(6, 'Compilar e enviar o instalador ao GitHub')
+  // Cria o rascunho antes: o electron-builder 26 envia os arquivos em paralelo e, sem release existente,
+  // cada envio criava o seu próprio rascunho (a v1.12.0 saiu dividida em dois)
+  const created = await gh(token, 'POST', `/repos/${owner}/${repo}/releases`, {
+    tag_name: `v${version}`, name: version, draft: true, target_commitish: 'main',
+  })
+  if (created.status !== 201) fail(`Não consegui criar o rascunho v${version} (HTTP ${created.status}).`)
   if (!run('npx', ['vite', 'build'])) fail('Falha no build do Vite.')
   if (!run('npx', ['electron-builder', '--publish', 'always'], { GH_TOKEN: token })) fail('Falha no electron-builder ao compilar/enviar.')
   ok('instalador, .blockmap e latest.yml enviados como rascunho')
 
   step(7, 'Publicar o release')
   const list = await gh(token, 'GET', `/repos/${owner}/${repo}/releases?per_page=20`)
-  const draft = (list.data || []).find(r => r.tag_name === `v${version}`)
+  const drafts = (list.data || []).filter(r => r.tag_name === `v${version}` && r.draft)
+  const draft = drafts.find(r => r.id === created.data.id) || drafts[0]
   if (!draft) fail(`Não achei o rascunho v${version} no GitHub. Publique manualmente em github.com/${owner}/${repo}/releases`)
+  // por garantia: se ainda assim surgiu rascunho duplicado, traz os arquivos pra um só e apaga o resto
+  for (const extra of drafts.filter(r => r.id !== draft.id)) {
+    for (const asset of extra.assets) {
+      if (draft.assets.some(a => a.name === asset.name)) continue
+      const headers = { Authorization: `Bearer ${token}`, 'User-Agent': 'meu-catalogo-publicar' }
+      const bin = Buffer.from(await (await fetch(asset.url, { headers: { ...headers, Accept: 'application/octet-stream' } })).arrayBuffer())
+      const up = await fetch(`https://uploads.github.com/repos/${owner}/${repo}/releases/${draft.id}/assets?name=${encodeURIComponent(asset.name)}`, {
+        method: 'POST', body: bin, headers: { ...headers, 'Content-Type': 'application/octet-stream' },
+      })
+      if (up.status !== 201) fail(`Não consegui juntar ${asset.name} no rascunho (HTTP ${up.status}).`)
+      draft.assets.push(asset)
+    }
+    await gh(token, 'DELETE', `/repos/${owner}/${repo}/releases/${extra.id}`)
+    ok('rascunho duplicado juntado e apagado')
+  }
   const names = draft.assets.map(a => a.name)
-  const missing = ['latest.yml', `${pkg.name}-setup-${version}.exe`].filter(n => !names.includes(n))
+  const missing = ['latest.yml', `${pkg.name}-setup-${version}.exe`, `${pkg.name}-setup-${version}.exe.blockmap`].filter(n => !names.includes(n))
   if (missing.length) fail(`O rascunho está sem: ${missing.join(', ')}. Confira em github.com/${owner}/${repo}/releases antes de publicar.`)
   if (draft.draft) {
     const pub = await gh(token, 'PATCH', `/repos/${owner}/${repo}/releases/${draft.id}`, { draft: false })
