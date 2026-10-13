@@ -502,6 +502,19 @@ Antes: só checava ao abrir, com dados que só mudavam quando o usuário clicava
 - **Instância única** só no app instalado: abrir de novo pelo atalho traz a janela que já está rodando (na bandeja) em vez de abrir outra cópia; em dev não, pra poder rodar junto do app instalado
 - Testes: avisos de hoje e de temporada nova uma vez só (reabrir e `focus` não repetem; avisa de novo quando sai mais episódio), preferência de bandeja salva e janela escondida/trazida de volta sem fechar o app; com a TMDB, atualização automática sem falso "temporada nova". Todos os testes agora trocam `Notification` por um registro — nada aparece na área de trabalho durante a suíte
 
+### 14.9 Análise de vulnerabilidades ✓
+**Corrigido:**
+- **`mal:savePoster` (grave, exigia página comprometida)**: o `malId` e a URL vinham da página sem validação. `malId: '../settings'` + URL terminando em `.json` **devolvia o `settings.json` inteiro (chaves de API e token do MAL)**, e `'../qualquer'` gravava a imagem baixada fora de `mal-posters`; a URL podia ser de qualquer site e a extensão podia ser `.exe`. Agora: ID inteiro positivo, só HTTPS em `cdn.myanimelist.net`/`api-cdn.myanimelist.net`, só jpg/jpeg/png/webp, resposta precisa ser `image/*`, limite de 10 MB. Os dois ataques foram reproduzidos em teste antes da correção (falharam) e passam depois
+- **`xlsx` 0.18.5 → 0.20.3** (prototype pollution + ReDoS ao ler planilha; roda no processo principal com a importação nova). A SheetJS não publica mais no npm — instalado do CDN oficial (`cdn.sheetjs.com`)
+- **`electron-updater` 6.3.9 → 6.8.9** (redirect entre origens vazava cabeçalho de autenticação) e `js-yaml` 4.1 → 4.3.2 (DoS de CPU). `npm audit --omit=dev`: **0 vulnerabilidades** nas dependências que vão no app
+- **Suíte Jest de segurança (`tests/`, fora do repositório) estava quebrada e não rodava nenhum teste** — o mock do Electron não tinha as APIs adicionadas depois (`commandLine`, `setAppUserModelId`, `Tray`...). Mock atualizado: 52 testes passando
+
+**Conferido e ok:** `contextIsolation` ligado, `nodeIntegration` desligado, sandbox padrão (página sem `require`/`process`); **CSP aplicada de fato no app instalado** mesmo carregando de `file://` (testado: `fetch` externo, script injetado e imagem fora da lista são bloqueados); navegação e `window.open` bloqueados; `shell.openExternal` só HTTPS e só sites da lista; `cover:read` preso à pasta de capas; SQL sempre parametrizado (interpolação só de `?` e constante); restauração de backup protegida contra zip com `../` (o `adm-zip` 0.6.1 normaliza); variáveis de teste (`CATALOGO_USER_DATA`, `CATALOGO_UPDATE_FEED`) ignoradas no app instalado; token do GitHub fora do repositório e do app.
+
+**Testes novos** (`e2e/seguranca.spec.js`): simulam uma página comprometida chamando `window.api` com valores maliciosos — vazamento e gravação pelo pôster, leitura de capa fora da pasta, `openExternal` com `file:`, `http:`, `javascript:`, `ms-settings:` e domínio fora da lista, IDs/entradas inválidas (SQL, negativos, tag longa demais, IMDb inválido), e ausência de Node na página.
+
+**Pendente (decisão do usuário):** Electron 32 (motor do Chrome sem as correções de segurança de mais de um ano; o app carrega imagens da internet) e 43 vulnerabilidades nas ferramentas de build/desenvolvimento (não vão no app). Instalador sem assinatura de código: a integridade das atualizações depende da conta do GitHub (2FA recomendado).
+
 ### 14.4 `safe.directory` do git ✓
 A pasta do projeto pertence a outro usuário do Windows (SID diferente, provavelmente de uma instalação anterior), e o git recusava rodar ("dubious ownership"). Registrada com `git config --global --add safe.directory "E:/Projetos aplicativos/catalogo-filmes"` — o git volta a funcionar sem o `-c safe.directory=...` em cada comando
 

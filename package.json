@@ -24,11 +24,11 @@
   "dependencies": {
     "adm-zip": "^0.6.1",
     "better-sqlite3": "^12.6.2",
-    "electron-updater": "^6.3.9",
+    "electron-updater": "^6.8.9",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "tesseract.js": "^5.0.5",
-    "xlsx": "^0.18.5"
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
   },
   "devDependencies": {
     "@playwright/test": "^1.48.2",

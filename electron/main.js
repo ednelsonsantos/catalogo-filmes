@@ -1322,12 +1322,20 @@ ipcMain.handle('mal:getAnimeList', async (_, { status = 'completed', limit = 100
   return res.body
 })
 
-ipcMain.handle('mal:savePoster', async (_, { malId, url }) => {
-  if (!malId || !url) return null
+const MAL_POSTER_HOSTS = ['cdn.myanimelist.net', 'api-cdn.myanimelist.net']
+const POSTER_MAX_BYTES = 10 * 1024 * 1024
+
+ipcMain.handle('mal:savePoster', async (_, { malId, url } = {}) => {
+  // malId e URL vêm da página: sem estas checagens, "../settings" + ".json" devolvia o settings.json
+  // (chaves de API) e uma URL qualquer era baixada e gravada fora da pasta de pôsteres
+  if (!isPositiveInt(malId)) return null
+  let parsed
+  try { parsed = new URL(String(url)) } catch { return null }
+  if (parsed.protocol !== 'https:' || !MAL_POSTER_HOSTS.includes(parsed.hostname)) return null
+  const ext = (parsed.pathname.split('.').pop() || '').toLowerCase()
+  if (!['jpg', 'jpeg', 'png', 'webp'].includes(ext)) return null
   const postersDir = path.join(app.getPath('userData'), 'mal-posters')
   if (!fs.existsSync(postersDir)) fs.mkdirSync(postersDir, { recursive: true })
-  // extensão a partir da URL, fallback jpg
-  const ext = (url.split('?')[0].split('.').pop() || 'jpg').replace(/[^a-zA-Z0-9]/g, '').slice(0, 5) || 'jpg'
   const filePath = path.join(postersDir, `${malId}.${ext}`)
   // se já existe no disco, retorna direto
   if (fs.existsSync(filePath)) {
@@ -1337,11 +1345,17 @@ ipcMain.handle('mal:savePoster', async (_, { malId, url }) => {
   // baixa a imagem
   const https = require('https')
   return new Promise((resolve) => {
-    https.get(url, (res) => {
-      if (res.statusCode !== 200) { resolve(null); return }
+    https.get(parsed, (res) => {
+      if (res.statusCode !== 200 || !/^image\//.test(res.headers['content-type'] || '')) { res.resume(); resolve(null); return }
       const chunks = []
-      res.on('data', c => chunks.push(c))
+      let size = 0
+      res.on('data', c => {
+        size += c.length
+        if (size > POSTER_MAX_BYTES) { res.destroy(); resolve(null); return }
+        chunks.push(c)
+      })
       res.on('end', () => {
+        if (size > POSTER_MAX_BYTES) return
         const buf = Buffer.concat(chunks)
         try { fs.writeFileSync(filePath, buf) } catch {}
         resolve(`data:image/${ext};base64,${buf.toString('base64')}`)
