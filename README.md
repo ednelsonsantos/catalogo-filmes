@@ -30,6 +30,7 @@ Aplicativo desktop para catalogar sua coleção pessoal de filmes, séries, docu
 - **Estatísticas** — barra com totais por formato, % assistidos e último título adicionado; dropdown de categorias com contagem
 - **Tela de Estatísticas** — totais, horas assistidas (filmes + episódios de séries), episódios vistos, nota média, gêneros mais frequentes, categorias, formatos, décadas, distribuição das suas notas, séries em andamento com progresso, resumo dos animes do MAL e atividade dos últimos 12 meses
 - **Exportar** coleção para CSV, Excel ou JSON — exporta tudo ou apenas a coleção selecionada na sidebar
+- **Importar lista** — botão "Importar" no catálogo aceita a exportação do **Letterboxd** (watched, diary, ratings, watchlist), do **IMDb** (ratings, watchlist), o CSV/Excel exportado pelo próprio app ou qualquer planilha com coluna de título. Mostra uma prévia (o que é novo e o que já está na coleção), converte estrelas do Letterboxd em nota 0–10, usa a data de quando assistiu e, opcionalmente, completa cada título com os dados da TMDB (pelo código do IMDb quando existe)
 - **Banco de dados local** SQLite — seus dados ficam no computador, sem nuvem
 - **Backup e restauração** — um clique em Configurações empacota banco de dados, capas, pôsteres de anime, cache e chaves de API num único `.zip`; restaurar substitui tudo e recarrega o app com os dados do backup
 - **Ícone personalizado** — logo do app no instalador, atalhos e barra de tarefas

@@ -920,6 +920,38 @@ function queryFilmesForExport(filmeIds) {
   return db.prepare('SELECT * FROM filmes ORDER BY title COLLATE NOCASE').all()
 }
 
+// Importar lista: lê CSV (UTF-8) ou Excel e devolve as linhas como objetos (cabeçalho = chaves)
+const IMPORT_MAX_ROWS = 5000
+
+ipcMain.handle('import:readFile', async () => {
+  const { filePaths, canceled } = await dialog.showOpenDialog(mainWindow, {
+    title: 'Importar lista de títulos',
+    filters: [{ name: 'Planilha ou CSV', extensions: ['csv', 'xlsx', 'xls'] }],
+    properties: ['openFile'],
+  })
+  if (canceled || !filePaths[0]) return { canceled: true }
+  const XLSX = require('xlsx')
+  const filePath = filePaths[0]
+  // raw: sem isso o xlsx transforma "2024-03-02" em data e devolve no formato americano ("3/2/24");
+  // no Excel, datas vêm como número de série, que o importador converte
+  const wb = /\.csv$/i.test(filePath)
+    ? XLSX.read(fs.readFileSync(filePath, 'utf8').replace(/^﻿/, ''), { type: 'string', raw: true })
+    : XLSX.readFile(filePath)
+  const sheet = wb.Sheets[wb.SheetNames[0]]
+  const rows = XLSX.utils.sheet_to_json(sheet, { defval: '', raw: true })
+  if (rows.length > IMPORT_MAX_ROWS) throw new Error(`Arquivo com ${rows.length} linhas — o limite é ${IMPORT_MAX_ROWS}.`)
+  return { canceled: false, fileName: path.basename(filePath), rows }
+})
+
+ipcMain.handle('tmdb:findByImdb', async (_, imdbId) => {
+  if (!_tmdbKey) throw new Error('TMDB API key not configured')
+  if (!/^tt\d+$/.test(String(imdbId))) throw new Error('Invalid IMDb ID')
+  const found = await omdbFetch(`https://api.themoviedb.org/3/find/${imdbId}?external_source=imdb_id&api_key=${_tmdbKey}`)
+  const movie = found?.movie_results?.[0]
+  const tv = found?.tv_results?.[0]
+  return movie ? { id: movie.id, type: 'movie' } : tv ? { id: tv.id, type: 'tv' } : null
+})
+
 ipcMain.handle('export:csv', async (_e, { filmeIds } = {}) => {
   const filmes = queryFilmesForExport(filmeIds)
   const headers = ['Título','Título Original','Ano','Formato(s)','Gênero','Diretor','Elenco','Duração','Nota IMDb','Assistido em','Sinopse']
@@ -927,8 +959,8 @@ ipcMain.handle('export:csv', async (_e, { filmeIds } = {}) => {
     f.title, f.original_title || '', f.year || '',
     f.formats || f.format || '', f.genre || '', f.director || '',
     f.cast || '', f.runtime || '', f.imdb_rating || '',
-    f.watched_at || '', (f.synopsis || '').replace(/"/g, '""'),
-  ].map(v => `"${v}"`).join(','))
+    f.watched_at || '', f.synopsis || '',
+  ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(','))
   const csv = [headers.join(','), ...rows].join('\n')
   const { filePath, canceled } = await dialog.showSaveDialog(mainWindow, {
     title: 'Exportar CSV',

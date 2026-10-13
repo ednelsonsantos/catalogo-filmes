@@ -227,7 +227,10 @@ export default function App() {
         {page === 'catalog' && (
           <CatalogPage
             filmes={catalogFilmes}
+            allFilmes={filmes}
             tags={tags}
+            tmdbConfigured={!!settings.tmdbConfigured}
+            onImported={refresh}
             onEdit={handleEdit}
             onDelete={async () => { await refresh(); await refreshCollections(); if (selectedCollection) { const ids = await window.api.colecoesGetFilmeIds(selectedCollection.id); setCollectionFilmeIds(ids) } }}
             onToggleWatched={handleToggleWatched}

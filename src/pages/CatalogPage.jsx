@@ -2,6 +2,8 @@ import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react'
 import DiscCard from '../components/DiscCard.jsx'
 import DiscDetailModal from '../components/DiscDetailModal.jsx'
 import ConfirmModal from '../components/ConfirmModal.jsx'
+import ImportModal from '../components/ImportModal.jsx'
+import '../components/ImportModal.css'
 import { SERIES_CATEGORIES } from '../constants.js'
 import { parseProviders } from '../utils/providers.js'
 import './CatalogPage.css'
@@ -30,7 +32,8 @@ const STATUS_FILTERS = [
 
 const ALL_CATEGORIES = ['Filme', 'Série', 'Mini-série', 'Documentário', 'Animação', 'Anime', 'Show/Stand-up', 'Musical', 'Esporte', 'Streaming', 'Outro']
 
-export default function CatalogPage({ filmes, tags = [], onEdit, onDelete, onToggleWatched, onFilmeUpdated, showToast, selectedCollection }) {
+export default function CatalogPage({ filmes, allFilmes = filmes, tags = [], tmdbConfigured = false, onEdit, onDelete, onImported, onToggleWatched, onFilmeUpdated, showToast, selectedCollection }) {
+  const [importing, setImporting] = useState(false)
   const [search, setSearch] = useState('')
   const [format, setFormat] = useState('all')
   const [watchStatus, setWatchStatus] = useState('all')
@@ -271,6 +274,7 @@ export default function CatalogPage({ filmes, tags = [], onEdit, onDelete, onTog
               {bulkRefreshing ? `Atualizando ${bulkRefreshing.done}/${bulkRefreshing.total}…` : `↻ Atualizar episódios (${trackableFilmes.length})`}
             </button>
           )}
+          <button className="btn btn-sm" onClick={() => setImporting(true)} title="Importar do Letterboxd, IMDb, CSV ou Excel">⤓ Importar</button>
           <button className="btn btn-sm" onClick={() => handleExport('csv')} disabled={exporting} title={selectedCollection ? `Exportar coleção "${selectedCollection.name}"` : 'Exportar tudo'}><IconExport /> CSV</button>
           <button className="btn btn-sm" onClick={() => handleExport('xlsx')} disabled={exporting} title={selectedCollection ? `Exportar coleção "${selectedCollection.name}"` : 'Exportar tudo'}><IconExport /> Excel</button>
           <button className="btn btn-sm" onClick={() => handleExport('site')} disabled={exporting} title={selectedCollection ? `Exportar coleção "${selectedCollection.name}"` : 'Exportar tudo'}><IconExport /> Site</button>
@@ -409,6 +413,15 @@ export default function CatalogPage({ filmes, tags = [], onEdit, onDelete, onTog
             </div>
           </div>
         </div>
+      )}
+      {importing && (
+        <ImportModal
+          filmes={allFilmes}
+          tmdbConfigured={tmdbConfigured}
+          showToast={showToast}
+          onImported={onImported}
+          onClose={() => setImporting(false)}
+        />
       )}
     </div>
   )

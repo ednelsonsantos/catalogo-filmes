@@ -36,6 +36,8 @@ contextBridge.exposeInMainWorld('api', {
 
   // Export
   exportCsv:         (opts)   => ipcRenderer.invoke('export:csv', opts),
+  importReadFile:    ()       => ipcRenderer.invoke('import:readFile'),
+  tmdbFindByImdb:    (id)     => ipcRenderer.invoke('tmdb:findByImdb', id),
   exportXlsx:        (opts)   => ipcRenderer.invoke('export:xlsx', opts),
   exportSiteJson:    (opts)   => ipcRenderer.invoke('export:siteJson', opts),
 

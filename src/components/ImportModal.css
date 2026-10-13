@@ -1,0 +1,13 @@
+.import-modal { max-width: 720px; width: 100%; padding: 20px 22px; }
+.import-text { font-size: 13px; color: var(--text2); line-height: 1.6; margin-bottom: 12px; }
+.import-options { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+.import-check { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text2); }
+.import-check select { padding: 4px 8px; background: var(--bg3); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: 12px; }
+.import-table-wrap { max-height: 300px; overflow: auto; border: 1px solid var(--border); border-radius: 8px; }
+.import-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.import-table th { position: sticky; top: 0; background: var(--bg3); text-align: left; padding: 6px 10px; color: var(--text3); font-weight: 500; }
+.import-table td { padding: 5px 10px; border-top: 1px solid var(--border); color: var(--text); }
+.import-row-existing td { color: var(--text3); }
+.import-progress { display: flex; align-items: center; gap: 10px; margin-top: 14px; font-size: 12px; color: var(--text2); }
+.import-bar { flex: 1; height: 6px; background: var(--bg4); border-radius: 99px; overflow: hidden; }
+.import-bar > div { height: 100%; background: var(--accent); transition: width 0.2s; }
