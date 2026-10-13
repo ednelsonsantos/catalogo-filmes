@@ -108,3 +108,6 @@
   width: 90%; max-width: 560px; max-height: 85vh; overflow-y: auto;
   box-shadow: var(--shadow);
 }
+
+.pref-check { display: flex; align-items: flex-start; gap: 8px; font-size: 13px; color: var(--text2); cursor: pointer; line-height: 1.4; }
+.pref-check input { margin-top: 2px; accent-color: var(--accent); }

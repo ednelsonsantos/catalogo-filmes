@@ -66,6 +66,12 @@ contextBridge.exposeInMainWorld('api', {
   tagsGetByFilme:      (id)     => ipcRenderer.invoke('tags:getByFilme', id),
   tagsSetForFilme:     (p)      => ipcRenderer.invoke('tags:setForFilme', p),
 
+  // Segundo plano (bandeja, iniciar com o Windows) e checagem diária de episódios
+  prefsGet:          ()       => ipcRenderer.invoke('prefs:get'),
+  prefsSet:          (p)      => ipcRenderer.invoke('prefs:set', p),
+  appShow:           ()       => ipcRenderer.invoke('app:show'),
+  episodesRefreshStale: ()    => ipcRenderer.invoke('episodes:refreshStale'),
+
   // Versão e atualização automática
   appGetVersion:     ()       => ipcRenderer.invoke('app:getVersion'),
   updaterGetStatus:  ()       => ipcRenderer.invoke('updater:getStatus'),

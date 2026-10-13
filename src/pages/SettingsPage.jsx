@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import ConfirmModal from '../components/ConfirmModal.jsx'
 
 function updateStatusText(s) {
@@ -21,6 +21,14 @@ export default function SettingsPage({ settings, onSave, showToast, appVersion, 
   const [backingUp, setBackingUp] = useState(false)
   const [confirmingRestore, setConfirmingRestore] = useState(false)
   const [restoring, setRestoring] = useState(false)
+  const [prefs, setPrefs] = useState(null)
+
+  useEffect(() => { window.api.prefsGet().then(setPrefs).catch(() => {}) }, [])
+
+  const togglePref = async (key) => {
+    const updated = await window.api.prefsSet({ [key]: !prefs[key] })
+    setPrefs(updated)
+  }
 
   const handleBackup = async () => {
     setBackingUp(true)
@@ -230,6 +238,27 @@ export default function SettingsPage({ settings, onSave, showToast, appVersion, 
             O backup inclui o banco de dados, capas, chaves de API e cache dos animes num único arquivo .zip.
             Restaurar <strong style={{ color: 'var(--text)' }}>substitui tudo</strong> que está no app agora pelo conteúdo do arquivo escolhido, e recarrega o app.
           </p>
+        </div>
+
+        {/* Avisos e segundo plano */}
+        <div className="card">
+          <h2 style={{ fontSize: 15, fontWeight: 600, marginBottom: 6 }}>Avisos de episódios</h2>
+          <p style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 12, lineHeight: 1.6 }}>
+            Com o app aberto, ele confere a cada 30 minutos (e quando você volta pra janela) se saiu episódio de algo que você está assistindo
+            ou temporada nova de uma série que já terminou — e avisa uma vez só. Os episódios das séries são atualizados sozinhos uma vez por dia.
+          </p>
+          {prefs && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <label className="pref-check">
+                <input type="checkbox" data-testid="pref-close-to-tray" checked={prefs.closeToTray} onChange={() => togglePref('closeToTray')} />
+                Ao fechar a janela, continuar rodando na bandeja (perto do relógio) pra seguir avisando
+              </label>
+              <label className="pref-check" style={{ opacity: prefs.canOpenAtLogin ? 1 : 0.5 }}>
+                <input type="checkbox" data-testid="pref-open-at-login" checked={prefs.openAtLogin} disabled={!prefs.canOpenAtLogin} onChange={() => togglePref('openAtLogin')} />
+                Iniciar com o Windows, já minimizado na bandeja{!prefs.canOpenAtLogin && ' (só no app instalado)'}
+              </label>
+            </div>
+          )}
         </div>
 
         {/* Atualizações */}

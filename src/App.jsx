@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react'
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import Sidebar from './components/Sidebar.jsx'
 import CatalogPage from './pages/CatalogPage.jsx'
 import ContinuePage from './pages/ContinuePage.jsx'
@@ -7,31 +7,12 @@ import SettingsPage from './pages/SettingsPage.jsx'
 import AnimePage from './pages/AnimePage.jsx'
 import StatsPage from './pages/StatsPage.jsx'
 import Toast from './components/Toast.jsx'
-import { SERIES_CATEGORIES, WEEKDAY_INDEX } from './constants.js'
+import { SERIES_CATEGORIES } from './constants.js'
+import { pendingNotifications, notifyPending } from './utils/notifications.js'
 import appIcon from '../icon.png'
 import './App.css'
 
-// Notifica (uma vez por abertura do app) episódios que saem hoje e temporadas novas em séries já "Assistido"
-function notifyNewEpisodes(filmes, animeList) {
-  if (typeof Notification === 'undefined' || Notification.permission === 'denied') return
-  const today = new Date().toISOString().slice(0, 10)
-  const todayWeekday = new Date().getDay()
-
-  const releasesTodayFilmes = filmes.filter(f => !!f.watching && f.next_episode_air_date === today)
-  const releasesTodayAnimes = animeList.filter(a =>
-    a.list_status?.status === 'watching' &&
-    a.node.status === 'currently_airing' &&
-    WEEKDAY_INDEX[a.node.broadcast?.day_of_the_week] === todayWeekday
-  )
-  const newSeasons = filmes.filter(f =>
-    !!f.watched_at && f.episodes_aired != null && (f.episodes_watched_count || 0) < f.episodes_aired
-  )
-
-  const notify = (title, body) => { try { new Notification(title, { body }) } catch {} }
-  releasesTodayFilmes.forEach(f => notify('🆕 Novo episódio hoje', f.title))
-  releasesTodayAnimes.forEach(a => notify('🆕 Novo episódio hoje', a.node.title))
-  newSeasons.forEach(f => notify('📺 Nova temporada disponível', f.title))
-}
+const CHECK_INTERVAL_MS = 30 * 60 * 1000
 
 export default function App() {
   const [page, setPage] = useState('catalog')
@@ -62,6 +43,39 @@ export default function App() {
     setUpdateBannerDismissed(false)
   }, [])
 
+  // Checagem em segundo plano: ao abrir, a cada 30 min e ao voltar pra janela.
+  // Atualiza os episódios das séries acompanhadas (no máximo 1x por dia cada) e avisa o que for novo, sem repetir.
+  const filmesRef = useRef([])
+  const animeRef = useRef([])
+  const tmdbRef = useRef(false)
+  const checkingRef = useRef(false)
+  useEffect(() => { filmesRef.current = filmes }, [filmes])
+  useEffect(() => { animeRef.current = animeList }, [animeList])
+
+  const runBackgroundChecks = useCallback(async () => {
+    if (checkingRef.current) return
+    checkingRef.current = true
+    try {
+      if (tmdbRef.current) {
+        const r = await window.api.episodesRefreshStale().catch(() => ({ updated: 0 }))
+        if (r.updated) {
+          const all = await window.api.getAll()
+          filmesRef.current = all
+          setFilmes(all)
+        }
+      }
+      notifyPending(pendingNotifications(filmesRef.current, animeRef.current), () => window.api.appShow())
+    } finally {
+      checkingRef.current = false
+    }
+  }, [])
+
+  useEffect(() => {
+    const id = setInterval(runBackgroundChecks, CHECK_INTERVAL_MS)
+    window.addEventListener('focus', runBackgroundChecks)
+    return () => { clearInterval(id); window.removeEventListener('focus', runBackgroundChecks) }
+  }, [runBackgroundChecks])
+
   const showToast = useCallback((message, type = 'success') => {
     setToast({ message, type, id: Date.now() })
   }, [])
@@ -85,7 +99,10 @@ export default function App() {
         // abre direto em "Continuando" se há algo em andamento, senão cai no catálogo como sempre
         const hasWatching = all.some(f => !!f.watching) || (cachedAnimes || []).some(a => a.list_status?.status === 'watching')
         if (hasWatching) setPage('continue')
-        notifyNewEpisodes(all, cachedAnimes || [])
+        filmesRef.current = all
+        animeRef.current = cachedAnimes || []
+        tmdbRef.current = !!saved?.tmdbConfigured
+        runBackgroundChecks()
         // "Onde assistir" do card/filtro: atualiza em segundo plano só o que tem cache vencido (7 dias)
         if (saved?.tmdbConfigured) {
           window.api.providersRefreshStale()
@@ -100,7 +117,7 @@ export default function App() {
       }
     }
     init()
-  }, [])
+  }, [runBackgroundChecks])
 
   useEffect(() => {
     if (animeList.length === 0) return
@@ -263,6 +280,7 @@ export default function App() {
             await window.api.saveSettings(s)
             const updated = await window.api.getSettings()
             setSettings(updated)
+            tmdbRef.current = !!updated?.tmdbConfigured
             showToast('Configurações salvas!')
           }} />
         )}

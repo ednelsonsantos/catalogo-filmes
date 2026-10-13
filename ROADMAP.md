@@ -493,6 +493,15 @@ Refatoração sem mudança de comportamento: de **1.411 para 540 linhas**. A pá
 - **Correção na exportação CSV**: só a sinopse tinha aspas escapadas — um título com aspas gerava CSV malformado. Agora todos os campos
 - Testes (arquivos de exemplo + diálogo simulado): Letterboxd ratings (estrelas, data, duplicata pulada, vírgula no título), watchlist, Excel genérico (colunas em português, formato padrão, data em célula de data), ida e volta com o CSV do próprio app (nada duplicado, aspas escapadas), arquivo irreconhecível; com a TMDB: IMDb ratings achando filme e série pelo código, pôster, e episódios da série marcados
 
+### 14.8 Avisos com o app aberto e segundo plano (v1.11.0) ✓
+Antes: só checava ao abrir, com dados que só mudavam quando o usuário clicava em "Atualizar episódios", e repetia os mesmos avisos a cada abertura no mesmo dia.
+- **Checagem contínua**: ao abrir, a cada 30 min e no `focus` da janela (`runBackgroundChecks` no `App.jsx`, com trava contra execução simultânea)
+- **Atualização diária automática** (`episodes:refreshStale`): séries da TMDB "Assistindo" ou "Assistido" com `last_episode_check` de mais de 20 h são atualizadas (contagem e próxima data). "Assistido" antigo sem nenhum episódio registrado recebe o mesmo acerto único do botão "Atualizar episódios" — senão a contagem nova pareceria temporada nova (teste com Smallville comprova)
+- **Sem repetir**: `src/utils/notifications.js` gera cada aviso com uma chave estável (episódio de hoje = título + data; temporada nova = título + nº de episódios lançados) e guarda no `localStorage` o que já foi avisado (60 dias). Data "de hoje" no fuso local (antes usava UTC, que vira o dia às 21h no Brasil)
+- **Bandeja** (opcional, em Configurações → "Avisos de episódios"): fechar a janela esconde e cria o ícone perto do relógio (Abrir / Sair); "Sair" e a instalação de atualização marcam `_isQuitting` pra não serem barrados. **Iniciar com o Windows** (`setLoginItemSettings` com `--hidden`, só no app instalado) abre direto na bandeja. Clicar num aviso traz a janela (`app:show`)
+- **Instância única** só no app instalado: abrir de novo pelo atalho traz a janela que já está rodando (na bandeja) em vez de abrir outra cópia; em dev não, pra poder rodar junto do app instalado
+- Testes: avisos de hoje e de temporada nova uma vez só (reabrir e `focus` não repetem; avisa de novo quando sai mais episódio), preferência de bandeja salva e janela escondida/trazida de volta sem fechar o app; com a TMDB, atualização automática sem falso "temporada nova". Todos os testes agora trocam `Notification` por um registro — nada aparece na área de trabalho durante a suíte
+
 ### 14.4 `safe.directory` do git ✓
 A pasta do projeto pertence a outro usuário do Windows (SID diferente, provavelmente de uma instalação anterior), e o git recusava rodar ("dubious ownership"). Registrada com `git config --global --add safe.directory "E:/Projetos aplicativos/catalogo-filmes"` — o git volta a funcionar sem o `-c safe.directory=...` em cada comando
 

@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog, shell } = require('electron')
+const { app, BrowserWindow, ipcMain, dialog, shell, Tray, Menu, nativeImage } = require('electron')
 const path = require('path')
 const fs = require('fs')
 
@@ -321,8 +321,70 @@ function createWindow() {
     mainWindow.loadFile(path.join(__dirname, '../dist/index.html'))
   }
 
-  mainWindow.once('ready-to-show', () => mainWindow.show())
+  // iniciado com o Windows ("--hidden"): fica só na bandeja até o usuário abrir
+  const startHidden = process.argv.includes('--hidden')
+  mainWindow.once('ready-to-show', () => { if (startHidden) ensureTray(); else mainWindow.show() })
+
+  mainWindow.on('close', (e) => {
+    if (_prefs.closeToTray && !_isQuitting) {
+      e.preventDefault()
+      mainWindow.hide()
+      ensureTray()
+    }
+  })
 }
+
+// ─── SEGUNDO PLANO: bandeja, iniciar com o Windows ────────────────────────────
+
+let _prefs = { closeToTray: false, openAtLogin: false }
+let _tray = null
+let _isQuitting = false
+
+function readSettingsFile() {
+  try { return JSON.parse(fs.readFileSync(path.join(app.getPath('userData'), 'settings.json'), 'utf8')) } catch { return {} }
+}
+
+function loadPrefs() {
+  const s = readSettingsFile()
+  _prefs = { closeToTray: !!s.closeToTray, openAtLogin: !!s.openAtLogin }
+}
+
+function showMainWindow() {
+  if (!mainWindow || mainWindow.isDestroyed()) return
+  if (mainWindow.isMinimized()) mainWindow.restore()
+  mainWindow.show()
+  mainWindow.focus()
+}
+
+function ensureTray() {
+  if (_tray) return
+  const icon = nativeImage.createFromPath(path.join(__dirname, '../icon.png')).resize({ width: 16, height: 16 })
+  _tray = new Tray(icon)
+  _tray.setToolTip('Meu Catálogo')
+  _tray.setContextMenu(Menu.buildFromTemplate([
+    { label: 'Abrir Meu Catálogo', click: showMainWindow },
+    { type: 'separator' },
+    { label: 'Sair', click: () => { _isQuitting = true; app.quit() } },
+  ]))
+  _tray.on('click', showMainWindow)
+}
+
+ipcMain.handle('prefs:get', () => ({ ..._prefs, canOpenAtLogin: app.isPackaged }))
+
+ipcMain.handle('prefs:set', (_, patch) => {
+  const next = { ..._prefs }
+  for (const key of ['closeToTray', 'openAtLogin']) {
+    if (key in (patch || {})) next[key] = !!patch[key]
+  }
+  _prefs = next
+  const p = path.join(app.getPath('userData'), 'settings.json')
+  fs.writeFileSync(p, JSON.stringify({ ...readSettingsFile(), ..._prefs }, null, 2))
+  // só no app instalado: em dev registraria o electron.exe do projeto pra abrir com o Windows
+  if (app.isPackaged) app.setLoginItemSettings({ openAtLogin: _prefs.openAtLogin, args: ['--hidden'] })
+  return { ..._prefs, canOpenAtLogin: app.isPackaged }
+})
+
+ipcMain.handle('app:show', () => showMainWindow())
 
 app.commandLine.appendSwitch('disable-features', 'Autofill')
 // Sem isso o Windows não exibe as notificações do app (precisa bater com o appId do atalho do instalador)
@@ -385,11 +447,18 @@ ipcMain.handle('updater:check', async () => {
 ipcMain.handle('updater:install', () => {
   if (!_autoUpdater || _updateStatus.state !== 'ready') return false
   // fecha o app, roda o instalador da nova versão e abre de novo
+  _isQuitting = true // senão o "continuar na bandeja" barra o fechamento e a instalação não roda
   setImmediate(() => _autoUpdater.quitAndInstall(false, true))
   return true
 })
 
+// App instalado: abrir de novo (atalho, menu Iniciar) traz a janela existente em vez de abrir outra cópia —
+// importante com o app escondido na bandeja. Em dev não, pra poder rodar junto do app instalado.
+if (app.isPackaged && !app.requestSingleInstanceLock()) app.exit(0)
+app.on('second-instance', () => showMainWindow())
+
 app.whenReady().then(() => {
+  loadPrefs()
   createDatabase()
   createWindow()
   setupAutoUpdater()
@@ -402,6 +471,7 @@ app.on('window-all-closed', () => {
 })
 
 app.on('before-quit', () => {
+  _isQuitting = true
   if (_malCallbackServer) {
     try { _malCallbackServer.close() } catch {}
     _malCallbackServer = null
@@ -809,6 +879,37 @@ ipcMain.handle('episodes:refresh', async (_, { filmeId, tmdbId, markAllWatched }
     WHERE id = ?
   `).run(episodesAired, nextAirDate, filmeId)
   return getFilmeById(filmeId)
+})
+
+// Uma vez por dia, em segundo plano: atualiza contagem/próxima data das séries "Assistindo" ou "Assistido"
+// (é isso que permite avisar de episódio novo e de temporada nova sem o usuário clicar em nada)
+ipcMain.handle('episodes:refreshStale', async () => {
+  if (!_tmdbKey) return { updated: 0 }
+  const rows = db.prepare(`
+    SELECT f.id, f.tmdb_id, f.watched_at,
+      (SELECT COUNT(*) FROM episodios_assistidos e WHERE e.filme_id = f.id) AS watched_count
+    FROM filmes f
+    WHERE f.tmdb_media_type = 'tv' AND COALESCE(f.tmdb_id, '') != ''
+      AND (f.watching = 1 OR COALESCE(f.watched_at, '') != '')
+      AND (f.last_episode_check IS NULL OR f.last_episode_check < datetime('now', 'localtime', '-20 hours'))
+  `).all()
+  let updated = 0
+  for (const f of rows) {
+    try {
+      const { episodesAired, nextAirDate, seasons, last } = await fetchTmdbTvSummary(Number(f.tmdb_id))
+      // "Assistido" antigo sem nenhum episódio registrado: o mesmo acerto único do botão "Atualizar episódios",
+      // senão a contagem nova pareceria uma temporada nova
+      if (f.watched_at && f.watched_count === 0 && last) {
+        bulkInsertWatched(f.id, pairsUpTo(seasons, last.season_number, last.episode_number))
+      }
+      db.prepare(`
+        UPDATE filmes SET episodes_aired = ?, next_episode_air_date = ?, last_episode_check = datetime('now','localtime')
+        WHERE id = ?
+      `).run(episodesAired, nextAirDate, f.id)
+      updated++
+    } catch {}
+  }
+  return { updated }
 })
 
 ipcMain.handle('episodes:markProgress', async (_, { filmeId, tmdbId, season, episode }) => {

@@ -1,21 +1,14 @@
-const { test, expect, TMDB_KEY, seed, goTo, openDetail } = require('./support/app')
-const path = require('node:path')
+const { test, expect, TMDB_KEY, seed, goTo, openDetail, runSql } = require('./support/app')
 
 const NETFLIX = { id: 8, name: 'Netflix', logo: '/netflix.jpg' }
 const PRIME = { id: 119, name: 'Amazon Prime Video', logo: '/prime.jpg' }
 const MAX = { id: 1899, name: 'HBO Max', logo: '/max.jpg' }
 const GLOBO = { id: 307, name: 'Globoplay', logo: '/globo.jpg' }
 
-// Grava o cache do "Onde assistir" direto no banco de teste (pelo processo principal), sem depender da TMDB
-async function setProviders(electronApp, userDataDir, byTitle) {
-  await electronApp.evaluate(({ app }, { dbPath, byTitle }) => {
-    const { createRequire } = process.getBuiltinModule('module')
-    const Database = createRequire(app.getAppPath() + '/')('better-sqlite3')
-    const db = new Database(dbPath)
-    const stmt = db.prepare("UPDATE filmes SET providers = ?, providers_checked_at = datetime('now') WHERE title = ?")
-    for (const [title, list] of Object.entries(byTitle)) stmt.run(JSON.stringify(list), title)
-    db.close()
-  }, { dbPath: path.join(userDataDir, 'catalogo.db'), byTitle })
+// Grava o cache do "Onde assistir" direto no banco de teste, sem depender da TMDB
+function setProviders(electronApp, userDataDir, byTitle) {
+  return runSql(electronApp, userDataDir, Object.entries(byTitle).map(([title, list]) =>
+    ["UPDATE filmes SET providers = ?, providers_checked_at = datetime('now') WHERE title = ?", JSON.stringify(list), title]))
 }
 
 async function seedWithProviders(page, electronApp, userDataDir) {

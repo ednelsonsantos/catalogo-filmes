@@ -33,6 +33,15 @@ const test = base.extend({
     const env = { ...process.env, VITE_DEV_URL: DEV_URL, CATALOGO_USER_DATA: userDataDir, ...appEnv }
     delete env.ELECTRON_RUN_AS_NODE
     const app = await electron.launch({ args: ['.'], cwd: ROOT, env })
+    // avisos do Windows viram registro em window.__notified (nada aparece na área de trabalho durante os testes).
+    // Vale a partir do próximo carregamento — o primeiro é com o banco vazio, sem nada a avisar
+    await app.context().addInitScript(() => {
+      window.__notified = []
+      window.Notification = class {
+        static permission = 'granted'
+        constructor(title, opts) { window.__notified.push({ title, body: opts?.body }) }
+      }
+    })
     await use(app)
     await app.close()
   },
@@ -78,6 +87,22 @@ async function openEdit(page, title) {
   await expect(page.locator('h1.page-title')).toHaveText(`Editar: ${title}`)
 }
 
+// SQL direto no banco de teste, pelo processo principal — pra montar estados que a interface não cria sozinha
+async function runSql(electronApp, userDataDir, statements) {
+  await electronApp.evaluate(({ app }, { dbPath, statements }) => {
+    const { createRequire } = process.getBuiltinModule('module')
+    const Database = createRequire(app.getAppPath() + '/')('better-sqlite3')
+    const db = new Database(dbPath)
+    for (const [sql, ...params] of statements) db.prepare(sql).run(...params)
+    db.close()
+  }, { dbPath: path.join(userDataDir, 'catalogo.db'), statements })
+}
+
+async function reloadApp(page) {
+  await page.reload()
+  await page.locator('.app-layout').waitFor({ timeout: 30_000 })
+}
+
 function nextUpSelects(page) {
   return page.locator('span', { hasText: 'Próximo a assistir:' }).locator('..').locator('select')
 }
@@ -87,4 +112,4 @@ function nextUpValues(page) {
   return () => nextUpSelects(page).evaluateAll(els => els.map(e => e.value))
 }
 
-module.exports = { test, expect, TMDB_KEY, seed, goTo, openDetail, openEdit, nextUpSelects, nextUpValues }
+module.exports = { test, expect, TMDB_KEY, seed, goTo, openDetail, openEdit, nextUpSelects, nextUpValues, runSql, reloadApp }
