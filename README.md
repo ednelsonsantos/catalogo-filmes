@@ -65,7 +65,7 @@ O app foi desenvolvido com práticas de segurança para aplicações Electron:
 
 | Camada | Tecnologia |
 |---|---|
-| Interface | React 18 + Vite 5 |
+| Interface | React 18 + Vite 8 |
 | Desktop | Electron 44 |
 | Banco de dados | better-sqlite3 (SQLite local) |
 | OCR | Tesseract.js 5 (local, sem internet) |

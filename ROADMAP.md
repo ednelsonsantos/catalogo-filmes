@@ -513,7 +513,7 @@ Antes: só checava ao abrir, com dados que só mudavam quando o usuário clicava
 
 **Testes novos** (`e2e/seguranca.spec.js`): simulam uma página comprometida chamando `window.api` com valores maliciosos — vazamento e gravação pelo pôster, leitura de capa fora da pasta, `openExternal` com `file:`, `http:`, `javascript:`, `ms-settings:` e domínio fora da lista, IDs/entradas inválidas (SQL, negativos, tag longa demais, IMDb inválido), e ausência de Node na página.
 
-**Pendente:** Vite 5 (servidor de desenvolvimento, só roda na máquina do dev — não vai no app) exige trocar de versão principal; e 27 alertas moderados em ferramentas de teste/build. Instalador sem assinatura de código: a integridade das atualizações depende da conta do GitHub (com MFA ativo e token restrito a este repositório).
+**Pendente:** 26 alertas moderados em ferramentas de teste/build, todos do mesmo `sprintf-js` (DoS por formato de texto; puxado pelo Jest e pelo `@electron/get` do electron-builder) — não existe versão corrigida publicada, então não há o que atualizar; não vai no app (ver 14.11). Instalador sem assinatura de código: a integridade das atualizações depende da conta do GitHub (com MFA ativo e token restrito a este repositório).
 
 ### 14.10 Electron 32 → 44 (v1.12.0) ✓
 - O Electron 32 (motor do Chrome de 2025) estava sem mais de um ano de correções de segurança — e o app carrega imagens da internet (TMDB, MAL). Atualizado para **Electron 44.4.5** (suportado; versão escolhida com mais de 2 semanas de publicada, pra reduzir risco de pacote comprometido recém-lançado)
@@ -524,6 +524,12 @@ Antes: só checava ao abrir, com dados que só mudavam quando o usuário clicava
 - Nenhuma linha do app precisou mudar: 40 testes de interface + 52 de segurança passando, e o app empacotado conferido (banco, CSP, página sem Node, ícone da bandeja, bandeja + instância única, atualizador). Um teste intermitente revelou que o checkbox da bandeja só marcava depois da ida e volta pelo IPC — agora marca na hora e sincroniza em seguida
 - A 1.11.0 instalada encontrou e baixou a 1.11.1 sozinha (primeira atualização automática real), reaproveitando ~35% pelo `.blockmap`
 - **Publicação da v1.12.0 saiu dividida em dois rascunhos**: o electron-builder 26 envia instalador e `.blockmap` em paralelo e, sem release existente, cada envio criou o seu. A trava do `publicar.js` (confere os arquivos antes de publicar) segurou a publicação; os rascunhos foram juntados e publicados, com o hash do `latest.yml` conferido contra o instalador local. Correção no script: o rascunho é criado pela API antes do electron-builder, e se ainda assim aparecer duplicado os arquivos são juntados num só antes de publicar (que agora exige também o `.blockmap`). A leitura do token passou a chamar o `reg` sem shell — pelo Git Bash a barra de `HKCUEnvironment` era comida
+
+### 14.11 Vite 5 → 8 ✓
+- Fecha a última vulnerabilidade **alta** do projeto (servidor de desenvolvimento do Vite 5 — só rodava na máquina do dev, não ia no app). `npm audit`: 28 → 26, **nenhuma alta**; app instalado continua com 0
+- `@vitejs/plugin-react` 4 → **5.2.0** (aceita o Vite 8). A 6.x não instala: o npm 11 trava num conflito de dependências opcionais (`@rolldown/plugin-babel` → Babel 8) que o app nem usa
+- `vite.config.js` → `vite.config.mjs`: o Vite 8 avisava que a config em ESM num projeto CommonJS deixará de ser aceita
+- Sem mudança no app (não gera versão nova): build ok, 40 testes de interface + 52 de segurança passando, e a linha `Local: http://localhost:PORT` que o `dev-runner.js` espera continua igual
 
 ### 14.4 `safe.directory` do git ✓
 A pasta do projeto pertence a outro usuário do Windows (SID diferente, provavelmente de uma instalação anterior), e o git recusava rodar ("dubious ownership"). Registrada com `git config --global --add safe.directory "E:/Projetos aplicativos/catalogo-filmes"` — o git volta a funcionar sem o `-c safe.directory=...` em cada comando
