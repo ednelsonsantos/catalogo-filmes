@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo, useCallback } from 'react'
 import ConfirmModal from '../components/ConfirmModal.jsx'
+import { SERIES_CATEGORIES } from '../constants.js'
 
 function updateStatusText(s) {
   if (!s.enabled) return 'A atualização automática só funciona no app instalado.'
@@ -13,7 +14,14 @@ function updateStatusText(s) {
   }
 }
 
-export default function SettingsPage({ settings, onSave, showToast, appVersion, updateStatus = { enabled: false, state: 'idle' }, onCheckUpdates }) {
+const formatDate = (iso) => iso
+  ? new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })
+  : null
+
+const sectionTitle = { fontSize: 15, fontWeight: 600, marginBottom: 6 }
+const sectionText = { fontSize: 12, color: 'var(--text3)', marginBottom: 12, lineHeight: 1.6 }
+
+export default function SettingsPage({ settings, onSave, showToast, appVersion, updateStatus = { enabled: false, state: 'idle' }, onCheckUpdates, filmes = [], onFilmeUpdated, onEdit }) {
   const [form, setForm] = useState({ omdbApiKey: '', tmdbApiKey: '', malClientId: '' })
   const [showKey, setShowKey] = useState(false)
   const [showTmdbKey, setShowTmdbKey] = useState(false)
@@ -22,8 +30,14 @@ export default function SettingsPage({ settings, onSave, showToast, appVersion, 
   const [confirmingRestore, setConfirmingRestore] = useState(false)
   const [restoring, setRestoring] = useState(false)
   const [prefs, setPrefs] = useState(null)
+  const [autoBackup, setAutoBackup] = useState(null)
+  const [bulkRefreshing, setBulkRefreshing] = useState(null) // { done, total } ou null
+  const [brokenLinks, setBrokenLinks] = useState(null) // [{ id, title }] ou null
 
-  useEffect(() => { window.api.prefsGet().then(setPrefs).catch(() => {}) }, [])
+  useEffect(() => {
+    window.api.prefsGet().then(setPrefs).catch(() => {})
+    window.api.backupAutoStatus().then(setAutoBackup).catch(() => {})
+  }, [])
 
   const togglePref = async (key) => {
     const value = !prefs[key]
@@ -31,6 +45,7 @@ export default function SettingsPage({ settings, onSave, showToast, appVersion, 
     setPrefs(p => ({ ...p, [key]: value }))
     try { setPrefs(await window.api.prefsSet({ [key]: value })) }
     catch { setPrefs(await window.api.prefsGet()) }
+    if (key === 'autoBackup') window.api.backupAutoStatus().then(setAutoBackup).catch(() => {})
   }
 
   const handleBackup = async () => {
@@ -45,6 +60,24 @@ export default function SettingsPage({ settings, onSave, showToast, appVersion, 
     }
   }
 
+  const handleAutoBackupNow = async () => {
+    setBackingUp(true)
+    try {
+      const res = await window.api.backupAutoNow()
+      setAutoBackup(res.status)
+      if (res.ran) showToast?.('Backup salvo na pasta dos automáticos.', 'success')
+      else if (res.reason === 'empty') showToast?.('O catálogo está vazio — nada pra guardar.', 'info')
+    } catch (e) {
+      showToast?.(e.message || 'Erro ao criar backup.', 'error')
+    } finally {
+      setBackingUp(false)
+    }
+  }
+
+  const handleChooseDir = async () => {
+    try { setAutoBackup(await window.api.backupChooseDir()) } catch {}
+  }
+
   const handleRestore = async () => {
     setConfirmingRestore(false)
     setRestoring(true)
@@ -57,6 +90,39 @@ export default function SettingsPage({ settings, onSave, showToast, appVersion, 
       setRestoring(false)
     }
   }
+
+  const trackableFilmes = useMemo(
+    () => filmes.filter(f => f.tmdb_id && f.tmdb_media_type === 'tv' && SERIES_CATEGORIES.includes(f.category)),
+    [filmes]
+  )
+
+  // Os episódios já se atualizam sozinhos 1x por dia; isto força todas as séries agora e lista vínculos quebrados
+  const handleBulkRefreshEpisodes = useCallback(async () => {
+    const targets = trackableFilmes
+    if (targets.length === 0) return
+    setBulkRefreshing({ done: 0, total: targets.length })
+    setBrokenLinks(null)
+    let okCount = 0
+    const failed = []
+    for (let i = 0; i < targets.length; i++) {
+      const f = targets[i]
+      try {
+        // Marca tudo como visto automaticamente só no catch-up único de título "Assistido" legado
+        // (nunca teve nenhum episódio registrado ainda). Se já tem episódios marcados, não mexe —
+        // senão uma temporada nova lançada depois seria marcada como vista sem o usuário ter assistido
+        const isLegacyWatched = !!f.watched_at && (f.episodes_watched_count || 0) === 0
+        const updated = await window.api.episodesRefresh({ filmeId: f.id, tmdbId: f.tmdb_id, markAllWatched: isLegacyWatched })
+        onFilmeUpdated?.(updated)
+        okCount++
+      } catch {
+        failed.push({ id: f.id, title: f.title })
+      }
+      setBulkRefreshing({ done: i + 1, total: targets.length })
+    }
+    setBulkRefreshing(null)
+    setBrokenLinks(failed)
+    if (failed.length === 0) showToast?.(`${okCount} séries/animes atualizados!`, 'success')
+  }, [trackableFilmes, onFilmeUpdated, showToast])
 
   const openExternal = (url) => {
     if (window.api?.openExternal) window.api.openExternal(url)
@@ -74,179 +140,10 @@ export default function SettingsPage({ settings, onSave, showToast, appVersion, 
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
 
-        {/* OCR info */}
-        <div className="card" style={{ border: '1px solid rgba(76,175,125,0.3)', background: 'rgba(76,175,125,0.05)' }}>
-          <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-            <span style={{ fontSize: 22 }}>✓</span>
-            <div>
-              <h2 style={{ fontSize: 14, fontWeight: 600, color: 'var(--green)', marginBottom: 6 }}>
-                OCR local ativo — nenhuma configuração necessária
-              </h2>
-              <p style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.6 }}>
-                O reconhecimento de texto das capas usa o <strong style={{ color: 'var(--text)' }}>Tesseract.js</strong>,
-                que roda 100% no seu computador. Sem conta, sem chave, sem internet.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* OMDb */}
-        <div className="card">
-          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 16 }}>
-            <div>
-              <h2 style={{ fontSize: 15, fontWeight: 600 }}>OMDb API</h2>
-              <p style={{ fontSize: 12, color: 'var(--text3)', marginTop: 4 }}>
-                Busca sinopse, elenco, nota IMDb, poster, duração...
-              </p>
-            </div>
-            <button
-              className="btn btn-ghost btn-sm"
-              onClick={() => openExternal('https://www.omdbapi.com/apikey.aspx')}
-              style={{ fontSize: 12, color: 'var(--blue)', whiteSpace: 'nowrap' }}
-            >
-              Obter chave grátis ↗
-            </button>
-          </div>
-          <div className="field">
-            <label>Chave de API</label>
-            {settings.omdbConfigured && (
-              <p style={{ fontSize: 11, color: 'var(--green)', marginBottom: 4 }}>✓ Chave configurada</p>
-            )}
-            <div style={{ display: 'flex', gap: 8 }}>
-              <input
-                type={showKey ? 'text' : 'password'}
-                value={form.omdbApiKey}
-                onChange={e => setForm(f => ({ ...f, omdbApiKey: e.target.value }))}
-                placeholder={settings.omdbConfigured ? 'Deixe em branco para manter a atual' : 'xxxxxxxx'}
-                style={{ flex: 1 }}
-              />
-              {form.omdbApiKey && (
-                <button className="btn btn-sm" onClick={() => setShowKey(v => !v)}>
-                  {showKey ? 'Ocultar' : 'Mostrar'}
-                </button>
-              )}
-            </div>
-          </div>
-          <div style={{ marginTop: 12, padding: 10, background: 'rgba(74,158,255,0.06)', border: '1px solid rgba(74,158,255,0.15)', borderRadius: 6 }}>
-            <p style={{ fontSize: 12, color: 'var(--text2)', lineHeight: 1.6 }}>
-              Plano gratuito: <strong style={{ color: 'var(--text)' }}>1.000 buscas/dia</strong> — mais que suficiente para uso pessoal.
-              A chave fica salva localmente no seu computador.
-            </p>
-          </div>
-        </div>
-
-        {/* TMDB */}
-        <div className="card">
-          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 16 }}>
-            <div>
-              <h2 style={{ fontSize: 15, fontWeight: 600 }}>TMDB API</h2>
-              <p style={{ fontSize: 12, color: 'var(--text3)', marginTop: 4 }}>
-                Títulos em português, sinopse traduzida, elenco e pôster de alta qualidade.
-              </p>
-            </div>
-            <button
-              className="btn btn-ghost btn-sm"
-              onClick={() => openExternal('https://www.themoviedb.org/settings/api')}
-              style={{ fontSize: 12, color: 'var(--blue)', whiteSpace: 'nowrap' }}
-            >
-              Obter chave grátis ↗
-            </button>
-          </div>
-          <div className="field">
-            <label>Chave de API (v3)</label>
-            {settings.tmdbConfigured && (
-              <p style={{ fontSize: 11, color: 'var(--green)', marginBottom: 4 }}>✓ Chave configurada</p>
-            )}
-            <div style={{ display: 'flex', gap: 8 }}>
-              <input
-                type={showTmdbKey ? 'text' : 'password'}
-                value={form.tmdbApiKey}
-                onChange={e => setForm(f => ({ ...f, tmdbApiKey: e.target.value }))}
-                placeholder={settings.tmdbConfigured ? 'Deixe em branco para manter a atual' : 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'}
-                style={{ flex: 1 }}
-              />
-              {form.tmdbApiKey && (
-                <button className="btn btn-sm" onClick={() => setShowTmdbKey(v => !v)}>
-                  {showTmdbKey ? 'Ocultar' : 'Mostrar'}
-                </button>
-              )}
-            </div>
-          </div>
-          <div style={{ marginTop: 12, padding: 10, background: 'rgba(1,180,228,0.06)', border: '1px solid rgba(1,180,228,0.2)', borderRadius: 6 }}>
-            <p style={{ fontSize: 12, color: 'var(--text2)', lineHeight: 1.6 }}>
-              Completamente gratuito e sem limite diário. Quando configurado junto com OMDb,
-              a busca usa <strong style={{ color: 'var(--text)' }}>ambas as APIs em paralelo</strong> e
-              combina os resultados — títulos em PT‑BR do TMDB e notas IMDb do OMDb.
-            </p>
-          </div>
-        </div>
-
-        {/* MAL */}
-        <div className="card">
-          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 16 }}>
-            <div>
-              <h2 style={{ fontSize: 15, fontWeight: 600 }}>MyAnimeList API</h2>
-              <p style={{ fontSize: 12, color: 'var(--text3)', marginTop: 4 }}>
-                Importa sua lista de animes via OAuth2 para consulta e exportação JSON.
-              </p>
-            </div>
-            <button
-              className="btn btn-ghost btn-sm"
-              onClick={() => openExternal('https://myanimelist.net/apiconfig')}
-              style={{ fontSize: 12, color: 'var(--blue)', whiteSpace: 'nowrap' }}
-            >
-              Criar aplicativo ↗
-            </button>
-          </div>
-
-          <div className="field">
-            <label>Client ID</label>
-            {settings.malConfigured && (
-              <p style={{ fontSize: 11, color: 'var(--green)', marginBottom: 4 }}>✓ Configurado</p>
-            )}
-            <input
-              type="text"
-              value={form.malClientId}
-              onChange={e => setForm(f => ({ ...f, malClientId: e.target.value }))}
-              placeholder={settings.malConfigured ? 'Deixe em branco para manter' : 'Cole o Client ID aqui'}
-            />
-          </div>
-
-          <div style={{ marginTop: 12, padding: 10, background: 'rgba(74,158,255,0.06)', border: '1px solid rgba(74,158,255,0.15)', borderRadius: 6 }}>
-            <p style={{ fontSize: 12, color: 'var(--text2)', lineHeight: 1.6 }}>
-              Após salvar, vá até a página <strong style={{ color: 'var(--text)' }}>Animes</strong> e clique em
-              {' '}<strong style={{ color: 'var(--text)' }}>Conectar ao MAL</strong> para autorizar via OAuth2.{' '}
-              No cadastro do aplicativo no MAL, use o tipo <strong style={{ color: 'var(--text)' }}>other</strong> e coloque{' '}
-              <code style={{ background: 'var(--bg4)', padding: '1px 5px', borderRadius: 4, fontSize: 11 }}>http://localhost:7813</code>
-              {' '}como App Redirect URL. Apps do tipo "other" não geram Client Secret — só o Client ID é necessário.
-            </p>
-          </div>
-        </div>
-
-        {/* Backup */}
-        <div className="card">
-          <h2 style={{ fontSize: 15, fontWeight: 600, marginBottom: 6 }}>Backup</h2>
-          <p style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 16 }}>
-            Tudo fica só no seu computador — sem isso, um disco com defeito leva sua coleção toda junto.
-          </p>
-          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-            <button className="btn btn-primary" onClick={handleBackup} disabled={backingUp}>
-              {backingUp ? 'Gerando...' : '💾 Fazer backup'}
-            </button>
-            <button className="btn btn-danger" onClick={() => setConfirmingRestore(true)} disabled={restoring}>
-              {restoring ? 'Restaurando...' : '📂 Restaurar backup'}
-            </button>
-          </div>
-          <p style={{ fontSize: 11, color: 'var(--text3)', marginTop: 10, lineHeight: 1.6 }}>
-            O backup inclui o banco de dados, capas, chaves de API e cache dos animes num único arquivo .zip.
-            Restaurar <strong style={{ color: 'var(--text)' }}>substitui tudo</strong> que está no app agora pelo conteúdo do arquivo escolhido, e recarrega o app.
-          </p>
-        </div>
-
         {/* Avisos e segundo plano */}
         <div className="card">
-          <h2 style={{ fontSize: 15, fontWeight: 600, marginBottom: 6 }}>Avisos de episódios</h2>
-          <p style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 12, lineHeight: 1.6 }}>
+          <h2 style={sectionTitle}>Avisos de episódios</h2>
+          <p style={sectionText}>
             Com o app aberto, ele confere a cada 30 minutos (e quando você volta pra janela) se saiu episódio de algo que você está assistindo
             ou temporada nova de uma série que já terminou — e avisa uma vez só. Os episódios das séries são atualizados sozinhos uma vez por dia.
           </p>
@@ -264,10 +161,88 @@ export default function SettingsPage({ settings, onSave, showToast, appVersion, 
           )}
         </div>
 
+        {/* Backup */}
+        <div className="card">
+          <h2 style={sectionTitle}>Backup</h2>
+          <p style={sectionText}>
+            Tudo fica só no seu computador — sem isso, um disco com defeito leva sua coleção toda junto.
+            O backup inclui o banco de dados, capas, chaves de API e cache dos animes num único arquivo .zip.
+          </p>
+
+          {prefs && autoBackup && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
+              <label className="pref-check">
+                <input type="checkbox" data-testid="pref-auto-backup" checked={prefs.autoBackup} onChange={() => togglePref('autoBackup')} />
+                Fazer backup automático toda semana (guarda os 5 últimos)
+              </label>
+              <div style={{ fontSize: 12, color: 'var(--text2)', lineHeight: 1.7, paddingLeft: 24 }}>
+                <div>
+                  Pasta: <code data-testid="auto-backup-dir" style={{ background: 'var(--bg4)', padding: '1px 5px', borderRadius: 4, fontSize: 11, wordBreak: 'break-all' }}>{autoBackup.dir}</code>
+                </div>
+                <div data-testid="auto-backup-last">
+                  {autoBackup.lastAt
+                    ? <>Último: <strong style={{ color: 'var(--text)' }}>{formatDate(autoBackup.lastAt)}</strong>{prefs.autoBackup && <> · próximo a partir de {formatDate(autoBackup.nextAt)}</>}</>
+                    : 'Nenhum backup automático ainda.'}
+                </div>
+                <div style={{ fontSize: 11, color: 'var(--text3)' }}>Dica: escolha uma pasta do OneDrive/Google Drive ou um pendrive pra ter uma cópia fora deste disco.</div>
+                <div style={{ display: 'flex', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
+                  <button className="btn btn-sm" onClick={handleChooseDir}>Trocar pasta…</button>
+                  <button className="btn btn-sm" onClick={() => window.api.backupOpenDir()}>Abrir pasta</button>
+                  <button className="btn btn-sm" onClick={handleAutoBackupNow} disabled={backingUp}>Fazer agora</button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+            <button className="btn btn-primary" onClick={handleBackup} disabled={backingUp}>
+              {backingUp ? 'Gerando...' : '💾 Salvar backup em…'}
+            </button>
+            <button className="btn btn-danger" onClick={() => setConfirmingRestore(true)} disabled={restoring}>
+              {restoring ? 'Restaurando...' : '📂 Restaurar backup'}
+            </button>
+          </div>
+          <p style={{ fontSize: 11, color: 'var(--text3)', marginTop: 10, lineHeight: 1.6 }}>
+            Restaurar <strong style={{ color: 'var(--text)' }}>substitui tudo</strong> que está no app agora pelo conteúdo do arquivo escolhido, e recarrega o app.
+          </p>
+        </div>
+
+        {/* Dados */}
+        {trackableFilmes.length > 0 && (
+          <div className="card">
+            <h2 style={sectionTitle}>Episódios das séries</h2>
+            <p style={sectionText}>
+              Já acontece sozinho uma vez por dia. Use para forçar agora todas as séries/animes ligados à TMDB — não marca nada como assistido.
+            </p>
+            <button className="btn" onClick={handleBulkRefreshEpisodes} disabled={!!bulkRefreshing}>
+              {bulkRefreshing ? `Atualizando ${bulkRefreshing.done}/${bulkRefreshing.total}…` : `↻ Atualizar episódios agora (${trackableFilmes.length})`}
+            </button>
+            {brokenLinks?.length > 0 && (
+              <div data-testid="broken-links" style={{ marginTop: 14 }}>
+                <p style={{ fontSize: 12, color: 'var(--red)', lineHeight: 1.6, marginBottom: 8 }}>
+                  ⚠ A TMDB não reconhece mais o ID salvo destes títulos (pode ter sido mesclado/removido numa limpeza deles).
+                  Edite e busque o título de novo para corrigir o vínculo.
+                </p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 220, overflowY: 'auto' }}>
+                  {brokenLinks.map(b => {
+                    const full = filmes.find(f => f.id === b.id)
+                    return (
+                      <div key={b.id} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--bg3)', borderRadius: 6, padding: '6px 10px' }}>
+                        <span style={{ flex: 1, fontSize: 13, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{b.title}</span>
+                        {full && onEdit && <button className="btn btn-sm" onClick={() => onEdit(full)}>Editar</button>}
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Atualizações */}
         <div className="card">
-          <h2 style={{ fontSize: 15, fontWeight: 600, marginBottom: 6 }}>Atualizações</h2>
-          <p style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 12 }}>
+          <h2 style={sectionTitle}>Atualizações</h2>
+          <p style={sectionText}>
             Versão instalada: <strong data-testid="app-version" style={{ color: 'var(--text)' }}>{appVersion}</strong>
           </p>
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
@@ -287,27 +262,114 @@ export default function SettingsPage({ settings, onSave, showToast, appVersion, 
           </p>
         </div>
 
-        {/* Passos */}
-        <div className="card" style={{ background: 'transparent' }}>
-          <h2 style={{ fontSize: 14, fontWeight: 600, marginBottom: 14 }}>Como obter a chave OMDb</h2>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {[
-              'Acesse omdbapi.com/apikey.aspx e escolha o plano Free',
-              'Preencha seu e-mail e clique em "Submit"',
-              'Confirme o e-mail recebido — a chave vem junto',
-              'Cole a chave no campo acima e clique em Salvar',
-            ].map((text, i) => (
-              <div key={i} style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-                <span style={{ width: 22, height: 22, borderRadius: '50%', background: 'var(--bg4)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 600, color: 'var(--accent)', flexShrink: 0 }}>{i + 1}</span>
-                <span style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.6 }}>{text}</span>
+        {/* Chaves de API */}
+        <div className="card">
+          <h2 style={sectionTitle}>Chaves de API</h2>
+          <p style={sectionText}>
+            Configuradas uma vez só. As chaves ficam salvas localmente no seu computador.
+          </p>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+            {/* TMDB */}
+            <div>
+              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 10 }}>
+                <div>
+                  <h3 style={{ fontSize: 14, fontWeight: 600 }}>TMDB <span style={{ fontSize: 11, fontWeight: 400, color: 'var(--text3)' }}>· principal</span></h3>
+                  <p style={{ fontSize: 12, color: 'var(--text3)', marginTop: 4 }}>
+                    Títulos e sinopse em português, pôster, episódios das séries e onde assistir. Gratuita e sem limite diário.
+                  </p>
+                </div>
+                <button className="btn btn-ghost btn-sm" onClick={() => openExternal('https://www.themoviedb.org/settings/api')} style={{ fontSize: 12, color: 'var(--blue)', whiteSpace: 'nowrap' }}>
+                  Obter chave grátis ↗
+                </button>
               </div>
-            ))}
+              <div className="field">
+                <label>Chave de API (v3)</label>
+                {settings.tmdbConfigured && <p style={{ fontSize: 11, color: 'var(--green)', marginBottom: 4 }}>✓ Chave configurada</p>}
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <input
+                    type={showTmdbKey ? 'text' : 'password'}
+                    value={form.tmdbApiKey}
+                    onChange={e => setForm(f => ({ ...f, tmdbApiKey: e.target.value }))}
+                    placeholder={settings.tmdbConfigured ? 'Deixe em branco para manter a atual' : 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'}
+                    style={{ flex: 1 }}
+                  />
+                  {form.tmdbApiKey && (
+                    <button className="btn btn-sm" onClick={() => setShowTmdbKey(v => !v)}>{showTmdbKey ? 'Ocultar' : 'Mostrar'}</button>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* OMDb */}
+            <div>
+              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 10 }}>
+                <div>
+                  <h3 style={{ fontSize: 14, fontWeight: 600 }}>OMDb <span style={{ fontSize: 11, fontWeight: 400, color: 'var(--text3)' }}>· opcional</span></h3>
+                  <p style={{ fontSize: 12, color: 'var(--text3)', marginTop: 4 }}>
+                    Acrescenta a nota do IMDb. Com a TMDB junto, a busca usa as duas e combina os resultados. Plano grátis: 1.000 buscas/dia.
+                  </p>
+                </div>
+                <button className="btn btn-ghost btn-sm" onClick={() => openExternal('https://www.omdbapi.com/apikey.aspx')} style={{ fontSize: 12, color: 'var(--blue)', whiteSpace: 'nowrap' }}>
+                  Obter chave grátis ↗
+                </button>
+              </div>
+              <div className="field">
+                <label>Chave de API</label>
+                {settings.omdbConfigured && <p style={{ fontSize: 11, color: 'var(--green)', marginBottom: 4 }}>✓ Chave configurada</p>}
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <input
+                    type={showKey ? 'text' : 'password'}
+                    value={form.omdbApiKey}
+                    onChange={e => setForm(f => ({ ...f, omdbApiKey: e.target.value }))}
+                    placeholder={settings.omdbConfigured ? 'Deixe em branco para manter a atual' : 'xxxxxxxx'}
+                    style={{ flex: 1 }}
+                  />
+                  {form.omdbApiKey && (
+                    <button className="btn btn-sm" onClick={() => setShowKey(v => !v)}>{showKey ? 'Ocultar' : 'Mostrar'}</button>
+                  )}
+                </div>
+              </div>
+              <p style={{ fontSize: 11, color: 'var(--text3)', marginTop: 6, lineHeight: 1.6 }}>
+                Em omdbapi.com/apikey.aspx escolha o plano Free, informe seu e-mail e confirme — a chave vem no e-mail de confirmação.
+              </p>
+            </div>
+
+            {/* MAL */}
+            <div>
+              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 10 }}>
+                <div>
+                  <h3 style={{ fontSize: 14, fontWeight: 600 }}>MyAnimeList <span style={{ fontSize: 11, fontWeight: 400, color: 'var(--text3)' }}>· opcional</span></h3>
+                  <p style={{ fontSize: 12, color: 'var(--text3)', marginTop: 4 }}>
+                    Traz sua lista de animes do MAL. Depois de salvar, aparece no menu o item <strong style={{ color: 'var(--text2)' }}>MyAnimeList</strong> pra conectar a conta.
+                  </p>
+                </div>
+                <button className="btn btn-ghost btn-sm" onClick={() => openExternal('https://myanimelist.net/apiconfig')} style={{ fontSize: 12, color: 'var(--blue)', whiteSpace: 'nowrap' }}>
+                  Criar aplicativo ↗
+                </button>
+              </div>
+              <div className="field">
+                <label>Client ID</label>
+                {settings.malConfigured && <p style={{ fontSize: 11, color: 'var(--green)', marginBottom: 4 }}>✓ Configurado</p>}
+                <input
+                  type="text"
+                  value={form.malClientId}
+                  onChange={e => setForm(f => ({ ...f, malClientId: e.target.value }))}
+                  placeholder={settings.malConfigured ? 'Deixe em branco para manter' : 'Cole o Client ID aqui'}
+                />
+              </div>
+              <p style={{ fontSize: 11, color: 'var(--text3)', marginTop: 6, lineHeight: 1.6 }}>
+                No cadastro do aplicativo no MAL, use o tipo <strong style={{ color: 'var(--text2)' }}>other</strong> e{' '}
+                <code style={{ background: 'var(--bg4)', padding: '1px 5px', borderRadius: 4, fontSize: 11 }}>http://localhost:7813</code>
+                {' '}como App Redirect URL. Esse tipo não gera Client Secret — só o Client ID é necessário.
+              </p>
+            </div>
+
+            <button className="btn btn-primary" style={{ width: 'fit-content', transition: 'background 0.2s' }} onClick={handleSave} disabled={saved}>
+              {saved ? '✓ Salvo' : 'Salvar chaves'}
+            </button>
           </div>
         </div>
-
-        <button className="btn btn-primary" style={{ width: 'fit-content', transition: 'background 0.2s' }} onClick={handleSave} disabled={saved}>
-          {saved ? '✓ Salvo' : 'Salvar configurações'}
-        </button>
       </div>
 
       {confirmingRestore && (

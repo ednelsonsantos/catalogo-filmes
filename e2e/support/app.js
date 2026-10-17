@@ -77,7 +77,7 @@ async function goTo(page, navLabel) {
 }
 
 async function openDetail(page, title) {
-  await goTo(page, 'Minha Coleção')
+  await goTo(page, 'Catálogo')
   await page.locator('.disc-card', { hasText: title }).first().click()
 }
 

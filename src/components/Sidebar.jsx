@@ -59,7 +59,7 @@ const IconTrash = () => (
   </svg>
 )
 
-export default function Sidebar({ page, setPage, count, animeCount, continueCount, onAddNew, collections, selectedCollection, onSelectCollection, onCollectionsChange, showToast }) {
+export default function Sidebar({ page, setPage, count, animeCount, continueCount, showMal, onAddNew, collections, selectedCollection, onSelectCollection, onCollectionsChange, showToast }) {
   const [creating, setCreating] = useState(false)
   const [newName, setNewName] = useState('')
   const [renamingId, setRenamingId] = useState(null)
@@ -120,29 +120,30 @@ export default function Sidebar({ page, setPage, count, animeCount, continueCoun
 
       <nav className="sidebar-nav">
         <div className="section-label">Biblioteca</div>
-        {continueCount > 0 && (
-          <button
-            className={`nav-item ${page === 'continue' ? 'active' : ''}`}
-            onClick={() => { setPage('continue'); onSelectCollection(null) }}
-          >
-            <IconPlay /><span>Continuando</span>
-            <span className="nav-count">{continueCount}</span>
-          </button>
-        )}
         <button
           className={`nav-item ${page === 'catalog' && !selectedCollection ? 'active' : ''}`}
           onClick={() => { setPage('catalog'); onSelectCollection(null) }}
         >
-          <IconFilm /><span>Minha Coleção</span>
+          <IconFilm /><span>Catálogo</span>
           <span className="nav-count">{count}</span>
         </button>
         <button
-          className={`nav-item ${page === 'animes' ? 'active' : ''}`}
-          onClick={() => { setPage('animes'); onSelectCollection(null) }}
+          className={`nav-item ${page === 'continue' ? 'active' : ''}`}
+          onClick={() => { setPage('continue'); onSelectCollection(null) }}
         >
-          <IconAnime /><span>Animes</span>
-          {animeCount > 0 && <span className="nav-count">{animeCount}</span>}
+          <IconPlay /><span>Assistindo</span>
+          {continueCount > 0 && <span className="nav-count">{continueCount}</span>}
         </button>
+        {/* lista do MyAnimeList: só aparece depois de configurar o Client ID em Configurações */}
+        {showMal && (
+          <button
+            className={`nav-item ${page === 'animes' ? 'active' : ''}`}
+            onClick={() => { setPage('animes'); onSelectCollection(null) }}
+          >
+            <IconAnime /><span>MyAnimeList</span>
+            {animeCount > 0 && <span className="nav-count">{animeCount}</span>}
+          </button>
+        )}
         <button
           className={`nav-item ${page === 'stats' ? 'active' : ''}`}
           onClick={() => { setPage('stats'); onSelectCollection(null) }}

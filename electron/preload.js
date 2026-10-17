@@ -48,6 +48,11 @@ contextBridge.exposeInMainWorld('api', {
   // Backup
   backupCreate:      ()       => ipcRenderer.invoke('backup:create'),
   backupRestore:     ()       => ipcRenderer.invoke('backup:restore'),
+  backupAutoStatus:  ()       => ipcRenderer.invoke('backup:autoStatus'),
+  backupAutoCheck:   ()       => ipcRenderer.invoke('backup:autoCheck'),
+  backupAutoNow:     ()       => ipcRenderer.invoke('backup:autoNow'),
+  backupChooseDir:   ()       => ipcRenderer.invoke('backup:chooseDir'),
+  backupOpenDir:     ()       => ipcRenderer.invoke('backup:openDir'),
 
   // Coleções
   colecoesGetAll:      ()       => ipcRenderer.invoke('colecoes:getAll'),
@@ -81,6 +86,13 @@ contextBridge.exposeInMainWorld('api', {
     const listener = (_e, status) => cb(status)
     ipcRenderer.on('updater:status', listener)
     return () => ipcRenderer.removeListener('updater:status', listener)
+  },
+
+  // Menu da janela (Arquivo/Exibir/Ajuda) → ação na página
+  onMenuAction: (cb) => {
+    const listener = (_e, action) => cb(action)
+    ipcRenderer.on('menu:action', listener)
+    return () => ipcRenderer.removeListener('menu:action', listener)
   },
 
   // Shell — allowlist enforced in main process

@@ -36,7 +36,7 @@ test('"até aqui" marca temporadas anteriores, desmarca o que vem depois e move 
   await episodeRow(page, 14).locator('label').click()
   await expect.poll(nextUpValues(page)).toEqual(['2', '14'])
 
-  await goTo(page, 'Continuando')
+  await goTo(page, 'Assistindo')
   await expect(page.getByText('Próximo: T2E14')).toBeVisible()
 })
 
@@ -57,6 +57,6 @@ test('seletor "Próximo a assistir" ao salvar marca tudo antes e desmarca o que 
   await expect(page.locator('.disc-card')).toHaveCount(1)
 
   expect(await watchedBySeason(page, show.id)).toEqual({ 1: range(1, 4) })
-  await goTo(page, 'Continuando')
+  await goTo(page, 'Assistindo')
   await expect(page.getByText('Próximo: T1E5')).toBeVisible()
 })

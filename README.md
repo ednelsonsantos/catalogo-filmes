@@ -18,22 +18,24 @@ Aplicativo desktop para catalogar sua coleção pessoal de filmes, séries, docu
 - **Nota pessoal** (0–10), separada da nota do IMDb — exibida no modal de detalhes e disponível como opção de ordenação no catálogo
 - **Marcar como assistido** com ou sem data, diretamente no card sem abrir o modal
 - **Status "Assistindo"** para Série, Mini-série, Anime e Animação — contador próprio nas estatísticas; marcar como assistido encerra automaticamente o "assistindo" (e vice-versa), sem contar nos dois ao mesmo tempo
-- **Acompanhamento de episódios** — para séries/animes buscados pela TMDB (categoria Série, Mini-série, Anime ou Animação): marque episódios individualmente por temporada, use "até aqui" pra marcar várias de uma vez, veja quantos faltam, o episódio atual/próximo com data, e um badge "🆕" no card quando sai um episódio novo. Marcar "Assistido" sincroniza automaticamente todos os episódios já lançados; ao adicionar um título novo já marcando "Assistindo", um seletor deixa escolher em qual temporada/episódio você está. Um botão no catálogo atualiza os contadores de todas as séries/animes de uma vez. Nos animes do MAL, mostra o dia/horário de exibição semanal e quantos episódios faltam (sem duplicar o controle que já é sincronizado com a conta do MAL)
+- **Acompanhamento de episódios** — para séries/animes buscados pela TMDB (categoria Série, Mini-série, Anime ou Animação): marque episódios individualmente por temporada, use "até aqui" pra marcar várias de uma vez, veja quantos faltam, o episódio atual/próximo com data, e um badge "🆕" no card quando sai um episódio novo. Marcar "Assistido" sincroniza automaticamente todos os episódios já lançados; ao adicionar um título novo já marcando "Assistindo", um seletor deixa escolher em qual temporada/episódio você está. Os contadores se atualizam sozinhos uma vez por dia; em Configurações dá pra forçar todas as séries/animes de uma vez. Nos animes do MAL, mostra o dia/horário de exibição semanal e quantos episódios faltam (sem duplicar o controle que já é sincronizado com a conta do MAL)
 - **Confirmação ao remover** — modal próprio (não o alerta genérico do navegador) pede confirmação antes de remover qualquer título, citando o nome pra evitar remoção acidental
-- **Painel "Continuando"** — aba que reúne tudo que está "Assistindo" (séries e animes) com o próximo episódio sugerido e um botão "✓ Visto" pra marcar sem abrir mais nada; inclui "📅 Lançamentos da semana" com a data dos próximos episódios de tudo que você acompanha. O app abre direto nessa tela quando há algo em andamento
+- **Painel "Assistindo"** — aba que reúne tudo que está "Assistindo" (séries, filmes e animes) com o próximo episódio sugerido das séries ligadas à TMDB e um botão "✓ Visto" pra marcar sem abrir mais nada; inclui "📅 Lançamentos da semana" com a data dos próximos episódios de tudo que você acompanha. O app abre direto nessa tela quando há algo em andamento
 - **Notificação nativa + nova temporada** — avisa episódios que saem hoje e quando uma série marcada "Assistido" ganhou episódios novos (notificação + badge no card). Confere ao abrir, a cada 30 minutos e ao voltar pra janela, sem repetir o mesmo aviso; os episódios das séries acompanhadas são atualizados sozinhos uma vez por dia
 - **Segundo plano** — opção de continuar rodando na bandeja ao fechar a janela (pra seguir avisando) e de iniciar com o Windows já minimizado; clicar num aviso traz a janela de volta
 - **Aviso de vínculo quebrado com a TMDB** — se o ID salvo de um título não existir mais (a TMDB ocasionalmente mescla/remove entradas duplicadas), o app avisa quais títulos precisam ser re-adicionados em vez de mostrar silenciosamente "0 episódios"
 - **Aviso de ambiguidade na busca** — quando a busca retorna títulos muito parecidos, um aviso lembra de conferir o ano/pôster antes de escolher
 - **Onde assistir** — logos dos serviços de streaming por assinatura (Netflix, Globoplay, Prime Video...) disponíveis no Brasil, no card (grade e lista) e no modal de detalhes, via TMDB; filtro no catálogo por serviço, "em algum streaming" ou "em nenhum". Fica guardado no banco e é atualizado em segundo plano uma vez por semana
-- **Catálogo** com visualização em grade ou lista, busca por texto (Ctrl+F) e filtros combináveis: **formato** (DVD/Blu-ray/4K UHD/VHS/Digital — o que você possui), **status** (Assistidos/Assistindo), **categoria** e **tag** — dá pra combinar, ex: só os Blu-rays já assistidos com a tag "maratona"
+- **Catálogo** com visualização em grade ou lista, busca por texto (Ctrl+F) e filtros combináveis: **status** (Não assistidos/Assistindo/Assistidos), **formato** (DVD/Blu-ray/4K UHD/VHS/Digital — o que você possui), **categoria**, **tag** e **onde assistir** — dá pra combinar, ex: só os não assistidos que estão na Netflix. Filtros, ordenação e grade/lista ficam como você deixou ao reabrir o app
 - **Pôster fallback** — títulos sem imagem exibem fundo colorido único com iniciais, gerado a partir do título
-- **Estatísticas** — barra com totais por formato, % assistidos e último título adicionado; dropdown de categorias com contagem
+- **Resumo no topo do catálogo** — total de títulos, % assistidos e quantos estão em andamento; formato e categoria com contagem nas listas de filtro
 - **Tela de Estatísticas** — totais, horas assistidas (filmes + episódios de séries), episódios vistos, nota média, gêneros mais frequentes, categorias, formatos, décadas, distribuição das suas notas, séries em andamento com progresso, resumo dos animes do MAL e atividade dos últimos 12 meses
 - **Exportar** coleção para CSV, Excel ou JSON — exporta tudo ou apenas a coleção selecionada na sidebar
-- **Importar lista** — botão "Importar" no catálogo aceita a exportação do **Letterboxd** (watched, diary, ratings, watchlist), do **IMDb** (ratings, watchlist), o CSV/Excel exportado pelo próprio app ou qualquer planilha com coluna de título. Mostra uma prévia (o que é novo e o que já está na coleção), converte estrelas do Letterboxd em nota 0–10, usa a data de quando assistiu e, opcionalmente, completa cada título com os dados da TMDB (pelo código do IMDb quando existe)
+- **Importar lista** — "Importar / Exportar" no topo do catálogo (ou Arquivo → Importar lista) aceita a exportação do **Letterboxd** (watched, diary, ratings, watchlist), do **IMDb** (ratings, watchlist), o CSV/Excel exportado pelo próprio app ou qualquer planilha com coluna de título. Mostra uma prévia (o que é novo e o que já está na coleção), converte estrelas do Letterboxd em nota 0–10, usa a data de quando assistiu e, opcionalmente, completa cada título com os dados da TMDB (pelo código do IMDb quando existe)
 - **Banco de dados local** SQLite — seus dados ficam no computador, sem nuvem
-- **Backup e restauração** — um clique em Configurações empacota banco de dados, capas, pôsteres de anime, cache e chaves de API num único `.zip`; restaurar substitui tudo e recarrega o app com os dados do backup
+- **Backup e restauração** — empacota banco de dados, capas, pôsteres de anime, cache e chaves de API num único `.zip`; restaurar substitui tudo e recarrega o app com os dados do backup
+- **Backup automático** — toda semana, ligado por padrão, em "Documentos › Meu Catálogo › Backups" (ou outra pasta, ex: OneDrive ou pendrive); guarda os 5 últimos e nunca grava um catálogo vazio por cima dos bons
+- **Menu da janela em português** — Arquivo (adicionar, importar, exportar, backup, configurações), Editar, Exibir (Ctrl+1…4 pra trocar de tela, Ctrl+F, zoom, tela cheia) e Ajuda (verificar atualizações, novidades, sobre)
 - **Ícone personalizado** — logo do app no instalador, atalhos e barra de tarefas
 - **Atualização automática** — ao abrir, o app procura uma versão nova nos releases do GitHub, baixa em segundo plano e oferece "Reiniciar e atualizar" (ou instala sozinho ao fechar); em Configurações dá pra ver a versão instalada e verificar na hora
 - **MyAnimeList integrado** — conecte sua conta MAL via OAuth2 PKCE, carregue sua lista de animes, edite status/nota/episódios e sincronize de volta ao site
@@ -111,7 +113,7 @@ Permite carregar, editar e sincronizar sua lista de animes diretamente do MAL. R
 2. Escolha o tipo **other** e preencha `http://localhost:7813` como **App Redirect URL**
 3. Copie o **Client ID** gerado
 4. Cole em **Configurações → MyAnimeList Client ID** e clique em Salvar
-5. Na página Animes, clique em **Conectar ao MAL** e autorize no navegador
+5. No item **MyAnimeList** do menu lateral (aparece depois de salvar o Client ID), clique em **Conectar ao MAL** e autorize no navegador
 
 ---
 
@@ -200,7 +202,7 @@ catalogo-filmes/
 │   │   ├── AddDiscPage.jsx    # Adicionar / editar título: estado, busca, OCR e salvar (monta os componentes de components/add)
 │   │   ├── AnimePage.jsx      # Lista de animes MAL com grade/lista, edição e exportação
 │   │   ├── CatalogPage.jsx    # Catálogo com filtros, estatísticas e exportação
-│   │   ├── ContinuePage.jsx   # Painel "Continuando" — continue assistindo + lançamentos da semana
+│   │   ├── ContinuePage.jsx   # Painel "Assistindo" — continue assistindo + lançamentos da semana
 │   │   └── SettingsPage.jsx   # Configuração das chaves de API e MAL Client ID
 │   └── components/
 │       ├── Sidebar.jsx         # Navegação lateral com coleções, ordenação e badge animes

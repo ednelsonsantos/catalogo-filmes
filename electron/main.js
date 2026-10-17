@@ -336,7 +336,7 @@ function createWindow() {
 
 // ─── SEGUNDO PLANO: bandeja, iniciar com o Windows ────────────────────────────
 
-let _prefs = { closeToTray: false, openAtLogin: false }
+let _prefs = { closeToTray: false, openAtLogin: false, autoBackup: true }
 let _tray = null
 let _isQuitting = false
 
@@ -346,7 +346,13 @@ function readSettingsFile() {
 
 function loadPrefs() {
   const s = readSettingsFile()
-  _prefs = { closeToTray: !!s.closeToTray, openAtLogin: !!s.openAtLogin }
+  _prefs = {
+    closeToTray: !!s.closeToTray,
+    openAtLogin: !!s.openAtLogin,
+    autoBackup: s.autoBackup !== false, // ligado por padrão
+    backupDir: typeof s.backupDir === 'string' && s.backupDir ? s.backupDir : null,
+    lastBackupAt: typeof s.lastBackupAt === 'string' ? s.lastBackupAt : null,
+  }
 }
 
 function showMainWindow() {
@@ -371,20 +377,114 @@ function ensureTray() {
 
 ipcMain.handle('prefs:get', () => ({ ..._prefs, canOpenAtLogin: app.isPackaged }))
 
+function savePrefs() {
+  const p = path.join(app.getPath('userData'), 'settings.json')
+  fs.writeFileSync(p, JSON.stringify({ ...readSettingsFile(), ..._prefs }, null, 2))
+}
+
 ipcMain.handle('prefs:set', (_, patch) => {
   const next = { ..._prefs }
-  for (const key of ['closeToTray', 'openAtLogin']) {
+  for (const key of ['closeToTray', 'openAtLogin', 'autoBackup']) {
     if (key in (patch || {})) next[key] = !!patch[key]
   }
   _prefs = next
-  const p = path.join(app.getPath('userData'), 'settings.json')
-  fs.writeFileSync(p, JSON.stringify({ ...readSettingsFile(), ..._prefs }, null, 2))
+  savePrefs()
   // só no app instalado: em dev registraria o electron.exe do projeto pra abrir com o Windows
   if (app.isPackaged) app.setLoginItemSettings({ openAtLogin: _prefs.openAtLogin, args: ['--hidden'] })
   return { ..._prefs, canOpenAtLogin: app.isPackaged }
 })
 
 ipcMain.handle('app:show', () => showMainWindow())
+
+// ─── MENU DA JANELA ───────────────────────────────────────────────────────────
+// Em português e com as ações do app; o padrão do Electron vinha em inglês, com Reload/DevTools no app instalado
+// e um "Help" que levava ao site do Electron. As ações da página vão pelo canal 'menu:action'.
+
+const PROJECT_URL = 'https://github.com/ednelsonsantos/catalogo-filmes'
+
+function sendMenuAction(action) {
+  showMainWindow()
+  mainWindow?.webContents.send('menu:action', action)
+}
+
+function buildAppMenu() {
+  const act = (id, label, accelerator) => ({ id, label, accelerator, click: () => sendMenuAction(id) })
+  const template = [
+    {
+      label: '&Arquivo',
+      submenu: [
+        act('add', 'Adicionar título', 'CmdOrCtrl+N'),
+        act('import', 'Importar lista…'),
+        {
+          label: 'Exportar',
+          submenu: [act('export:csv', 'CSV'), act('export:xlsx', 'Excel'), act('export:site', 'Site (JSON)')],
+        },
+        { type: 'separator' },
+        act('backup', 'Salvar backup em…'),
+        { type: 'separator' },
+        act('settings', 'Configurações', 'CmdOrCtrl+,'),
+        { type: 'separator' },
+        { label: 'Sair', role: 'quit' },
+      ],
+    },
+    {
+      label: '&Editar',
+      submenu: [
+        { label: 'Desfazer', role: 'undo' },
+        { label: 'Refazer', role: 'redo' },
+        { type: 'separator' },
+        { label: 'Recortar', role: 'cut' },
+        { label: 'Copiar', role: 'copy' },
+        { label: 'Colar', role: 'paste' },
+        { label: 'Selecionar tudo', role: 'selectAll' },
+      ],
+    },
+    {
+      label: 'E&xibir',
+      submenu: [
+        act('page:catalog', 'Catálogo', 'CmdOrCtrl+1'),
+        act('page:continue', 'Assistindo', 'CmdOrCtrl+2'),
+        act('page:stats', 'Estatísticas', 'CmdOrCtrl+3'),
+        act('page:animes', 'MyAnimeList', 'CmdOrCtrl+4'),
+        { type: 'separator' },
+        act('search', 'Buscar no catálogo', 'CmdOrCtrl+F'),
+        { type: 'separator' },
+        { label: 'Aumentar zoom', role: 'zoomIn' },
+        { label: 'Diminuir zoom', role: 'zoomOut' },
+        { label: 'Tamanho normal', role: 'resetZoom' },
+        { type: 'separator' },
+        { label: 'Tela cheia', role: 'togglefullscreen' },
+        // ferramentas de desenvolvimento só fora do app instalado
+        ...(app.isPackaged ? [] : [
+          { type: 'separator' },
+          { label: 'Recarregar', role: 'reload' },
+          { label: 'Ferramentas do desenvolvedor', role: 'toggleDevTools' },
+        ]),
+      ],
+    },
+    {
+      label: 'A&juda',
+      submenu: [
+        act('check-updates', 'Verificar atualizações'),
+        { label: 'Novidades das versões', click: () => shell.openExternal(`${PROJECT_URL}/releases`) },
+        { label: 'Página do projeto', click: () => shell.openExternal(PROJECT_URL) },
+        { type: 'separator' },
+        {
+          id: 'about',
+          label: 'Sobre o Meu Catálogo',
+          click: () => dialog.showMessageBox(mainWindow, {
+            type: 'info',
+            title: 'Sobre o Meu Catálogo',
+            message: `Meu Catálogo ${app.getVersion()}`,
+            detail: 'Catálogo pessoal de filmes, séries e animes — os dados ficam só no seu computador.\n\nDados de títulos: TMDB e OMDb. Animes: MyAnimeList.',
+            buttons: ['OK'],
+          }),
+        },
+      ],
+    },
+  ]
+  Menu.setApplicationMenu(Menu.buildFromTemplate(template))
+}
 
 app.commandLine.appendSwitch('disable-features', 'Autofill')
 // Sem isso o Windows não exibe as notificações do app (precisa bater com o appId do atalho do instalador)
@@ -460,6 +560,7 @@ app.on('second-instance', () => showMainWindow())
 app.whenReady().then(() => {
   loadPrefs()
   createDatabase()
+  buildAppMenu()
   createWindow()
   setupAutoUpdater()
   // espera a janela carregar pra não disputar rede/CPU com a abertura do app
@@ -1123,15 +1224,19 @@ ipcMain.handle('export:siteJson', async (_e, { filmeIds } = {}) => {
 // ─── IPC: BACKUP ──────────────────────────────────────────────────────────────
 
 ipcMain.handle('backup:create', async () => {
-  const AdmZip = require('adm-zip')
-  const userDataPath = app.getPath('userData')
   const { filePath, canceled } = await dialog.showSaveDialog(mainWindow, {
     title: 'Fazer backup completo',
     defaultPath: path.join(app.getPath('documents'), `meu-catalogo-backup-${new Date().toISOString().slice(0, 10)}.zip`),
     filters: [{ name: 'Backup ZIP', extensions: ['zip'] }],
   })
   if (!filePath || canceled) return { success: false }
+  writeBackupZip(filePath)
+  return { success: true, filePath }
+})
 
+function writeBackupZip(filePath) {
+  const AdmZip = require('adm-zip')
+  const userDataPath = app.getPath('userData')
   // SQLite roda em modo WAL — escritas recentes podem estar só no .db-wal, não no .db principal ainda.
   // TRUNCATE força tudo de volta pro arquivo principal e zera o WAL, garantindo um snapshot completo e consistente.
   if (db) { try { db.pragma('wal_checkpoint(TRUNCATE)') } catch {} }
@@ -1149,7 +1254,77 @@ ipcMain.handle('backup:create', async () => {
   if (fs.existsSync(settingsPath)) zip.addLocalFile(settingsPath)
 
   zip.writeZip(filePath)
-  return { success: true, filePath }
+}
+
+// ─── Backup automático: 1x por semana, guarda os 5 últimos ────────────────────
+const AUTO_BACKUP_EVERY_MS = 7 * 24 * 60 * 60 * 1000
+const AUTO_BACKUP_KEEP = 5
+const AUTO_BACKUP_RE = /^meu-catalogo-auto-\d{4}-\d{2}-\d{2}\.zip$/
+
+// Fora do app instalado (dev/testes) o padrão fica dentro da pasta de dados — nunca nos Documentos reais
+function autoBackupDir() {
+  if (_prefs.backupDir) return _prefs.backupDir
+  return app.isPackaged
+    ? path.join(app.getPath('documents'), 'Meu Catálogo', 'Backups')
+    : path.join(app.getPath('userData'), 'backups')
+}
+
+function autoBackupStatus() {
+  const last = _prefs.lastBackupAt ? Date.parse(_prefs.lastBackupAt) : NaN
+  return {
+    enabled: _prefs.autoBackup,
+    dir: autoBackupDir(),
+    lastAt: _prefs.lastBackupAt,
+    nextAt: Number.isFinite(last) ? new Date(last + AUTO_BACKUP_EVERY_MS).toISOString() : null,
+  }
+}
+
+function runAutoBackup({ force = false } = {}) {
+  if (!_prefs.autoBackup && !force) return { ran: false, reason: 'disabled' }
+  const last = _prefs.lastBackupAt ? Date.parse(_prefs.lastBackupAt) : NaN
+  if (!force && Number.isFinite(last) && Date.now() - last < AUTO_BACKUP_EVERY_MS) return { ran: false, reason: 'not-due' }
+  // catálogo vazio (ou banco zerado por acidente) não pode empurrar os backups bons pra fora da rotação
+  const count = db ? db.prepare('SELECT COUNT(*) AS n FROM filmes').get().n : 0
+  if (count === 0) return { ran: false, reason: 'empty' }
+
+  const dir = autoBackupDir()
+  fs.mkdirSync(dir, { recursive: true })
+  const file = path.join(dir, `meu-catalogo-auto-${new Date().toISOString().slice(0, 10)}.zip`)
+  writeBackupZip(file)
+  _prefs.lastBackupAt = new Date().toISOString()
+  savePrefs()
+
+  // rotação: só mexe nos arquivos do próprio backup automático
+  const autos = fs.readdirSync(dir).filter(n => AUTO_BACKUP_RE.test(n)).sort().reverse()
+  for (const old of autos.slice(AUTO_BACKUP_KEEP)) {
+    try { fs.rmSync(path.join(dir, old), { force: true }) } catch {}
+  }
+  return { ran: true, file }
+}
+
+ipcMain.handle('backup:autoStatus', () => autoBackupStatus())
+
+ipcMain.handle('backup:autoCheck', () => {
+  try { return runAutoBackup() } catch (e) { return { ran: false, reason: 'error', message: e.message } }
+})
+
+ipcMain.handle('backup:autoNow', () => ({ ...runAutoBackup({ force: true }), status: autoBackupStatus() }))
+
+// a pasta só muda pelo diálogo do sistema — a página nunca passa um caminho
+ipcMain.handle('backup:chooseDir', async () => {
+  const { filePaths, canceled } = await dialog.showOpenDialog(mainWindow, {
+    title: 'Pasta dos backups automáticos',
+    defaultPath: autoBackupDir(),
+    properties: ['openDirectory', 'createDirectory'],
+  })
+  if (!canceled && filePaths[0]) { _prefs.backupDir = filePaths[0]; savePrefs() }
+  return autoBackupStatus()
+})
+
+ipcMain.handle('backup:openDir', () => {
+  const dir = autoBackupDir()
+  fs.mkdirSync(dir, { recursive: true })
+  return shell.openPath(dir)
 })
 
 ipcMain.handle('backup:restore', async () => {
@@ -1179,6 +1354,7 @@ ipcMain.handle('backup:restore', async () => {
   _omdbKey = ''; _tmdbKey = ''
   _malClientId = ''; _malAccessToken = ''; _malRefreshToken = ''; _malTokenExpiry = 0
   createDatabase()
+  loadPrefs() // o settings.json do backup traz as preferências dele
   setTimeout(() => mainWindow?.webContents.reload(), 100)
   return { success: true }
 })

@@ -189,7 +189,7 @@ export default function AnimePage({ settings, showToast, animeList, setAnimeList
   if (!settings.malConfigured) {
     return (
       <div className="page" style={{ maxWidth: 560 }}>
-        <h1 className="page-title">Animes — MyAnimeList</h1>
+        <h1 className="page-title">MyAnimeList</h1>
         <div className="card" style={{ textAlign: 'center', padding: '40px 32px' }}>
           <div style={{ fontSize: 40, marginBottom: 16 }}>🎌</div>
           <h2 style={{ fontSize: 15, fontWeight: 600, marginBottom: 8 }}>Client ID não configurado</h2>
@@ -210,7 +210,7 @@ export default function AnimePage({ settings, showToast, animeList, setAnimeList
     <div className="page">
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
-        <h1 className="page-title" style={{ margin: 0 }}>Animes — MyAnimeList</h1>
+        <h1 className="page-title" style={{ margin: 0 }}>MyAnimeList</h1>
         <div style={{ display: 'flex', gap: 8 }}>
           {status.authenticated && animes.length > 0 && (
             <button className="btn btn-primary btn-sm" onClick={handleExport} disabled={exporting}>

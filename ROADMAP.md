@@ -536,6 +536,55 @@ A pasta do projeto pertence a outro usuário do Windows (SID diferente, provavel
 
 ---
 
+## Fase 15 — Menus de acordo com o que o app virou (v1.13.0)
+
+O app nasceu como catálogo de discos (foto da capa, contagem de DVD/Blu-ray) e hoje gira em torno de streaming, séries e episódios. A análise das telas (com capturas do app rodando com dados de exemplo) achou menus e botões que não faziam mais sentido. Nenhuma função foi removida — só mudou de lugar ou de nome.
+
+### 15.1 Correção: "Continuando" vazio com títulos em andamento ✓
+O contador do menu e a abertura automática da tela contavam todo título "Assistindo", mas a tela só listava séries ligadas à TMDB — uma série preenchida à mão ou um filme de streaming deixava o menu com "1" e a tela dizendo "Nada marcado como Assistindo". Agora a tela lista tudo; sem vínculo com a TMDB aparece "Sem acompanhamento de episódios" e o botão Editar. Teste reproduz o problema (falha no código antigo)
+
+### 15.2 Menu lateral ✓
+- "Minha Coleção" → **Catálogo** (se confundia com a seção "Coleções", que são as suas listas)
+- "Continuando" → **Assistindo**, fixo no menu (antes aparecia e sumia conforme houvesse algo em andamento)
+- "Animes" → **MyAnimeList**, e só aparece com o MAL configurado — a categoria "Anime" do catálogo é outra coisa
+
+### 15.3 Topo do catálogo ✓
+- A faixa de números (Total, Blu-ray, 4K, DVD, Assistidos, Assistindo, Último adicionado) repetia a tela de Estatísticas e **não contava "Digital"**, o formato mais usado. Virou o título da tela (ou o nome da coleção) com uma linha: "4 títulos · 1 assistido (25%) · 1 assistindo"
+- Importar, CSV, Excel e Site (4 botões pra ações raras) viraram um menu **"Importar / Exportar ▾"**
+- "↻ Atualizar episódios (N)" foi pra Configurações — os episódios já se atualizam sozinhos 1x por dia
+- Formato (6 botões, incluindo VHS) virou lista suspensa com a contagem de cada um; o status ganhou **"Não assistidos"**
+- **Filtros, ordenação e grade/lista ficam como você deixou** ao reabrir (a busca não). Valor lembrado que não existe mais (tag apagada, serviço que sumiu) volta pra "todos" em vez de filtrar o nada; "Limpar filtros" aparece sempre que há filtro ativo
+
+### 15.4 Tela Adicionar ✓
+- Abre em **"Buscar por título"** (antes "Foto da capa", o reconhecimento de texto pensado pra DVD)
+- Abas "Adicionar Título | Adicionar Anime" → **"Título | Anime (MyAnimeList)"** — "Adicionar" aparecia três vezes seguidas
+- "Como funciona" da foto da capa dizia que só o OMDb era necessário; a busca hoje usa TMDB/OMDb
+
+### 15.5 Configurações ✓
+- Saiu o aviso do topo "OCR local ativo — nenhuma configuração necessária" (não pedia nada)
+- Ordem pelo uso: Avisos → Backup → Episódios das séries → Atualizações → **Chaves de API** (configuradas uma vez só, agora num bloco único, TMDB primeiro como principal)
+- O "Salvar" ficava no fim da página mas só valia pras chaves (o resto já funciona na hora) — virou **"Salvar chaves"** dentro do bloco; o passo a passo da chave OMDb foi pra junto do campo
+- Os vínculos quebrados com a TMDB aparecem na própria seção, com "Editar" em cada um
+
+### 15.6 Backup automático ✓
+- Toda semana, **ligado por padrão**, guardando os 5 últimos. Pasta padrão "Documentos\Meu Catálogo\Backups" no app instalado; dá pra trocar (OneDrive, pendrive) e abrir a pasta. Fora do app instalado (dev/testes) o padrão fica dentro da pasta de dados — os testes nunca gravam nos Documentos reais
+- Roda na checagem em segundo plano (ao abrir, a cada 30 min, ao voltar pra janela); o processo principal decide se já passou uma semana
+- **Nunca grava catálogo vazio**: um banco zerado por acidente empurraria os backups bons pra fora da rotação
+- A rotação só apaga arquivos `meu-catalogo-auto-AAAA-MM-DD.zip`; a pasta só muda pelo diálogo do sistema (a página nunca passa um caminho)
+- Restaurar um backup recarrega também as preferências que vieram nele
+
+### 15.7 Menu da janela ✓
+O menu era o padrão do Electron: em inglês (File/Edit/View/Window/Help), com Reload, Force Reload e Toggle Developer Tools **no app instalado**, e um Help que levava ao site do Electron. Agora:
+- **Arquivo**: Adicionar título (Ctrl+N), Importar lista…, Exportar (CSV/Excel/Site), Salvar backup em…, Configurações (Ctrl+,), Sair
+- **Editar**: Desfazer, Refazer, Recortar, Copiar, Colar, Selecionar tudo
+- **Exibir**: Catálogo/Assistindo/Estatísticas/MyAnimeList (Ctrl+1…4), Buscar no catálogo (Ctrl+F), zoom, tela cheia — Recarregar e Ferramentas do desenvolvedor só fora do app instalado
+- **Ajuda**: Verificar atualizações, Novidades das versões, Página do projeto, Sobre
+- "Janela" saiu (o Windows já tem minimizar/fechar na barra de título). As ações vão pela página via `menu:action`; a ação de catálogo é consumida uma vez (voltar pra tela não reabre a importação)
+
+**Testes:** 48 de interface (7 novos: menu da janela, itens navegando, menu lateral, resumo + "Não assistidos", filtros lembrados, backup automático ligado/desligado com rotação) + 52 de segurança, passando.
+
+---
+
 ## Backlog de ideias (não detalhadas ainda)
 
 - ~~**⚠ Risco:** categoria "Animação" tratada como série pra fins de episódios, mesmo quando é um filme avulso~~ — **corrigido na v1.3.1**, ver Fase 13.1

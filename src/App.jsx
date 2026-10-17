@@ -29,6 +29,7 @@ export default function App() {
   const [appVersion, setAppVersion] = useState('')
   const [updateStatus, setUpdateStatus] = useState({ enabled: false, state: 'idle' })
   const [updateBannerDismissed, setUpdateBannerDismissed] = useState(false)
+  const [catalogCommand, setCatalogCommand] = useState(null) // ação do menu da janela pra tela do catálogo
 
   useEffect(() => {
     window.api.appGetVersion().then(setAppVersion).catch(() => {})
@@ -65,6 +66,8 @@ export default function App() {
         }
       }
       notifyPending(pendingNotifications(filmesRef.current, animeRef.current), () => window.api.appShow())
+      // backup automático semanal (o processo principal decide se já está na hora)
+      await window.api.backupAutoCheck().catch(() => {})
     } finally {
       checkingRef.current = false
     }
@@ -96,7 +99,7 @@ export default function App() {
         setTags(allTags)
         if (saved) setSettings(s => ({ ...s, ...saved }))
         if (cachedAnimes?.length) setAnimeList(cachedAnimes)
-        // abre direto em "Continuando" se há algo em andamento, senão cai no catálogo como sempre
+        // abre direto em "Assistindo" se há algo em andamento, senão cai no catálogo como sempre
         const hasWatching = all.some(f => !!f.watching) || (cachedAnimes || []).some(a => a.list_status?.status === 'watching')
         if (hasWatching) setPage('continue')
         filmesRef.current = all
@@ -186,6 +189,28 @@ export default function App() {
   const handleEdit = useCallback((filme) => { setEditFilme(filme); setPage('add') }, [])
   const handleAddNew = useCallback(() => { setEditFilme(null); setPage('add') }, [])
 
+  // Menu da janela (Arquivo/Exibir/Ajuda)
+  useEffect(() => window.api.onMenuAction(async (action) => {
+    const toCatalog = (command) => {
+      setEditFilme(null)
+      setPage('catalog')
+      setCatalogCommand({ ...command, n: Date.now() })
+    }
+    if (action === 'add') { setEditFilme(null); setPage('add') }
+    else if (action === 'settings') { setEditFilme(null); setPage('settings') }
+    else if (action.startsWith('page:')) { setEditFilme(null); setPage(action.slice(5)) }
+    else if (action === 'import') toCatalog({ type: 'import' })
+    else if (action === 'search') toCatalog({ type: 'search' })
+    else if (action.startsWith('export:')) toCatalog({ type: 'export', format: action.slice(7) })
+    else if (action === 'check-updates') { setPage('settings'); checkForUpdates().catch(() => {}) }
+    else if (action === 'backup') {
+      try {
+        const res = await window.api.backupCreate()
+        if (res.success) showToast('Backup criado com sucesso!', 'success')
+      } catch (e) { showToast(e.message || 'Erro ao criar backup.', 'error') }
+    }
+  }), [checkForUpdates, showToast])
+
   const handleSavedFilme = useCallback(async (savedId, colecaoIds, tagIds) => {
     if (savedId != null) {
       await window.api.colecoesSetForFilme({ filmeId: savedId, colecaoIds: colecaoIds ?? [] })
@@ -222,6 +247,7 @@ export default function App() {
         count={filmes.length}
         animeCount={animeList.length}
         continueCount={continueCount}
+        showMal={!!settings.malConfigured || animeList.length > 0}
         onAddNew={handleAddNew}
         collections={collections}
         selectedCollection={selectedCollection}
@@ -254,6 +280,8 @@ export default function App() {
             onFilmeUpdated={handleFilmeUpdated}
             showToast={showToast}
             selectedCollection={selectedCollection}
+            command={catalogCommand}
+            onCommandHandled={() => setCatalogCommand(null)}
           />
         )}
         {page === 'add' && (
@@ -276,7 +304,7 @@ export default function App() {
         )}
         {page === 'stats' && <StatsPage filmes={filmes} animeList={animeList} />}
         {page === 'settings' && (
-          <SettingsPage settings={settings} showToast={showToast} appVersion={appVersion} updateStatus={updateStatus} onCheckUpdates={checkForUpdates} onSave={async (s) => {
+          <SettingsPage settings={settings} showToast={showToast} filmes={filmes} onFilmeUpdated={handleFilmeUpdated} onEdit={handleEdit} appVersion={appVersion} updateStatus={updateStatus} onCheckUpdates={checkForUpdates} onSave={async (s) => {
             await window.api.saveSettings(s)
             const updated = await window.api.getSettings()
             setSettings(updated)

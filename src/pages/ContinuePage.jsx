@@ -97,7 +97,7 @@ export default function ContinuePage({ filmes, animeList, setAnimeList, onEdit, 
   if (!hasContent) {
     return (
       <div className="page">
-        <h1 className="page-title">Continuando</h1>
+        <h1 className="page-title">Assistindo</h1>
         <div className="card" style={{ textAlign: 'center', padding: '40px 32px' }}>
           <div style={{ fontSize: 36, marginBottom: 12 }}>▶</div>
           <p style={{ fontSize: 14, color: 'var(--text2)' }}>
@@ -110,7 +110,7 @@ export default function ContinuePage({ filmes, animeList, setAnimeList, onEdit, 
 
   return (
     <div className="page">
-      <h1 className="page-title" style={{ marginBottom: 20 }}>Continuando</h1>
+      <h1 className="page-title" style={{ marginBottom: 20 }}>Assistindo</h1>
 
       {upcoming.length > 0 && (
         <div style={{ marginBottom: 28 }}>

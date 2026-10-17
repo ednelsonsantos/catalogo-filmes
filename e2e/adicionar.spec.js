@@ -45,7 +45,7 @@ test('preencher manualmente: valida título e categoria, cria coleção na hora 
 
 test('editar: categoria seriada mostra "Assistindo"; marcar "Assistido" desmarca "Assistindo"', async ({ page }) => {
   await seed(page, [{ title: 'Série Sem TMDB', category: 'Série', watching: true }])
-  await goTo(page, 'Minha Coleção')
+  await goTo(page, 'Catálogo')
   await page.locator('.disc-card', { hasText: 'Série Sem TMDB' }).click()
   await page.getByRole('button', { name: 'Editar', exact: true }).click()
 
@@ -60,7 +60,7 @@ test('editar: categoria seriada mostra "Assistindo"; marcar "Assistido" desmarca
 
 test('aba de anime sem MAL configurado pede o Client ID', async ({ page }) => {
   await openAdd(page)
-  await page.getByRole('button', { name: /Adicionar Anime/ }).click()
+  await page.getByRole('button', { name: /Anime \(MyAnimeList\)/ }).click()
   await expect(page.getByText(/Configure o Client ID do MyAnimeList/)).toBeVisible()
 })
 

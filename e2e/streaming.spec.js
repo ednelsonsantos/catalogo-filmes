@@ -20,7 +20,7 @@ async function seedWithProviders(page, electronApp, userDataDir) {
   })
   await page.reload()
   await page.locator('.app-layout').waitFor()
-  await goTo(page, 'Minha Coleção')
+  await goTo(page, 'Catálogo')
 }
 
 test('card mostra até 3 logos e "+N"; filtro por serviço, "algum" e "nenhum"', async ({ page, electronApp, userDataDir }) => {
@@ -28,7 +28,7 @@ test('card mostra até 3 logos e "+N"; filtro por serviço, "algum" e "nenhum"',
 
   // com o filtro extra, a barra de filtros quebra linha em vez de vazar pra fora da tela
   await page.evaluate(async () => { await window.api.tagsInsert('Uma Tag') })
-  await page.reload(); await page.locator('.app-layout').waitFor(); await goTo(page, 'Minha Coleção')
+  await page.reload(); await page.locator('.app-layout').waitFor(); await goTo(page, 'Catálogo')
   await expect(page.getByTestId('provider-filter')).toBeVisible()
   expect(await page.evaluate(() => { const el = document.querySelector('.page'); return el.scrollWidth - el.clientWidth })).toBe(0)
 

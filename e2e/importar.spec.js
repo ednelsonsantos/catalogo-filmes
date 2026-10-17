@@ -13,9 +13,15 @@ async function offerFile(electronApp, userDataDir, fileName, content) {
   }, filePath)
 }
 
+// "Importar / Exportar ▾" no topo do catálogo
+async function dataMenu(page, item) {
+  await page.getByRole('button', { name: /Importar \/ Exportar/ }).click()
+  await page.getByRole('menuitem', { name: item }).click()
+}
+
 async function openImport(page) {
-  await goTo(page, 'Minha Coleção')
-  await page.getByRole('button', { name: /Importar/ }).click()
+  await goTo(page, 'Catálogo')
+  await dataMenu(page, /Importar lista/)
   await page.getByRole('button', { name: /Escolher arquivo/ }).click()
 }
 
@@ -87,13 +93,13 @@ test('CSV exportado pelo próprio app é reconhecido e nada é duplicado ao impo
     dialog.showSaveDialog = async () => ({ canceled: false, filePath: p })
     dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [p] })
   }, csvPath)
-  await goTo(page, 'Minha Coleção')
-  await page.getByRole('button', { name: /CSV/ }).click()
+  await goTo(page, 'Catálogo')
+  await dataMenu(page, /em CSV/)
   await expect.poll(() => fs.existsSync(csvPath)).toBe(true)
   // aspas dentro do campo dobradas, como manda o CSV
   expect(fs.readFileSync(csvPath, 'utf8')).toContain('"Um ""Título"" Com Aspas"')
 
-  await page.getByRole('button', { name: /Importar/ }).click()
+  await dataMenu(page, /Importar lista/)
   await page.getByRole('button', { name: /Escolher arquivo/ }).click()
   await expect(page.getByTestId('import-summary')).toContainText('Exportação do Meu Catálogo · 2 título(s): 0 novo(s), 2 já na coleção')
   await expect(page.getByRole('button', { name: 'Importar 0 título(s)' })).toBeDisabled()

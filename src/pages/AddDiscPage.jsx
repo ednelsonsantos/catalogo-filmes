@@ -29,7 +29,8 @@ const EMPTY = {
 
 export default function AddDiscPage({ settings, editFilme, filmes = [], collections = [], tags = [], onCollectionsChange, onTagsChange, onSaved, showToast, animeList = [], setAnimeList }) {
   const [tab, setTab] = useState('titulo')
-  const [mode, setMode] = useState('photo')
+  // abre na busca: é o caminho mais comum hoje (streaming/digital); a foto da capa é pra disco físico
+  const [mode, setMode] = useState('search')
   const [filme, setFilme] = useState(editFilme ? { ...editFilme } : { ...EMPTY })
   const [selectedCollections, setSelectedCollections] = useState([])
   const [selectedTags, setSelectedTags] = useState([])
@@ -117,7 +118,7 @@ export default function AddDiscPage({ settings, editFilme, filmes = [], collecti
 
   const handleCancel = useCallback(() => {
     setTab('titulo')
-    setMode('photo')
+    setMode('search')
     setFilme({ ...EMPTY })
     setSearchQuery('')
     setSearchYear('')
@@ -349,10 +350,10 @@ export default function AddDiscPage({ settings, editFilme, filmes = [], collecti
       {!isEditing && (
         <div className="mode-tabs" style={{ marginBottom: 16 }}>
           <button className={`mode-tab ${tab === 'titulo' ? 'active' : ''}`} onClick={() => setTab('titulo')}>
-            🎬 Adicionar Título
+            🎬 Título
           </button>
           <button className={`mode-tab ${tab === 'anime' ? 'active' : ''}`} onClick={() => setTab('anime')}>
-            🎌 Adicionar Anime
+            🎌 Anime (MyAnimeList)
           </button>
         </div>
       )}
@@ -367,8 +368,8 @@ export default function AddDiscPage({ settings, editFilme, filmes = [], collecti
       {!isEditing && (
         <div className="mode-tabs">
           {[
-            { id: 'photo',  label: '📷 Foto da capa' },
             { id: 'search', label: '🔍 Buscar por título' },
+            { id: 'photo',  label: '📷 Foto da capa' },
             { id: 'manual', label: '✏️ Preencher manualmente' },
           ].map(m => (
             <button key={m.id} className={`mode-tab ${mode === m.id ? 'active' : ''}`} onClick={() => setMode(m.id)}>
@@ -481,12 +482,12 @@ export default function AddDiscPage({ settings, editFilme, filmes = [], collecti
               <ol style={{ paddingLeft: 18, fontSize: 13, color: 'var(--text2)', lineHeight: 2 }}>
                 <li>Clique na capa ou arraste uma foto</li>
                 <li>OCR local lê o texto da imagem — sem internet</li>
-                <li>O título é buscado no OMDb para preencher os detalhes</li>
+                <li>O título lido é buscado na TMDB/OMDb para preencher os detalhes</li>
                 <li>Revise e salve</li>
               </ol>
               <div style={{ marginTop: 12, padding: '8px 10px', background: 'rgba(76,175,125,0.08)', border: '1px solid rgba(76,175,125,0.2)', borderRadius: 6 }}>
                 <p style={{ fontSize: 12, color: 'var(--green)', lineHeight: 1.5 }}>
-                  ✓ OCR gratuito e local — só a chave OMDb é necessária.
+                  ✓ A leitura da capa roda no seu computador, sem conta e sem internet.
                 </p>
               </div>
               {filme.title && <div style={{ marginTop: 12, borderTop: '1px solid var(--border)', paddingTop: 12 }}><FormFields filme={filme} setField={setField} /></div>}
