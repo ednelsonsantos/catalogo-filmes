@@ -91,7 +91,8 @@ async function main() {
     const url = match[1]
     console.log(`\n⚡ Vite pronto em ${url} — iniciando Electron...`)
 
-    const electronEnv = { ...process.env, VITE_DEV_URL: url }
+    // o aviso de CSP do Electron é só do dev: a política de segurança é aplicada no app instalado (main.js)
+    const electronEnv = { ...process.env, VITE_DEV_URL: url, ELECTRON_DISABLE_SECURITY_WARNINGS: 'true' }
     delete electronEnv.ELECTRON_RUN_AS_NODE
     const electronProc = spawn(electronBin, ['.'], { stdio: 'inherit', env: electronEnv })
     pids.electron = electronProc.pid

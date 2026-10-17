@@ -86,3 +86,15 @@ test('filtros, ordenação e grade/lista continuam como estavam ao reabrir o app
   await page.getByRole('button', { name: /Limpar filtros/ }).click()
   await expect(page.locator('.disc-list-item')).toHaveCount(2)
 })
+
+test('menu lateral com coleções não gera HTML inválido (botão dentro de botão) e a coleção abre pelo teclado', async ({ page }) => {
+  const errors = []
+  page.on('console', m => { if (m.type() === 'error') errors.push(m.text()) })
+  await page.evaluate(() => window.api.colecoesInsert('Favoritos'))
+  await reloadApp(page)
+  const col = page.locator('.col-nav-item', { hasText: 'Favoritos' })
+  await col.focus()
+  await page.keyboard.press('Enter')
+  await expect(page.locator('h1.page-title')).toHaveText('Favoritos')
+  expect(errors.filter(e => e.includes('validateDOMNesting'))).toEqual([])
+})

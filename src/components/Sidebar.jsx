@@ -202,9 +202,16 @@ export default function Sidebar({ page, setPage, count, animeCount, continueCoun
                 />
               </div>
             ) : (
-              <button
+              // div com papel de botão: os botões de renomear/excluir ficam dentro, e <button> dentro de <button> não é HTML válido
+              <div
+                role="button"
+                tabIndex={0}
                 className={`nav-item col-nav-item ${selectedCollection?.id === col.id ? 'active' : ''}`}
                 onClick={() => { setPage('catalog'); onSelectCollection(col) }}
+                onKeyDown={e => {
+                  if (e.target !== e.currentTarget || (e.key !== 'Enter' && e.key !== ' ')) return
+                  e.preventDefault(); setPage('catalog'); onSelectCollection(col)
+                }}
               >
                 <IconCollection />
                 <span className="col-name">{col.name}</span>
@@ -213,7 +220,7 @@ export default function Sidebar({ page, setPage, count, animeCount, continueCoun
                   <button className="col-action-btn" title="Renomear" onClick={e => startRename(col, e)}><IconPencil /></button>
                   <button className="col-action-btn col-action-del" title="Excluir" onClick={() => handleDelete(col)}><IconTrash /></button>
                 </span>
-              </button>
+              </div>
             )}
           </div>
         ))}
