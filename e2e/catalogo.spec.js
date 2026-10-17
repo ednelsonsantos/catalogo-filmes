@@ -47,3 +47,18 @@ test('nenhum "0" solto nos cards nem no detalhe (watching é INTEGER no SQLite)'
   await expect(page.getByText(/Assistido em/)).toBeVisible()
   expect(await strayZeros(page, '.modal')).toEqual([])
 })
+
+test('"Continuando" lista também o que está "Assistindo" sem vínculo com a TMDB (contador do menu = itens da página)', async ({ page }) => {
+  await seed(page, [
+    { title: 'Série Manual', category: 'Série', watching: true },
+    { title: 'Filme Streaming', category: 'Streaming', formats: 'Digital', watching: true },
+    { title: 'Parado', category: 'Filme' },
+  ])
+  // com algo em andamento o app abre direto nessa página
+  await expect(page.locator('h1.page-title')).toHaveText('Continuando')
+  await expect(page.locator('.nav-item', { hasText: 'Continuando' }).locator('.nav-count')).toHaveText('2')
+  const items = page.getByTestId('continue-item')
+  await expect(items).toHaveCount(2)
+  await expect(items.filter({ hasText: 'Série Manual' })).toContainText('Sem acompanhamento de episódios')
+  await expect(items.filter({ hasText: 'Filme Streaming' })).toBeVisible()
+})

@@ -20,7 +20,9 @@ function formatDateLabel(iso) {
 }
 
 export default function ContinuePage({ filmes, animeList, setAnimeList, onEdit, onFilmeUpdated, setPage, showToast }) {
-  const watchingFilmes = useMemo(() => filmes.filter(f => !!f.watching && f.tmdb_id && f.tmdb_media_type === 'tv'), [filmes])
+  // Tudo que está "Assistindo" aparece aqui (é o que o contador do menu conta); só as séries ligadas à TMDB têm próximo episódio
+  const watchingFilmes = useMemo(() => filmes.filter(f => !!f.watching), [filmes])
+  const trackedFilmes = useMemo(() => watchingFilmes.filter(f => f.tmdb_id && f.tmdb_media_type === 'tv'), [watchingFilmes])
   const watchingAnimes = useMemo(() => animeList.filter(a => a.list_status?.status === 'watching'), [animeList])
 
   const [nextUpMap, setNextUpMap] = useState({})
@@ -28,9 +30,9 @@ export default function ContinuePage({ filmes, animeList, setAnimeList, onEdit, 
 
   useEffect(() => {
     let cancelled = false
-    if (watchingFilmes.length === 0) { setNextUpMap({}); return }
+    if (trackedFilmes.length === 0) { setNextUpMap({}); return }
     setLoadingNextUp(true)
-    Promise.all(watchingFilmes.map(async f => {
+    Promise.all(trackedFilmes.map(async f => {
       try {
         const res = await window.api.episodesGetNextUp({ filmeId: f.id, tmdbId: Number(f.tmdb_id) })
         return [f.id, res]
@@ -39,7 +41,7 @@ export default function ContinuePage({ filmes, animeList, setAnimeList, onEdit, 
       if (!cancelled) { setNextUpMap(Object.fromEntries(entries)); setLoadingNextUp(false) }
     })
     return () => { cancelled = true }
-  }, [watchingFilmes])
+  }, [trackedFilmes])
 
   const markFilmeWatched = useCallback(async (filme, nextUp) => {
     try {
@@ -75,7 +77,7 @@ export default function ContinuePage({ filmes, animeList, setAnimeList, onEdit, 
     const weekAhead = new Date(); weekAhead.setDate(weekAhead.getDate() + 7)
     const weekAheadIso = weekAhead.toISOString().slice(0, 10)
 
-    const fromFilmes = watchingFilmes
+    const fromFilmes = trackedFilmes
       .filter(f => f.next_episode_air_date && f.next_episode_air_date >= today && f.next_episode_air_date <= weekAheadIso)
       .map(f => ({ kind: 'filme', id: f.id, title: f.title, date: f.next_episode_air_date, poster: f.poster_url, filme: f }))
 
@@ -88,7 +90,7 @@ export default function ContinuePage({ filmes, animeList, setAnimeList, onEdit, 
       .filter(Boolean)
 
     return [...fromFilmes, ...fromAnimes].sort((a, b) => a.date.localeCompare(b.date))
-  }, [watchingFilmes, watchingAnimes])
+  }, [trackedFilmes, watchingAnimes])
 
   const hasContent = watchingFilmes.length > 0 || watchingAnimes.length > 0
 
@@ -131,15 +133,17 @@ export default function ContinuePage({ filmes, animeList, setAnimeList, onEdit, 
       <h2 style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', marginBottom: 10 }}>▶ Continue assistindo</h2>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 14 }}>
         {watchingFilmes.map(f => {
-          const nextUp = nextUpMap[f.id]
+          const tracked = trackedFilmes.includes(f)
+          const nextUp = tracked ? nextUpMap[f.id] : null
           return (
-            <div key={f.id} style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+            <div key={f.id} data-testid="continue-item" style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
               <div style={{ aspectRatio: '16/9', background: 'var(--bg4)', overflow: 'hidden' }}>
                 {f.poster_url && f.poster_url !== 'N/A' && <img src={f.poster_url} alt={f.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
               </div>
               <div style={{ padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 6, flex: 1 }}>
                 <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.title}</div>
-                {!nextUp && loadingNextUp && <div style={{ fontSize: 12, color: 'var(--text3)' }}>Carregando…</div>}
+                {!tracked && <div style={{ fontSize: 12, color: 'var(--text3)' }}>Sem acompanhamento de episódios</div>}
+                {tracked && !nextUp && loadingNextUp && <div style={{ fontSize: 12, color: 'var(--text3)' }}>Carregando…</div>}
                 {nextUp === 'caught_up' && <div style={{ fontSize: 12, color: '#4caf7d' }}>✓ Em dia</div>}
                 {nextUp && nextUp !== 'caught_up' && (
                   <div style={{ fontSize: 12, color: '#f59e0b' }}>Próximo: T{nextUp.season}E{nextUp.episode}</div>
