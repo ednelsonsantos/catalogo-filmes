@@ -5,6 +5,10 @@ const fs = require('fs')
 // Testes automatizados rodam com uma pasta de dados descartável, nunca com o catálogo real
 if (!app.isPackaged && process.env.CATALOGO_USER_DATA) {
   app.setPath('userData', process.env.CATALOGO_USER_DATA)
+} else if (!app.isPackaged) {
+  // npm run dev usa o catálogo real (mesma pasta do app instalado), mas o cache/sessão do Chromium fica à parte:
+  // com o app instalado aberto na bandeja, os dois disputavam a pasta de cache ("Unable to create cache", "Acesso negado")
+  app.setPath('sessionData', path.join(app.getPath('userData'), 'dev-session'))
 }
 
 let mainWindow
