@@ -491,8 +491,10 @@ function buildAppMenu() {
 }
 
 app.commandLine.appendSwitch('disable-features', 'Autofill')
-// Sem isso o Windows não exibe as notificações do app (precisa bater com o appId do atalho do instalador)
-if (process.platform === 'win32') app.setAppUserModelId('com.ednelson.meu-catalogo')
+// Sem isso o Windows não exibe as notificações do app (precisa bater com o appId do atalho do instalador).
+// Fora do app instalado usa outro id: com o mesmo, o Electron do npm run dev criou um "Electron.lnk" no Menu Iniciar
+// com o id do app instalado, e a barra de tarefas/avisos do app instalado passaram a mostrar o ícone do Electron
+if (process.platform === 'win32') app.setAppUserModelId(app.isPackaged ? 'com.ednelson.meu-catalogo' : 'com.ednelson.meu-catalogo.dev')
 
 // ─── ATUALIZAÇÃO AUTOMÁTICA ───────────────────────────────────────────────────
 // Busca novas versões nos releases do GitHub (config "publish" do package.json).

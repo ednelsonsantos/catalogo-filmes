@@ -581,6 +581,11 @@ O menu era o padrão do Electron: em inglês (File/Edit/View/Window/Help), com R
 - **Ajuda**: Verificar atualizações, Novidades das versões, Página do projeto, Sobre
 - "Janela" saiu (o Windows já tem minimizar/fechar na barra de título). As ações vão pela página via `menu:action`; a ação de catálogo é consumida uma vez (voltar pra tela não reabre a importação)
 
+### 15.8 Correções do modo dev ✓
+- **Ícone do Electron no app instalado**: o `npm run dev` registrava o mesmo id do Windows do app instalado (`com.ednelson.meu-catalogo`). No primeiro aviso, o Electron criou sozinho um `Electron.lnk` no Menu Iniciar com esse id apontando pro `electron.exe` do projeto — e a barra de tarefas e os avisos do app instalado passaram a mostrar o ícone do Electron (o `.exe` instalado sempre teve o ícone certo). O dev agora usa `com.ednelson.meu-catalogo.dev`; o atalho errado foi removido. Se acontecer de novo: apagar `Electron.lnk` com id `com.ednelson.meu-catalogo` em `%APPDATA%\Microsoft\Windows\Start Menu\Programs`
+- Cache do Chromium separado (`dev-session`): com o app instalado aberto, os dois disputavam a pasta ("Unable to create cache", "Acesso negado")
+- Botão dentro de botão nas coleções do menu lateral (o Vite 8 passou a repetir esse erro do console no terminal) e aviso de CSP do Electron silenciado só no dev
+
 **Testes:** 48 de interface (7 novos: menu da janela, itens navegando, menu lateral, resumo + "Não assistidos", filtros lembrados, backup automático ligado/desligado com rotação) + 52 de segurança, passando.
 
 ---
