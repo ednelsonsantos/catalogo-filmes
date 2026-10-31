@@ -106,3 +106,31 @@ test.describe('busca na TMDB', () => {
     await expect(field(page, 'Título \\*')).toHaveCount(0) // não carregou o formulário
   })
 })
+
+test('preencher manualmente um título que já está no catálogo pede confirmação (sem diferenciar acento/maiúscula)', async ({ page }) => {
+  await seed(page, [{ title: 'Ação Mutante', year: 2002 }])
+  const tryAdd = async (title, year) => {
+    await openAdd(page)
+    await page.getByRole('button', { name: /Preencher manualmente/ }).click()
+    await field(page, 'Título \\*').fill(title)
+    if (year) await field(page, 'Ano').fill(String(year))
+    await field(page, 'Categoria').selectOption('Filme')
+    await page.getByRole('button', { name: 'Adicionar à coleção' }).click()
+  }
+  const all = () => page.evaluate(() => window.api.getAll())
+
+  await tryAdd('acao mutante', 2002)
+  await expect(page.getByText('"Ação Mutante" (2002) já está na sua coleção. Adicionar outro mesmo assim?')).toBeVisible()
+  await page.getByRole('button', { name: 'Cancelar' }).last().click() // o da confirmação (o do formulário fica atrás)
+  expect(await all()).toHaveLength(1)
+  // continua no formulário com o que foi digitado
+  await expect(field(page, 'Título \\*')).toHaveValue('acao mutante')
+  await page.getByRole('button', { name: 'Adicionar à coleção' }).click()
+  await page.getByRole('button', { name: 'Adicionar mesmo assim' }).click()
+  await expect.poll(async () => (await all()).length).toBe(2)
+
+  // mesmo título de outro ano (refilmagem) não é duplicado
+  await tryAdd('Ação Mutante', 2030)
+  await expect.poll(async () => (await all()).length).toBe(3)
+  await expect(page.getByText(/já está na sua coleção/)).toHaveCount(0)
+})

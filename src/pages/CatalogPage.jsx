@@ -166,6 +166,21 @@ export default function CatalogPage({ filmes, allFilmes = filmes, tags = [], tmd
     return items
   }, [filmes, search, format, watchStatus, category, tagFilmeIds, providerFilter, sort])
 
+  // Detalhe: ← → percorrem a lista como ela está na tela (com filtros e ordenação)
+  const detailIndex = detail ? filtered.findIndex(f => f.id === detail.id) : -1
+  const goPrev = useCallback(() => setDetail(filtered[detailIndex - 1]), [filtered, detailIndex])
+  const goNext = useCallback(() => setDetail(filtered[detailIndex + 1]), [filtered, detailIndex])
+
+  // Sortear: abre um título ao acaso entre os que estão na lista (evita repetir o último sorteado)
+  const lastPickRef = useRef(null)
+  const pickRandom = useCallback(() => {
+    if (filtered.length === 0) return
+    const pool = filtered.length > 1 ? filtered.filter(f => f.id !== lastPickRef.current) : filtered
+    const pick = pool[Math.floor(Math.random() * pool.length)]
+    lastPickRef.current = pick.id
+    setDetail(pick)
+  }, [filtered])
+
   // Serviços presentes na coleção (pelo cache do "Onde assistir"), do mais comum pro menos
   const providerOptions = useMemo(() => {
     const byId = new Map()
@@ -325,6 +340,7 @@ export default function CatalogPage({ filmes, allFilmes = filmes, tags = [], tmd
             <option value="watched">Assistido recentemente</option>
             <option value="added">Adicionado por último</option>
           </select>
+          <button className="btn btn-sm" onClick={pickRandom} disabled={filtered.length === 0} title="Abre um título ao acaso entre os que estão na lista (use os filtros pra escolher de onde sortear)">🎲 Sortear</button>
           <div className="view-toggle">
             <button className={`btn btn-icon btn-sm ${viewMode === 'grid' ? 'active' : ''}`} onClick={() => setViewMode('grid')}><IconGrid /></button>
             <button className={`btn btn-icon btn-sm ${viewMode === 'list' ? 'active' : ''}`} onClick={() => setViewMode('list')}><IconList /></button>
@@ -368,6 +384,9 @@ export default function CatalogPage({ filmes, allFilmes = filmes, tags = [], tmd
           onEdit={() => { onEdit(detail); setDetail(null) }}
           onDelete={() => handleDelete(detail)}
           onUpdated={(updated) => { setDetail(updated); onFilmeUpdated?.(updated) }}
+          onPrev={detailIndex > 0 ? goPrev : null}
+          onNext={detailIndex >= 0 && detailIndex < filtered.length - 1 ? goNext : null}
+          position={detailIndex >= 0 ? `${detailIndex + 1} de ${filtered.length}` : null}
           showToast={showToast} />
       )}
 

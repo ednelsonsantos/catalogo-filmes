@@ -590,6 +590,21 @@ O menu era o padrão do Electron: em inglês (File/Edit/View/Window/Help), com R
 
 ---
 
+## Fase 16 — Escolher o que assistir (v1.14.0)
+
+### 16.1 Sortear um título ✓
+Botão "🎲 Sortear" na barra do catálogo: abre o detalhe de um título ao acaso **entre os que estão na lista** — os filtros decidem de onde sortear (ex: "Não assistidos" + Netflix). Não repete o último sorteado quando há mais de uma opção; desabilitado com a lista vazia
+
+### 16.2 ← → no detalhe ✓
+Com o detalhe aberto, ← → (ou ‹ › no topo) passam pro título anterior/próximo **na ordem da tela** (filtros e ordenação), com a posição "2 de 30"; param nas pontas e não roubam as setas de um campo em uso (seletor de episódio). Junto: a capa é limpa ao trocar (ficava a do título anterior quando o próximo não tinha) e o painel de episódios recomeça pra cada título
+
+### 16.3 Aviso de duplicado ao salvar ✓
+A busca e a importação já avisavam "Já na coleção"; o "Preencher manualmente" e a foto da capa não. Agora, ao adicionar, título igual a um do catálogo (sem diferenciar acento, maiúscula ou espaços; ou mesmo ID da TMDB/IMDb) pede confirmação — "Adicionar mesmo assim" ou voltar ao formulário com o que foi digitado. O ano só conta quando os dois têm: mesmo título de outro ano (refilmagem) passa direto
+
+**Testes:** 52 de interface (3 novos: setas no detalhe, sortear, duplicado com acento/maiúscula e refilmagem).
+
+---
+
 ## Backlog de ideias (não detalhadas ainda)
 
 - ~~**⚠ Risco:** categoria "Animação" tratada como série pra fins de episódios, mesmo quando é um filme avulso~~ — **corrigido na v1.3.1**, ver Fase 13.1

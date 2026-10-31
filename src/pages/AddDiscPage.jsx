@@ -8,6 +8,7 @@ import ProgressSelector from '../components/add/ProgressSelector.jsx'
 import CollectionsPicker from '../components/add/CollectionsPicker.jsx'
 import TagsPicker from '../components/add/TagsPicker.jsx'
 import TitleSearchPanel from '../components/add/TitleSearchPanel.jsx'
+import ConfirmModal from '../components/ConfirmModal.jsx'
 import { omdbToFilme, tmdbToFilme, tmdbToFilmeTv } from '../utils/titleMappers.js'
 import { extractTitleFromImage, fileToBase64 } from '../utils/ocr.js'
 import './AddDiscPage.css'
@@ -44,6 +45,7 @@ export default function AddDiscPage({ settings, editFilme, filmes = [], collecti
   const [searchResults, setSearchResults] = useState([])
   const [searching, setSearching] = useState(false)
   const [duplicateWarning, setDuplicateWarning] = useState(null)
+  const [confirmingDuplicate, setConfirmingDuplicate] = useState(null) // título igual já no catálogo, ao salvar
   const [saving, setSaving] = useState(false)
   // true quando o checkbox "Assistido" foi marcado (de desmarcado pra marcado) nesta sessão de edição —
   // dispara a sincronização de episódios no save, independente do estado com que a edição começou
@@ -302,9 +304,29 @@ export default function AddDiscPage({ settings, editFilme, filmes = [], collecti
 
   // ── Salvar ───────────────────────────────────────────────────────────────────
 
-  const handleSave = useCallback(async () => {
+  // Título igual já no catálogo (sem diferenciar acento/maiúscula; ano só conta quando os dois têm).
+  // A busca já avisa ao escolher o resultado — isto cobre o "Preencher manualmente" e a foto da capa.
+  const findSameTitle = useCallback((f) => {
+    const norm = (t) => (t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s+/g, ' ').trim()
+    const title = norm(f.title)
+    if (!title) return null
+    return filmes.find(x => {
+      if (f.tmdb_id && x.tmdb_id && String(x.tmdb_id) === String(f.tmdb_id)) return true
+      if (f.imdb_id && x.imdb_id && x.imdb_id === f.imdb_id) return true
+      const sameTitle = norm(x.title) === title || (!!x.original_title && norm(x.original_title) === title)
+      const yearsDiffer = f.year && x.year && Number(f.year) !== Number(x.year)
+      return sameTitle && !yearsDiffer
+    }) || null
+  }, [filmes])
+
+  const handleSave = useCallback(async (force = false) => {
     if (!filme.title.trim()) { showToast('Informe o título.', 'error'); return }
     if (!filme.category) { showToast('Selecione uma categoria.', 'error'); return }
+    if (!isEditing && force !== true) {
+      const existing = findSameTitle(filme)
+      if (existing) { setConfirmingDuplicate(existing); return }
+    }
+    setConfirmingDuplicate(null)
     setSaving(true)
     try {
       let saved = isEditing
@@ -340,7 +362,7 @@ export default function AddDiscPage({ settings, editFilme, filmes = [], collecti
     } catch (e) {
       console.error(e); showToast('Erro ao salvar.', 'error')
     } finally { setSaving(false) }
-  }, [filme, coverFile, isEditing, editFilme, onSaved, showToast, selectedCollections, selectedTags, watchedJustChecked, progressTouched, currentSeason, currentEpisode])
+  }, [filme, coverFile, isEditing, editFilme, onSaved, showToast, selectedCollections, selectedTags, watchedJustChecked, progressTouched, currentSeason, currentEpisode, findSameTitle])
 
   return (
     <div className="page add-page">
@@ -536,6 +558,17 @@ export default function AddDiscPage({ settings, editFilme, filmes = [], collecti
         </div>
       </div>
       </>}
+
+      {confirmingDuplicate && (
+        <ConfirmModal
+          title="Já está no catálogo"
+          message={`"${confirmingDuplicate.title}"${confirmingDuplicate.year ? ` (${confirmingDuplicate.year})` : ''} já está na sua coleção. Adicionar outro mesmo assim?`}
+          confirmLabel="Adicionar mesmo assim"
+          danger={false}
+          onConfirm={() => handleSave(true)}
+          onCancel={() => setConfirmingDuplicate(null)}
+        />
+      )}
     </div>
   )
 }

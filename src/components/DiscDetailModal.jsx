@@ -3,7 +3,7 @@ import EpisodesPanel from './EpisodesPanel.jsx'
 import { SERIES_CATEGORIES } from '../constants.js'
 import { parseProviders, providerLogo } from '../utils/providers.js'
 
-export default function DiscDetailModal({ filme, onClose, onEdit, onDelete, onUpdated, showToast }) {
+export default function DiscDetailModal({ filme, onClose, onEdit, onDelete, onUpdated, showToast, onPrev, onNext, position }) {
   const [coverSrc, setCoverSrc] = useState(null)
   const [liveFilme, setLiveFilme] = useState(filme)
   const [providers, setProviders] = useState([])
@@ -27,6 +27,7 @@ export default function DiscDetailModal({ filme, onClose, onEdit, onDelete, onUp
 
   useEffect(() => {
     const load = async () => {
+      setCoverSrc(null) // ao passar pro próximo pelas setas, não fica a capa do anterior
       if (liveFilme.cover_path) {
         const data = await window.api.readCover(liveFilme.cover_path)
         if (data) { setCoverSrc(data); return }
@@ -37,10 +38,16 @@ export default function DiscDetailModal({ filme, onClose, onEdit, onDelete, onUp
   }, [liveFilme])
 
   useEffect(() => {
-    const onKey = (e) => { if (e.key === 'Escape') onClose() }
+    const onKey = (e) => {
+      if (e.key === 'Escape') { onClose(); return }
+      // ← → passam pro título anterior/próximo da lista — mas não roubam as setas de um campo em uso (seletor de episódio etc.)
+      if (['INPUT', 'SELECT', 'TEXTAREA'].includes(document.activeElement?.tagName)) return
+      if (e.key === 'ArrowLeft' && onPrev) { e.preventDefault(); onPrev() }
+      if (e.key === 'ArrowRight' && onNext) { e.preventDefault(); onNext() }
+    }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [onClose])
+  }, [onClose, onPrev, onNext])
 
   const handleEpisodesUpdated = (updated) => {
     setLiveFilme(updated)
@@ -69,7 +76,16 @@ export default function DiscDetailModal({ filme, onClose, onEdit, onDelete, onUp
 
         {/* Info */}
         <div style={{ flex: 1, padding: '24px 24px 24px 0', overflow: 'auto', display: 'flex', flexDirection: 'column', gap: 14 }}>
-          <button onClick={onClose} style={{ alignSelf: 'flex-end', background: 'none', border: 'none', color: 'var(--text3)', cursor: 'pointer', fontSize: 18, lineHeight: 1 }}>✕</button>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 4 }}>
+            {(onPrev || onNext) && (
+              <>
+                <button className="btn btn-icon btn-sm btn-ghost" onClick={onPrev} disabled={!onPrev} title="Anterior (←)" aria-label="Anterior">‹</button>
+                {position && <span data-testid="detail-position" style={{ fontSize: 11, color: 'var(--text3)', minWidth: 44, textAlign: 'center' }}>{position}</span>}
+                <button className="btn btn-icon btn-sm btn-ghost" onClick={onNext} disabled={!onNext} title="Próximo (→)" aria-label="Próximo">›</button>
+              </>
+            )}
+            <button onClick={onClose} aria-label="Fechar" style={{ background: 'none', border: 'none', color: 'var(--text3)', cursor: 'pointer', fontSize: 18, lineHeight: 1, marginLeft: 6 }}>✕</button>
+          </div>
 
           <div>
             <h2 style={{ fontSize: 18, fontWeight: 600, color: 'var(--text)', lineHeight: 1.3 }}>{liveFilme.title}</h2>
@@ -136,7 +152,7 @@ export default function DiscDetailModal({ filme, onClose, onEdit, onDelete, onUp
           )}
 
           {hasEpisodes && (
-            <EpisodesPanel filme={liveFilme} onUpdated={handleEpisodesUpdated} showToast={showToast} />
+            <EpisodesPanel key={liveFilme.id} filme={liveFilme} onUpdated={handleEpisodesUpdated} showToast={showToast} />
           )}
 
           <div style={{ display: 'flex', gap: 8, marginTop: 'auto', paddingTop: 8, borderTop: '1px solid var(--border)' }}>
