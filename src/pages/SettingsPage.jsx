@@ -19,6 +19,11 @@ const formatDate = (iso) => iso
   : null
 
 const sectionTitle = { fontSize: 15, fontWeight: 600, marginBottom: 6 }
+const THEME_OPTIONS = [
+  { id: 'dark', label: 'Escuro' },
+  { id: 'light', label: 'Claro' },
+  { id: 'system', label: 'Seguir o Windows' },
+]
 const sectionText = { fontSize: 12, color: 'var(--text3)', marginBottom: 12, lineHeight: 1.6 }
 
 export default function SettingsPage({ settings, onSave, showToast, appVersion, updateStatus = { enabled: false, state: 'idle' }, onCheckUpdates, filmes = [], onFilmeUpdated, onEdit }) {
@@ -46,6 +51,12 @@ export default function SettingsPage({ settings, onSave, showToast, appVersion, 
     try { setPrefs(await window.api.prefsSet({ [key]: value })) }
     catch { setPrefs(await window.api.prefsGet()) }
     if (key === 'autoBackup') window.api.backupAutoStatus().then(setAutoBackup).catch(() => {})
+  }
+
+  const setTheme = async (theme) => {
+    setPrefs(p => ({ ...p, theme }))
+    try { setPrefs(await window.api.prefsSet({ theme })) }
+    catch { setPrefs(await window.api.prefsGet()) }
   }
 
   const handleBackup = async () => {
@@ -140,6 +151,21 @@ export default function SettingsPage({ settings, onSave, showToast, appVersion, 
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
 
+        {/* Aparência */}
+        <div className="card">
+          <h2 style={sectionTitle}>Aparência</h2>
+          {prefs && (
+            <div role="radiogroup" aria-label="Tema" style={{ display: 'flex', gap: 18, flexWrap: 'wrap' }}>
+              {THEME_OPTIONS.map(t => (
+                <label key={t.id} className="pref-check">
+                  <input type="radio" name="theme" data-testid={`theme-${t.id}`} checked={prefs.theme === t.id} onChange={() => setTheme(t.id)} />
+                  {t.label}
+                </label>
+              ))}
+            </div>
+          )}
+        </div>
+
         {/* Avisos e segundo plano */}
         <div className="card">
           <h2 style={sectionTitle}>Avisos de episódios</h2>
@@ -166,7 +192,7 @@ export default function SettingsPage({ settings, onSave, showToast, appVersion, 
           <h2 style={sectionTitle}>Backup</h2>
           <p style={sectionText}>
             Tudo fica só no seu computador — sem isso, um disco com defeito leva sua coleção toda junto.
-            O backup inclui o banco de dados, capas, chaves de API e cache dos animes num único arquivo .zip.
+            O backup inclui o banco de dados, capas e pôsteres, chaves de API e cache dos animes num único arquivo .zip.
           </p>
 
           {prefs && autoBackup && (

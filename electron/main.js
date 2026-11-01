@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog, shell, Tray, Menu, nativeImage } = require('electron')
+const { app, BrowserWindow, ipcMain, dialog, shell, Tray, Menu, nativeImage, nativeTheme } = require('electron')
 const path = require('path')
 const fs = require('fs')
 
@@ -246,6 +246,11 @@ function createDatabase() {
   })()
   db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_tags_name_nocase ON tags(name COLLATE NOCASE)')
 
+  // Títulos removidos antes da v1.15.0 deixavam tags e episódios assistidos pra trás
+  for (const table of ['filme_colecao', 'filme_tag', 'episodios_assistidos']) {
+    db.exec(`DELETE FROM ${table} WHERE filme_id NOT IN (SELECT id FROM filmes)`)
+  }
+
   // Filmes buscados pela TMDB antes da v1.3.1 ficaram sem tipo; a busca de série nunca preenche imdb_id
   db.prepare(`
     UPDATE filmes SET tmdb_media_type = 'movie'
@@ -270,7 +275,7 @@ function createWindow() {
       contextIsolation: true,
       nodeIntegration: false,
     },
-    backgroundColor: '#0f0f0f',
+    backgroundColor: themeBackground(),
     show: false,
   })
 
@@ -340,13 +345,29 @@ function createWindow() {
 
 // ─── SEGUNDO PLANO: bandeja, iniciar com o Windows ────────────────────────────
 
-let _prefs = { closeToTray: false, openAtLogin: false, autoBackup: true }
+let _prefs = { closeToTray: false, openAtLogin: false, autoBackup: true, theme: 'dark' }
 let _tray = null
 let _isQuitting = false
 
 function readSettingsFile() {
   try { return JSON.parse(fs.readFileSync(path.join(app.getPath('userData'), 'settings.json'), 'utf8')) } catch { return {} }
 }
+
+// Tema: o nativeTheme decide o prefers-color-scheme da página (o CSS segue) e a cor da barra de título do Windows
+const THEMES = ['dark', 'light', 'system']
+const themeBackground = () => (nativeTheme.shouldUseDarkColors ? '#0f0f0f' : '#f4f2ee')
+function applyTheme() {
+  nativeTheme.themeSource = _prefs.theme
+  sendTheme()
+}
+function sendTheme() {
+  if (!mainWindow || mainWindow.isDestroyed()) return
+  mainWindow.setBackgroundColor(themeBackground())
+  mainWindow.webContents.send('theme:changed', { dark: nativeTheme.shouldUseDarkColors })
+}
+// "Seguir o Windows": o Windows trocou de claro/escuro com o app aberto
+nativeTheme.on('updated', sendTheme)
+ipcMain.handle('theme:get', () => ({ dark: nativeTheme.shouldUseDarkColors }))
 
 function loadPrefs() {
   const s = readSettingsFile()
@@ -356,7 +377,9 @@ function loadPrefs() {
     autoBackup: s.autoBackup !== false, // ligado por padrão
     backupDir: typeof s.backupDir === 'string' && s.backupDir ? s.backupDir : null,
     lastBackupAt: typeof s.lastBackupAt === 'string' ? s.lastBackupAt : null,
+    theme: THEMES.includes(s.theme) ? s.theme : 'dark', // escuro continua o padrão de quem já usava
   }
+  applyTheme()
 }
 
 function showMainWindow() {
@@ -391,8 +414,10 @@ ipcMain.handle('prefs:set', (_, patch) => {
   for (const key of ['closeToTray', 'openAtLogin', 'autoBackup']) {
     if (key in (patch || {})) next[key] = !!patch[key]
   }
+  if (THEMES.includes(patch?.theme)) next.theme = patch.theme
   _prefs = next
   savePrefs()
+  applyTheme()
   // só no app instalado: em dev registraria o electron.exe do projeto pra abrir com o Windows
   if (app.isPackaged) app.setLoginItemSettings({ openAtLogin: _prefs.openAtLogin, args: ['--hidden'] })
   return { ..._prefs, canOpenAtLogin: app.isPackaged }
@@ -629,6 +654,7 @@ ipcMain.handle('db:insert', (_, input) => {
     tmdb_media_type: filme.tmdb_media_type || '',
     my_rating: filme.my_rating === '' || filme.my_rating == null ? null : Number(filme.my_rating),
   })
+  schedulePosterSync()
   return getFilmeById(result.lastInsertRowid)
 })
 
@@ -651,14 +677,62 @@ ipcMain.handle('db:update', (_, filme) => {
     tmdb_media_type: filme.tmdb_media_type || '',
     my_rating: filme.my_rating === '' || filme.my_rating == null ? null : Number(filme.my_rating),
   })
+  schedulePosterSync()
   return getFilmeById(filme.id)
 })
 
+// Remove o título e tudo que é dele. Antes só saía da coleção: as tags e episódios ficavam órfãos
+// (a tag seguia contando o removido, e um título novo que reaproveitasse o id herdava tudo)
+function deleteFilmes(ids) {
+  db.transaction(() => {
+    for (const id of ids) {
+      for (const table of ['filme_colecao', 'filme_tag', 'episodios_assistidos']) {
+        db.prepare(`DELETE FROM ${table} WHERE filme_id = ?`).run(id)
+      }
+      db.prepare('DELETE FROM filmes WHERE id = ?').run(id)
+    }
+  })()
+}
+
 ipcMain.handle('db:delete', (_, id) => {
   if (!isPositiveInt(id)) throw new Error('Invalid ID')
-  db.prepare('DELETE FROM filme_colecao WHERE filme_id = ?').run(id)
-  db.prepare('DELETE FROM filmes WHERE id = ?').run(id)
+  deleteFilmes([id])
   return true
+})
+
+// ─── IPC: AÇÕES EM LOTE ───────────────────────────────────────────────────────
+// Vários títulos selecionados no catálogo de uma vez, numa transação só
+const BULK_MAX = 10000
+
+ipcMain.handle('bulk:apply', (_, { ids, action, targetId } = {}) => {
+  if (!Array.isArray(ids) || ids.length === 0 || ids.length > BULK_MAX) throw new Error('Invalid ids')
+  if (ids.some(id => !isPositiveInt(id))) throw new Error('Invalid id in array')
+  const unique = [...new Set(ids)]
+  const today = new Date().toISOString().slice(0, 10)
+  if (action === 'delete') { deleteFilmes(unique); return { changed: unique.length } }
+  if (['addColecao', 'addTag'].includes(action) && !isPositiveInt(targetId)) throw new Error('Invalid targetId')
+  if (action === 'addColecao' && !db.prepare('SELECT 1 FROM colecoes WHERE id = ?').get(targetId)) throw new Error('Coleção não encontrada')
+  if (action === 'addTag' && !db.prepare('SELECT 1 FROM tags WHERE id = ?').get(targetId)) throw new Error('Tag não encontrada')
+  let changed = 0
+  db.transaction(() => {
+    for (const id of unique) {
+      if (action === 'watched') {
+        // quem já tinha data mantém a dela; marcar assistido encerra o "assistindo" (igual ao individual)
+        changed += db.prepare("UPDATE filmes SET watched_at = COALESCE(NULLIF(watched_at, ''), ?), watching = 0 WHERE id = ?").run(today, id).changes
+      } else if (action === 'unwatched') {
+        changed += db.prepare('UPDATE filmes SET watched_at = NULL WHERE id = ?').run(id).changes
+      } else if (action === 'addColecao') {
+        if (!isPositiveInt(targetId)) throw new Error('Invalid colecaoId')
+        changed += db.prepare('INSERT OR IGNORE INTO filme_colecao (filme_id, colecao_id) SELECT id, ? FROM filmes WHERE id = ?').run(targetId, id).changes
+      } else if (action === 'addTag') {
+        if (!isPositiveInt(targetId)) throw new Error('Invalid tagId')
+        changed += db.prepare('INSERT OR IGNORE INTO filme_tag (filme_id, tag_id) SELECT id, ? FROM filmes WHERE id = ?').run(targetId, id).changes
+      } else {
+        throw new Error('Invalid action')
+      }
+    }
+  })()
+  return { changed }
 })
 
 // ─── IPC: COLEÇÕES ────────────────────────────────────────────────────────────
@@ -1116,6 +1190,114 @@ ipcMain.handle('cover:read', (_, filePath) => {
   } catch { return null }
 })
 
+// ─── Pôsteres guardados no disco ──────────────────────────────────────────────
+// O pôster da TMDB/OMDb é só um link: sem internet (ou se o link mudar) a imagem some e o backup não a leva.
+// Cada pôster é baixado uma vez pra posters/<id>-<hash da URL>.<ext> — trocar o pôster muda o nome do arquivo.
+const POSTER_HOSTS = ['image.tmdb.org', 'img.omdbapi.com', 'm.media-amazon.com'] // os mesmos do img-src da CSP
+const POSTER_EXTS = ['jpg', 'jpeg', 'png', 'webp']
+const POSTER_MAX_BYTES = 10 * 1024 * 1024
+const POSTER_FILE_RE = /^(\d+)-([0-9a-f]{12})\.(jpg|jpeg|png|webp)$/
+
+function postersDir() { return path.join(app.getPath('userData'), 'posters') }
+
+// Servidor local de teste (só fora do app instalado), como o CATALOGO_UPDATE_FEED
+function posterTestOrigin() {
+  return !app.isPackaged && process.env.CATALOGO_POSTER_ORIGIN ? process.env.CATALOGO_POSTER_ORIGIN : null
+}
+
+function parsePosterUrl(url) {
+  let parsed
+  try { parsed = new URL(String(url)) } catch { return null }
+  const allowed = (parsed.protocol === 'https:' && POSTER_HOSTS.includes(parsed.hostname))
+    || parsed.origin === posterTestOrigin()
+  return allowed ? parsed : null
+}
+
+function posterFileFor(id, url) {
+  const parsed = parsePosterUrl(url)
+  if (!isPositiveInt(id) || !parsed) return null
+  const ext = (parsed.pathname.split('.').pop() || '').toLowerCase()
+  const hash = require('crypto').createHash('sha1').update(parsed.href).digest('hex').slice(0, 12)
+  return { parsed, file: path.join(postersDir(), `${id}-${hash}.${POSTER_EXTS.includes(ext) ? ext : 'jpg'}`) }
+}
+
+function downloadImage(parsed, maxBytes = POSTER_MAX_BYTES) {
+  const client = parsed.protocol === 'http:' ? require('http') : require('https')
+  return new Promise((resolve) => {
+    const req = client.get(parsed, { timeout: 15000 }, (res) => {
+      if (res.statusCode !== 200 || !/^image\//.test(res.headers['content-type'] || '')) { res.resume(); resolve(null); return }
+      const chunks = []
+      let size = 0
+      res.on('data', c => {
+        size += c.length
+        if (size > maxBytes) { res.destroy(); resolve(null); return }
+        chunks.push(c)
+      })
+      res.on('end', () => { if (size <= maxBytes) resolve(Buffer.concat(chunks)) })
+      res.on('error', () => resolve(null))
+    })
+    req.on('timeout', () => req.destroy())
+    req.on('error', () => resolve(null))
+  })
+}
+
+function readImageDataUrl(file) {
+  try {
+    const ext = path.extname(file).slice(1).replace('jpg', 'jpeg')
+    return `data:image/${ext};base64,${fs.readFileSync(file).toString('base64')}`
+  } catch { return null }
+}
+
+ipcMain.handle('poster:read', (_, { id, url } = {}) => {
+  const target = posterFileFor(id, url)
+  return target && fs.existsSync(target.file) ? readImageDataUrl(target.file) : null
+})
+
+// Baixa os que faltam e apaga os que não servem mais (título removido ou pôster trocado).
+// Um de cada vez: são poucos KB cada e roda em segundo plano
+let _posterSync = null
+let _posterSyncAgain = false
+function syncPosters() {
+  // pedida no meio de outra (título acabou de ser salvo): roda de novo no fim, pra não perder o novo
+  if (_posterSync) { _posterSyncAgain = true; return _posterSync }
+  _posterSync = (async () => {
+    const result = { downloaded: 0, failed: 0, removed: 0 }
+    const myDb = db
+    if (!myDb) return result
+    const dir = postersDir()
+    fs.mkdirSync(dir, { recursive: true })
+    const wanted = new Set()
+    for (const f of myDb.prepare("SELECT id, poster_url FROM filmes WHERE poster_url IS NOT NULL AND poster_url <> ''").all()) {
+      const target = posterFileFor(f.id, f.poster_url)
+      if (!target) continue
+      wanted.add(path.basename(target.file))
+      if (fs.existsSync(target.file)) continue
+      const buf = await downloadImage(target.parsed)
+      if (!buf) { result.failed++; continue }
+      try { fs.writeFileSync(target.file, buf); result.downloaded++ } catch { result.failed++ }
+    }
+    if (db !== myDb) return result // backup restaurado no meio: a lista acima é do banco antigo
+    for (const name of fs.readdirSync(dir)) {
+      if (!POSTER_FILE_RE.test(name) || wanted.has(name)) continue
+      try { fs.rmSync(path.join(dir, name), { force: true }); result.removed++ } catch {}
+    }
+    return result
+  })().finally(() => {
+    _posterSync = null
+    if (_posterSyncAgain) { _posterSyncAgain = false; syncPosters() }
+  })
+  return _posterSync
+}
+
+// depois de salvar: espera um pouco pra juntar uma importação inteira numa só passada
+let _posterSyncTimer = null
+function schedulePosterSync() {
+  clearTimeout(_posterSyncTimer)
+  _posterSyncTimer = setTimeout(() => { syncPosters().catch(() => {}) }, 2000)
+}
+
+ipcMain.handle('poster:sync', () => syncPosters())
+
 // ─── IPC: EXPORT ──────────────────────────────────────────────────────────────
 
 function queryFilmesForExport(filmeIds) {
@@ -1254,6 +1436,8 @@ function writeBackupZip(filePath) {
   if (fs.existsSync(coversDir)) zip.addLocalFolder(coversDir, 'covers')
   const postersDir = path.join(userDataPath, 'mal-posters')
   if (fs.existsSync(postersDir)) zip.addLocalFolder(postersDir, 'mal-posters')
+  const savedPostersDir = path.join(userDataPath, 'posters')
+  if (fs.existsSync(savedPostersDir)) zip.addLocalFolder(savedPostersDir, 'posters')
   const cachePath = path.join(userDataPath, 'mal-cache.json')
   if (fs.existsSync(cachePath)) zip.addLocalFile(cachePath)
   const settingsPath = path.join(userDataPath, 'settings.json')
@@ -1505,7 +1689,6 @@ ipcMain.handle('mal:getAnimeList', async (_, { status = 'completed', limit = 100
 })
 
 const MAL_POSTER_HOSTS = ['cdn.myanimelist.net', 'api-cdn.myanimelist.net']
-const POSTER_MAX_BYTES = 10 * 1024 * 1024
 
 ipcMain.handle('mal:savePoster', async (_, { malId, url } = {}) => {
   // malId e URL vêm da página: sem estas checagens, "../settings" + ".json" devolvia o settings.json
@@ -1524,26 +1707,10 @@ ipcMain.handle('mal:savePoster', async (_, { malId, url } = {}) => {
     const data = fs.readFileSync(filePath)
     return `data:image/${ext};base64,${data.toString('base64')}`
   }
-  // baixa a imagem
-  const https = require('https')
-  return new Promise((resolve) => {
-    https.get(parsed, (res) => {
-      if (res.statusCode !== 200 || !/^image\//.test(res.headers['content-type'] || '')) { res.resume(); resolve(null); return }
-      const chunks = []
-      let size = 0
-      res.on('data', c => {
-        size += c.length
-        if (size > POSTER_MAX_BYTES) { res.destroy(); resolve(null); return }
-        chunks.push(c)
-      })
-      res.on('end', () => {
-        if (size > POSTER_MAX_BYTES) return
-        const buf = Buffer.concat(chunks)
-        try { fs.writeFileSync(filePath, buf) } catch {}
-        resolve(`data:image/${ext};base64,${buf.toString('base64')}`)
-      })
-    }).on('error', () => resolve(null))
-  })
+  const buf = await downloadImage(parsed)
+  if (!buf) return null
+  try { fs.writeFileSync(filePath, buf) } catch {}
+  return `data:image/${ext};base64,${buf.toString('base64')}`
 })
 
 ipcMain.handle('mal:saveCache', (_, animes) => {

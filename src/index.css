@@ -4,10 +4,35 @@
   --bg: #0f0f0f; --bg2: #161616; --bg3: #1e1e1e; --bg4: #252525;
   --border: #2a2a2a; --border2: #333;
   --text: #f0f0f0; --text2: #a0a0a0; --text3: #666;
-  --accent: #e8b84b; --accent2: #c9972f;
+  --accent: #e8b84b; --accent2: #c9972f; --accent-text: #e8b84b;
   --blue: #4a9eff; --green: #4caf7d; --red: #e05252;
+  --amber: #f59e0b; --purple: #a78bfa;
+  --on-accent: #1a1000; --border-hover: #444;
+  --danger-border: #3a2020; --danger-bg: #2a1414;
+  --toast-ok-bg: #1a2e1a; --toast-ok-border: #2d5a2d; --toast-ok-text: #6fcf7a;
+  --toast-err-bg: #2e1a1a; --toast-err-border: #5a2d2d; --toast-err-text: #cf6f6f;
+  --toast-info-bg: #1a1e2e; --toast-info-border: #2d3a5a; --toast-info-text: #6f9fcf;
   --radius: 8px; --radius-lg: 12px;
   --shadow: 0 4px 24px rgba(0,0,0,0.5);
+  color-scheme: dark;
+}
+
+/* Tema claro (Configurações → Aparência): o processo principal resolve o tema — inclusive "Seguir o Windows" —
+   e a página marca <html data-theme="light"> */
+:root[data-theme="light"] {
+  --bg: #f4f2ee; --bg2: #ffffff; --bg3: #efece6; --bg4: #e6e2da;
+  --border: #e0dbd2; --border2: #cfc9bd;
+  --text: #1d1b18; --text2: #57534b; --text3: #8a8478;
+  --accent: #e0ac35; --accent2: #a87a12; --accent-text: #8f6200;
+  --blue: #1f6bc9; --green: #23804f; --red: #c63636;
+  --amber: #b46a00; --purple: #6e46c9;
+  --on-accent: #1a1000; --border-hover: #bdb6a8;
+  --danger-border: #efc9c9; --danger-bg: #fbeaea;
+  --toast-ok-bg: #e8f5ec; --toast-ok-border: #a9d8b8; --toast-ok-text: #1e6b3f;
+  --toast-err-bg: #fbeaea; --toast-err-border: #eab0b0; --toast-err-text: #a12b2b;
+  --toast-info-bg: #e8effa; --toast-info-border: #aec4e8; --toast-info-text: #234f8f;
+  --shadow: 0 4px 20px rgba(60,50,30,0.14);
+  color-scheme: light;
 }
 
 html, body, #root { height: 100%; }
@@ -23,7 +48,7 @@ body {
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: #444; }
+::-webkit-scrollbar-thumb:hover { background: var(--border-hover); }
 
 button { font-family: inherit; cursor: pointer; }
 input, textarea, select { font-family: inherit; }

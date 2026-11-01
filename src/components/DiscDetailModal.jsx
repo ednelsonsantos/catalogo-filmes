@@ -2,10 +2,11 @@ import React, { useState, useEffect } from 'react'
 import EpisodesPanel from './EpisodesPanel.jsx'
 import { SERIES_CATEGORIES } from '../constants.js'
 import { parseProviders, providerLogo } from '../utils/providers.js'
+import { usePosterSrc } from '../utils/usePosterSrc.js'
 
 export default function DiscDetailModal({ filme, onClose, onEdit, onDelete, onUpdated, showToast, onPrev, onNext, position }) {
-  const [coverSrc, setCoverSrc] = useState(null)
   const [liveFilme, setLiveFilme] = useState(filme)
+  const coverSrc = usePosterSrc(liveFilme)
   const [providers, setProviders] = useState([])
 
   useEffect(() => { setLiveFilme(filme) }, [filme])
@@ -24,18 +25,6 @@ export default function DiscDetailModal({ filme, onClose, onEdit, onDelete, onUp
       .catch(() => {})
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [liveFilme.id, liveFilme.tmdb_id, liveFilme.imdb_id])
-
-  useEffect(() => {
-    const load = async () => {
-      setCoverSrc(null) // ao passar pro próximo pelas setas, não fica a capa do anterior
-      if (liveFilme.cover_path) {
-        const data = await window.api.readCover(liveFilme.cover_path)
-        if (data) { setCoverSrc(data); return }
-      }
-      if (liveFilme.poster_url && liveFilme.poster_url !== 'N/A') setCoverSrc(liveFilme.poster_url)
-    }
-    load()
-  }, [liveFilme])
 
   useEffect(() => {
     const onKey = (e) => {
@@ -96,19 +85,19 @@ export default function DiscDetailModal({ filme, onClose, onEdit, onDelete, onUp
 
           {/* Badges: categoria + ano + formatos + duração + nota */}
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
-            {liveFilme.category && <span style={{ fontSize: 11, fontWeight: 600, background: 'rgba(140,100,255,0.15)', color: '#a78bfa', padding: '2px 8px', borderRadius: 4 }}>{liveFilme.category}</span>}
+            {liveFilme.category && <span style={{ fontSize: 11, fontWeight: 600, background: 'rgba(140,100,255,0.15)', color: 'var(--purple)', padding: '2px 8px', borderRadius: 4 }}>{liveFilme.category}</span>}
             {liveFilme.year && <span style={{ fontSize: 12, background: 'var(--bg4)', color: 'var(--text2)', padding: '2px 8px', borderRadius: 4 }}>{liveFilme.year}</span>}
             {formats.map(f => (
-              <span key={f} style={{ fontSize: 11, fontWeight: 600, background: 'rgba(74,158,255,0.12)', color: '#4a9eff', padding: '2px 8px', borderRadius: 4 }}>{f}</span>
+              <span key={f} style={{ fontSize: 11, fontWeight: 600, background: 'rgba(74,158,255,0.12)', color: 'var(--blue)', padding: '2px 8px', borderRadius: 4 }}>{f}</span>
             ))}
             {liveFilme.runtime && liveFilme.runtime !== 'N/A' && <span style={{ fontSize: 12, color: 'var(--text3)' }}>⏱ {liveFilme.runtime}</span>}
-            {liveFilme.imdb_rating && liveFilme.imdb_rating !== 'N/A' && <span style={{ fontSize: 12, color: 'var(--accent)', fontWeight: 600 }}>★ {liveFilme.imdb_rating} IMDb</span>}
-            {liveFilme.my_rating != null && liveFilme.my_rating !== '' && <span style={{ fontSize: 12, color: '#4a9eff', fontWeight: 600 }}>★ {liveFilme.my_rating}/10 Minha nota</span>}
+            {liveFilme.imdb_rating && liveFilme.imdb_rating !== 'N/A' && <span style={{ fontSize: 12, color: 'var(--accent-text)', fontWeight: 600 }}>★ {liveFilme.imdb_rating} IMDb</span>}
+            {liveFilme.my_rating != null && liveFilme.my_rating !== '' && <span style={{ fontSize: 12, color: 'var(--blue)', fontWeight: 600 }}>★ {liveFilme.my_rating}/10 Minha nota</span>}
           </div>
 
           {/* Assistindo */}
           {!!liveFilme.watching && (
-            <div style={{ fontSize: 12, color: '#4a9eff', display: 'flex', alignItems: 'center', gap: 5 }}>
+            <div style={{ fontSize: 12, color: 'var(--blue)', display: 'flex', alignItems: 'center', gap: 5 }}>
               <span>▶</span>
               <span>Assistindo</span>
             </div>

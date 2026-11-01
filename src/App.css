@@ -73,12 +73,12 @@
   color: var(--text); font-size: 13px; font-weight: 500;
   transition: all 0.15s; cursor: pointer;
 }
-.btn:hover { background: var(--bg4); border-color: #444; }
+.btn:hover { background: var(--bg4); border-color: var(--border-hover); }
 .btn:active { transform: scale(0.98); }
-.btn-primary { background: var(--accent); border-color: var(--accent); color: #1a1000; }
+.btn-primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
 .btn-primary:hover { background: var(--accent2); border-color: var(--accent2); }
-.btn-danger { color: var(--red); border-color: #3a2020; }
-.btn-danger:hover { background: #2a1414; }
+.btn-danger { color: var(--red); border-color: var(--danger-border); }
+.btn-danger:hover { background: var(--danger-bg); }
 .btn-ghost { background: transparent; border-color: transparent; }
 .btn-ghost:hover { background: var(--bg3); border-color: var(--border); }
 .btn-sm { padding: 5px 10px; font-size: 12px; }

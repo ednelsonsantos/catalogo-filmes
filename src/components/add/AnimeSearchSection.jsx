@@ -1,21 +1,6 @@
 import React, { useState } from 'react'
-import AnimeAddModal from './AnimeAddModal.jsx'
-
-const STATUS_LABELS_ADD = {
-  watching:      'Assistindo',
-  completed:     'Completo',
-  on_hold:       'Em pausa',
-  dropped:       'Abandonado',
-  plan_to_watch: 'Planejo assistir',
-}
-
-const STATUS_COLORS_ADD = {
-  watching:      '#4a9eff',
-  completed:     '#4caf7d',
-  on_hold:       '#f59e0b',
-  dropped:       '#ef4444',
-  plan_to_watch: '#8b8b8b',
-}
+import AnimeStatusModal from '../anime/AnimeStatusModal.jsx'
+import { statusColor, statusLabel, malScore, posterUrl } from '../../utils/mal.js'
 
 export default function AnimeSearchSection({ settings, showToast, animeList = [], setAnimeList, onCancel }) {
   const [query, setQuery]             = useState('')
@@ -100,8 +85,8 @@ export default function AnimeSearchSection({ settings, showToast, animeList = []
       {results.length > 0 && (
         <div className="search-results">
           {results.map(({ node }) => {
-            const poster   = node._cachedPoster || node.main_picture?.large || node.main_picture?.medium
-            const malScore = node.mean ? Number(node.mean).toFixed(2) : null
+            const poster   = node._cachedPoster || posterUrl(node)
+            const score    = malScore(node)
             const year     = node.start_date?.slice(0, 4)
             const type     = node.media_type || ''
             const eps      = node.num_episodes > 0 ? `${node.num_episodes} eps` : null
@@ -136,11 +121,11 @@ export default function AnimeSearchSection({ settings, showToast, animeList = []
                     </div>
                   )}
                   <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 2 }}>
-                    {[year, type, eps, malScore && `⭐ ${malScore}`].filter(Boolean).join(' · ')}
+                    {[year, type, eps, score && `⭐ ${score}`].filter(Boolean).join(' · ')}
                   </div>
                 </div>
                 {dup && (
-                  <span style={{ fontSize: 10, fontWeight: 600, color: '#f59e0b', background: 'rgba(234,179,8,0.12)', border: '1px solid rgba(234,179,8,0.3)', padding: '2px 7px', borderRadius: 99, whiteSpace: 'nowrap', alignSelf: 'center', flexShrink: 0 }}>
+                  <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--amber)', background: 'rgba(234,179,8,0.12)', border: '1px solid rgba(234,179,8,0.3)', padding: '2px 7px', borderRadius: 99, whiteSpace: 'nowrap', alignSelf: 'center', flexShrink: 0 }}>
                     Já na lista
                   </span>
                 )}
@@ -155,13 +140,13 @@ export default function AnimeSearchSection({ settings, showToast, animeList = []
         const sc   = ls?.score > 0 ? ls.score : null
         const eps  = ls?.num_episodes_watched > 0 ? ls.num_episodes_watched : null
         const totEps = dupWarning.node?.num_episodes > 0 ? dupWarning.node.num_episodes : null
-        const color  = STATUS_COLORS_ADD[ls?.status] || '#8b8b8b'
-        const label  = STATUS_LABELS_ADD[ls?.status] || ls?.status || '—'
+        const color  = statusColor(ls?.status)
+        const label  = statusLabel(ls?.status) || '—'
         return (
           <div style={{ marginTop: 12, padding: '12px 14px', background: 'rgba(234,179,8,0.08)', border: '1px solid rgba(234,179,8,0.35)', borderRadius: 8, display: 'flex', gap: 10, alignItems: 'flex-start' }}>
             <span style={{ fontSize: 16, flexShrink: 0 }}>⚠️</span>
             <div style={{ flex: 1 }}>
-              <p style={{ fontSize: 13, fontWeight: 600, color: '#f59e0b', margin: '0 0 4px' }}>
+              <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--amber)', margin: '0 0 4px' }}>
                 "{dupWarning.node?.title}" já está na sua lista
               </p>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 12px', fontSize: 12, color: 'var(--text2)' }}>
@@ -184,7 +169,8 @@ export default function AnimeSearchSection({ settings, showToast, animeList = []
       )}
 
       {editAnime && (
-        <AnimeAddModal
+        <AnimeStatusModal
+          mode="add"
           anime={editAnime}
           onSave={(animeId, patch) => handleSaveAnime(animeId, patch, editAnime.node)}
           onClose={() => setEditAnime(null)}

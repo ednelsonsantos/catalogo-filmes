@@ -66,6 +66,8 @@ export default function App() {
         }
       }
       notifyPending(pendingNotifications(filmesRef.current, animeRef.current), () => window.api.appShow())
+      // guarda no disco os pôsteres que ainda são só link (em segundo plano; os já baixados não repetem)
+      window.api.posterSync().catch(() => {})
       // backup automático semanal (o processo principal decide se já está na hora)
       await window.api.backupAutoCheck().catch(() => {})
     } finally {
@@ -275,9 +277,14 @@ export default function App() {
             tmdbConfigured={!!settings.tmdbConfigured}
             onImported={refresh}
             onEdit={handleEdit}
-            onDelete={async () => { await refresh(); await refreshCollections(); if (selectedCollection) { const ids = await window.api.colecoesGetFilmeIds(selectedCollection.id); setCollectionFilmeIds(ids) } }}
+            onDelete={async () => { await refresh(); await refreshCollections(); await refreshTags(); if (selectedCollection) { const ids = await window.api.colecoesGetFilmeIds(selectedCollection.id); setCollectionFilmeIds(ids) } }}
             onToggleWatched={handleToggleWatched}
             onFilmeUpdated={handleFilmeUpdated}
+            collections={collections}
+            onBulkDone={async () => {
+              await Promise.all([refresh(), refreshCollections(), refreshTags()])
+              if (selectedCollection) setCollectionFilmeIds(await window.api.colecoesGetFilmeIds(selectedCollection.id))
+            }}
             showToast={showToast}
             selectedCollection={selectedCollection}
             command={catalogCommand}

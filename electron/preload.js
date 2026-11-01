@@ -33,6 +33,15 @@ contextBridge.exposeInMainWorld('api', {
   // Capas
   saveCover:         (p)      => ipcRenderer.invoke('cover:save', p),
   readCover:         (path)   => ipcRenderer.invoke('cover:read', path),
+  readPoster:        (id, url) => ipcRenderer.invoke('poster:read', { id, url }),
+  posterSync:        ()       => ipcRenderer.invoke('poster:sync'),
+  bulkApply:         (p)      => ipcRenderer.invoke('bulk:apply', p),
+  themeGet:          ()       => ipcRenderer.invoke('theme:get'),
+  onThemeChanged:    (cb)     => {
+    const listener = (_, t) => cb(t)
+    ipcRenderer.on('theme:changed', listener)
+    return () => ipcRenderer.removeListener('theme:changed', listener)
+  },
 
   // Export
   exportCsv:         (opts)   => ipcRenderer.invoke('export:csv', opts),

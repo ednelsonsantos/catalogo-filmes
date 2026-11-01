@@ -1,0 +1,122 @@
+/* Página do MyAnimeList, cartões/linhas e o modal de status (também usado em Adicionar → Anime) */
+
+.anime-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
+.anime-header .page-title { margin: 0; }
+.anime-header-actions { display: flex; gap: 8px; }
+
+.anime-empty { text-align: center; padding: 40px 32px; margin-bottom: 16px; }
+.anime-empty-icon { font-size: 40px; margin-bottom: 16px; }
+.anime-empty h2 { font-size: 15px; font-weight: 600; margin-bottom: 8px; }
+.anime-empty p { font-size: 13px; color: var(--text2); line-height: 1.7; }
+.anime-empty .anime-empty-hint { font-size: 12px; color: var(--text3); line-height: 1.6; margin-top: 20px; }
+.anime-empty code { background: var(--bg4); padding: 1px 5px; border-radius: 4px; }
+
+.anime-waiting {
+  margin-bottom: 20px; display: flex; gap: 12px; align-items: center;
+  background: rgba(74,158,255,0.06); border: 1px solid rgba(74,158,255,0.25);
+}
+.anime-waiting .spinner { width: 18px; height: 18px; flex-shrink: 0; }
+.anime-waiting p { font-size: 13px; font-weight: 500; }
+.anime-waiting p + p { font-size: 12px; font-weight: 400; color: var(--text2); margin-top: 2px; }
+
+.anime-toolbar { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; }
+.anime-toolbar .btn-sm { font-size: 12px; }
+.anime-search, .anime-sort {
+  background: var(--bg3); border: 1px solid var(--border2); border-radius: var(--radius); color: var(--text);
+}
+.anime-search { padding: 7px 12px; font-size: 13px; width: 200px; }
+.anime-sort { padding: 6px 10px; font-size: 12px; }
+.anime-toolbar-right { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+.anime-view-toggle { display: flex; gap: 2px; }
+.anime-view-toggle .btn.active { background: var(--bg4); color: var(--accent-text); border-color: var(--accent); }
+
+.anime-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; }
+.anime-list { display: flex; flex-direction: column; gap: 4px; }
+.anime-none { text-align: center; padding: 40px 0; color: var(--text3); font-size: 13px; }
+
+/* Cartão (grade) */
+.anime-card {
+  background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; overflow: hidden;
+  display: flex; flex-direction: column; cursor: pointer; transition: border-color 0.15s, transform 0.1s;
+}
+.anime-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+.anime-card-cover { position: relative; aspect-ratio: 2/3; background: var(--bg4); overflow: hidden; }
+.anime-poster { width: 100%; height: 100%; object-fit: cover; display: block; }
+.anime-poster-empty { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 28px; }
+.anime-card-missing {
+  position: absolute; top: 5px; left: 5px; background: rgba(245,158,11,0.9); color: #fff;
+  font-size: 9px; font-weight: 700; padding: 2px 5px; border-radius: 4px;
+}
+.anime-card-status {
+  position: absolute; bottom: 0; left: 0; right: 0; color: #fff; font-size: 9px; font-weight: 700;
+  padding: 3px 6px; text-transform: uppercase; letter-spacing: 0.05em; text-align: center;
+}
+.anime-card-myscore {
+  position: absolute; top: 5px; right: 5px; background: rgba(0,0,0,0.8); color: #f59e0b;
+  font-size: 10px; font-weight: 700; padding: 2px 5px; border-radius: 4px;
+}
+.anime-card-info { padding: 8px 8px 10px; flex: 1; display: flex; flex-direction: column; gap: 2px; }
+.anime-card-title {
+  font-size: 11px; font-weight: 600; color: var(--text); line-height: 1.4; margin: 0;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.anime-card-meta { display: flex; gap: 6px; margin-top: 3px; flex-wrap: wrap; font-size: 10px; color: var(--text3); }
+
+/* Linha (lista) */
+.anime-row {
+  display: flex; align-items: center; gap: 12px; background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 8px; padding: 8px 12px; cursor: pointer; transition: border-color 0.15s, background 0.15s;
+}
+.anime-row:hover { border-color: var(--accent); background: var(--bg3); }
+.anime-row-thumb { width: 36px; height: 52px; flex-shrink: 0; border-radius: 4px; overflow: hidden; background: var(--bg4); }
+.anime-row-thumb .anime-poster-empty { font-size: 18px; }
+.anime-row-titles { flex: 1; min-width: 0; }
+.anime-row-titles p { margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.anime-row-title { font-size: 13px; font-weight: 600; color: var(--text); }
+.anime-row-alt { font-size: 11px; color: var(--text3); }
+.anime-row-eps { font-size: 12px; color: var(--text3); flex-shrink: 0; min-width: 60px; text-align: right; }
+.anime-row-missing { font-size: 10px; font-weight: 700; color: var(--amber); background: rgba(245,158,11,0.12); padding: 2px 6px; border-radius: 4px; flex-shrink: 0; }
+.anime-row-score { font-size: 12px; flex-shrink: 0; text-align: right; }
+.anime-row-score--mal { color: var(--amber); min-width: 48px; }
+.anime-row-score--mine { color: var(--blue); min-width: 32px; }
+.anime-status-pill {
+  font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 99px;
+  flex-shrink: 0; text-transform: uppercase; letter-spacing: 0.04em;
+}
+
+/* Modal de status (editar na página do MAL / adicionar pela busca) */
+.anime-modal-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+  display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 24px;
+}
+.anime-modal {
+  background: var(--bg2); border-radius: 12px; width: 100%; max-width: 560px; border: 1px solid var(--border2);
+  overflow: hidden; display: flex; flex-direction: column; max-height: 90vh;
+}
+.anime-modal-top { display: flex; background: var(--bg3); }
+.anime-modal-poster { width: 100px; flex-shrink: 0; aspect-ratio: 2/3; overflow: hidden; }
+.anime-modal-info { flex: 1; padding: 16px 18px; display: flex; flex-direction: column; gap: 8px; }
+.anime-modal-info h2 { font-size: 15px; font-weight: 700; color: var(--text); line-height: 1.4; margin: 0; }
+.anime-modal-alt { font-size: 12px; color: var(--text3); margin: 0; }
+.anime-modal-scores { display: flex; gap: 16px; margin-top: 4px; }
+.anime-modal-score { text-align: center; }
+.anime-modal-score strong { display: block; font-size: 20px; font-weight: 700; }
+.anime-modal-score span { display: block; font-size: 10px; color: var(--text3); margin-top: 2px; }
+.anime-modal-meta { display: flex; flex-wrap: wrap; gap: 4px 12px; margin-top: 2px; font-size: 11px; color: var(--text3); }
+.anime-modal-meta .anime-media-type { text-transform: uppercase; }
+.anime-modal-meta .anime-broadcast { color: var(--blue); }
+.anime-genre { font-size: 10px; color: var(--text2); background: var(--bg4); padding: 1px 6px; border-radius: 99px; }
+.anime-modal-form { padding: 20px 20px 0; display: flex; flex-direction: column; gap: 16px; overflow-y: auto; }
+.anime-modal-form .field label.anime-label-row { display: flex; justify-content: space-between; }
+.anime-label-aside { color: var(--text3); font-weight: 400; }
+.anime-label-aside strong { color: var(--amber); font-weight: 600; }
+.anime-label-aside.has-score { color: var(--blue); font-weight: 600; }
+.anime-modal select.anime-status-select { font-weight: 600; }
+.anime-modal select.anime-status-select option { background: var(--bg3); color: var(--text); }
+.anime-eps-input { display: flex; gap: 8px; align-items: center; }
+.anime-eps-input input { flex: 1; }
+.anime-progress { height: 4px; background: var(--bg4); border-radius: 99px; margin-top: 4px; }
+.anime-progress > div { height: 100%; border-radius: 99px; transition: width 0.2s; }
+.anime-modal input[type="range"] { width: 100%; accent-color: var(--blue); }
+.anime-range-ends { display: flex; justify-content: space-between; font-size: 10px; color: var(--text3); margin-top: 2px; }
+.anime-modal-footer { display: flex; justify-content: flex-end; gap: 8px; padding: 16px 20px; }

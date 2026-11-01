@@ -3,9 +3,9 @@ import React, { useEffect } from 'react'
 export default function Toast({ message, type = 'success', onDone }) {
   useEffect(() => { const t = setTimeout(onDone, 3000); return () => clearTimeout(t) }, [])
   const colors = {
-    success: { bg: '#1a2e1a', border: '#2d5a2d', text: '#6fcf7a' },
-    error:   { bg: '#2e1a1a', border: '#5a2d2d', text: '#cf6f6f' },
-    info:    { bg: '#1a1e2e', border: '#2d3a5a', text: '#6f9fcf' },
+    success: { bg: 'var(--toast-ok-bg)', border: 'var(--toast-ok-border)', text: 'var(--toast-ok-text)' },
+    error:   { bg: 'var(--toast-err-bg)', border: 'var(--toast-err-border)', text: 'var(--toast-err-text)' },
+    info:    { bg: 'var(--toast-info-bg)', border: 'var(--toast-info-border)', text: 'var(--toast-info-text)' },
   }
   const c = colors[type] || colors.info
   return (

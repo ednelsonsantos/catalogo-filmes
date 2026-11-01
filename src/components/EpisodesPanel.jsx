@@ -134,7 +134,7 @@ export default function EpisodesPanel({ filme, onUpdated, showToast }) {
           <span>✓ {watchedCount}/{filme.episodes_aired} assistidos</span>
         )}
         {missing != null && missing > 0 && (
-          <span style={{ color: '#f59e0b', fontWeight: 600 }}>faltam {missing}</span>
+          <span style={{ color: 'var(--amber)', fontWeight: 600 }}>faltam {missing}</span>
         )}
         {filme.episodes_aired == null && (
           <span style={{ color: 'var(--text3)' }}>Clique em "Atualizar episódios" pra ver o progresso</span>
@@ -153,7 +153,7 @@ export default function EpisodesPanel({ filme, onUpdated, showToast }) {
       <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 6 }}>
         {seasons === null && <div style={{ fontSize: 12, color: 'var(--text3)' }}>Carregando temporadas…</div>}
         {seasons?.length === 0 && invalidId && (
-          <div style={{ fontSize: 12, color: '#f59e0b' }}>
+          <div style={{ fontSize: 12, color: 'var(--amber)' }}>
             ⚠ O ID da TMDB salvo para este título ({filme.tmdb_id}) não existe mais — a TMDB pode ter mesclado ou removido essa página. Remova e re-adicione o título pela busca pra corrigir o vínculo.
           </div>
         )}
@@ -201,9 +201,9 @@ export default function EpisodesPanel({ filme, onUpdated, showToast }) {
                         >
                           <span style={{
                             width: 16, height: 16, borderRadius: 4, flexShrink: 0,
-                            border: `1px solid ${checked ? '#4caf7d' : 'var(--border2)'}`,
+                            border: `1px solid ${checked ? 'var(--green)' : 'var(--border2)'}`,
                             background: checked ? 'rgba(76,175,125,0.25)' : 'transparent',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, color: '#4caf7d',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, color: 'var(--green)',
                           }}>
                             {checked ? '✓' : ''}
                           </span>

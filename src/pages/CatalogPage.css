@@ -39,12 +39,12 @@
 }
 .filter-btn { padding: 7px 12px; border: none; background: transparent; color: var(--text2); font-size: 12px; font-weight: 500; cursor: pointer; transition: all 0.12s; }
 .filter-btn:hover { color: var(--text); background: var(--bg3); }
-.filter-btn.active { background: var(--accent); color: #1a1000; }
+.filter-btn.active { background: var(--accent); color: var(--on-accent); }
 
 .sort-select { padding: 7px 10px; background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); color: var(--text); font-size: 12px; outline: none; cursor: pointer; }
 
 .view-toggle { display: flex; gap: 2px; }
-.view-toggle .btn.active { background: var(--bg4); color: var(--accent); border-color: var(--accent); }
+.view-toggle .btn.active { background: var(--bg4); color: var(--accent-text); border-color: var(--accent); }
 
 .disc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 16px; align-content: start; }
 .disc-list { display: flex; flex-direction: column; gap: 8px; }
@@ -53,3 +53,17 @@
 .empty-icon { font-size: 40px; margin-bottom: 8px; }
 .empty-state p { font-size: 15px; font-weight: 500; color: var(--text2); }
 .empty-state span { font-size: 13px; }
+
+.dropdown-menu--up { top: auto; bottom: calc(100% + 4px); left: 0; right: auto; min-width: 200px; max-height: 320px; overflow-y: auto; }
+.dropdown-empty { padding: 8px 10px; font-size: 13px; color: var(--text3); }
+
+/* Ações em lote: barra fixa no rodapé da página enquanto o modo de seleção está ligado */
+.toolbar .btn.active { background: var(--bg4); color: var(--accent-text); border-color: var(--accent); }
+.bulk-bar {
+  position: sticky; bottom: 0; z-index: 40; margin-top: auto;
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  background: var(--bg2); border: 1px solid var(--accent); border-radius: var(--radius-lg);
+  padding: 10px 14px; box-shadow: 0 -6px 24px rgba(0,0,0,0.35);
+}
+.bulk-count { font-size: 13px; font-weight: 600; color: var(--text); min-width: 120px; }
+.bulk-actions { display: flex; gap: 8px; flex-wrap: wrap; flex: 1; }

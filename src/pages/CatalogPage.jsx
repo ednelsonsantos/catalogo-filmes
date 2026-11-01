@@ -5,6 +5,7 @@ import ConfirmModal from '../components/ConfirmModal.jsx'
 import ImportModal from '../components/ImportModal.jsx'
 import '../components/ImportModal.css'
 import { parseProviders } from '../utils/providers.js'
+import { SERIES_CATEGORIES } from '../constants.js'
 import './CatalogPage.css'
 
 const IconSearch = () => (<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>)
@@ -43,8 +44,10 @@ function loadView() {
   }
 }
 
+const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`
+
 // Menu suspenso simples (fecha ao clicar fora ou com Esc)
-function DropdownMenu({ label, items, disabled }) {
+function DropdownMenu({ label, items, disabled, up = false, emptyLabel = 'Nenhuma ainda' }) {
   const [open, setOpen] = useState(false)
   const ref = useRef(null)
   useEffect(() => {
@@ -59,7 +62,8 @@ function DropdownMenu({ label, items, disabled }) {
     <div className="dropdown" ref={ref}>
       <button className="btn btn-sm" onClick={() => setOpen(o => !o)} disabled={disabled} aria-expanded={open}>{label} ▾</button>
       {open && (
-        <div className="dropdown-menu" role="menu">
+        <div className={`dropdown-menu${up ? ' dropdown-menu--up' : ''}`} role="menu">
+          {items.length === 0 && <div className="dropdown-empty">{emptyLabel}</div>}
           {items.map((it, i) => it === '-'
             ? <div key={i} className="dropdown-sep" />
             : <button key={i} role="menuitem" className="dropdown-item" onClick={() => { setOpen(false); it.onClick() }}>{it.label}</button>)}
@@ -69,7 +73,7 @@ function DropdownMenu({ label, items, disabled }) {
   )
 }
 
-export default function CatalogPage({ filmes, allFilmes = filmes, tags = [], tmdbConfigured = false, onEdit, onDelete, onImported, onToggleWatched, onFilmeUpdated, showToast, selectedCollection, command, onCommandHandled }) {
+export default function CatalogPage({ filmes, allFilmes = filmes, tags = [], collections = [], tmdbConfigured = false, onEdit, onDelete, onImported, onToggleWatched, onFilmeUpdated, onBulkDone, showToast, selectedCollection, command, onCommandHandled }) {
   const initialView = useMemo(loadView, [])
   const [importing, setImporting] = useState(false)
   const [search, setSearch] = useState('')
@@ -86,6 +90,10 @@ export default function CatalogPage({ filmes, allFilmes = filmes, tags = [], tmd
   const [detail, setDetail] = useState(null)
   const [confirmingDelete, setConfirmingDelete] = useState(null)
   const [exporting, setExporting] = useState(false)
+  // Ações em lote: null = fora do modo de seleção
+  const [selectedIds, setSelectedIds] = useState(null)
+  const [confirmingBulkDelete, setConfirmingBulkDelete] = useState(false)
+  const [bulkBusy, setBulkBusy] = useState(false)
   const searchRef = useRef(null)
 
   useEffect(() => {
@@ -102,7 +110,7 @@ export default function CatalogPage({ filmes, allFilmes = filmes, tags = [], tmd
   useEffect(() => {
     if (tagFilter === 'all') { setTagFilmeIds(null); return }
     window.api.tagsGetFilmeIds(Number(tagFilter)).then(ids => setTagFilmeIds(ids))
-  }, [tagFilter])
+  }, [tagFilter, tags]) // tags muda depois de uma ação em lote (contagens): relê quem tem a tag
 
   // Ctrl+F foca na busca
   useEffect(() => {
@@ -180,6 +188,71 @@ export default function CatalogPage({ filmes, allFilmes = filmes, tags = [], tmd
     lastPickRef.current = pick.id
     setDetail(pick)
   }, [filtered])
+
+  // Só conta (e só recebe a ação) o que está selecionado E visível — trocar o filtro não deixa nada escondido no lote
+  const selecting = selectedIds !== null
+  const selectedVisible = useMemo(() => (selecting ? filtered.filter(f => selectedIds.has(f.id)) : []), [selecting, filtered, selectedIds])
+  const allVisibleSelected = selecting && filtered.length > 0 && selectedVisible.length === filtered.length
+
+  const toggleSelected = useCallback((id) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id); else next.add(id)
+      return next
+    })
+  }, [])
+  const toggleSelectAll = useCallback(() => {
+    setSelectedIds(allVisibleSelected ? new Set() : new Set(filtered.map(f => f.id)))
+  }, [allVisibleSelected, filtered])
+  const exitSelection = useCallback(() => { setSelectedIds(null); setConfirmingBulkDelete(false) }, [])
+
+  // Esc sai do modo de seleção; Ctrl+A seleciona a lista toda (fora de campos de texto)
+  useEffect(() => {
+    if (!selecting) return
+    const onKey = (e) => {
+      if (detail || confirmingBulkDelete || importing) return
+      if (['INPUT', 'SELECT', 'TEXTAREA'].includes(document.activeElement?.tagName)) return
+      if (e.key === 'Escape') { e.preventDefault(); exitSelection() }
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'a') { e.preventDefault(); setSelectedIds(new Set(filtered.map(f => f.id))) }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [selecting, detail, confirmingBulkDelete, importing, filtered, exitSelection])
+
+  const runBulk = useCallback(async (action, target) => {
+    const items = selectedVisible
+    if (items.length === 0) return
+    setBulkBusy(true)
+    try {
+      await window.api.bulkApply({ ids: items.map(f => f.id), action, targetId: target?.id })
+      const one = items.length === 1
+      const n = plural(items.length, 'título', 'títulos')
+      if (action === 'watched') {
+        // igual ao ✓ individual: série da TMDB marcada agora fica com os episódios já lançados assistidos
+        if (tmdbConfigured) {
+          for (const f of items.filter(f => !f.watched_at && f.tmdb_id && f.tmdb_media_type === 'tv' && SERIES_CATEGORIES.includes(f.category))) {
+            await window.api.episodesRefresh({ filmeId: f.id, tmdbId: f.tmdb_id, markAllWatched: true }).catch(() => {})
+          }
+        }
+        showToast(`${n} marcado${one ? '' : 's'} como assistido${one ? '' : 's'}.`)
+      } else if (action === 'unwatched') {
+        showToast(`${n} marcado${one ? '' : 's'} como não assistido${one ? '' : 's'}.`)
+      } else if (action === 'addColecao') {
+        showToast(`${n} na coleção "${target.name}".`)
+      } else if (action === 'addTag') {
+        showToast(`Tag "${target.name}" em ${n}.`)
+      } else if (action === 'delete') {
+        showToast(`${n} removido${one ? '' : 's'}.`, 'info')
+        setSelectedIds(new Set())
+      }
+      await onBulkDone?.()
+    } catch (e) {
+      showToast(`Erro: ${e.message}`, 'error')
+    } finally {
+      setBulkBusy(false)
+      setConfirmingBulkDelete(false)
+    }
+  }, [selectedVisible, tmdbConfigured, onBulkDone, showToast])
 
   // Serviços presentes na coleção (pelo cache do "Onde assistir"), do mais comum pro menos
   const providerOptions = useMemo(() => {
@@ -340,6 +413,7 @@ export default function CatalogPage({ filmes, allFilmes = filmes, tags = [], tmd
             <option value="watched">Assistido recentemente</option>
             <option value="added">Adicionado por último</option>
           </select>
+          <button className={`btn btn-sm ${selecting ? 'active' : ''}`} onClick={selecting ? exitSelection : () => setSelectedIds(new Set())} disabled={!selecting && filtered.length === 0} title="Marcar vários títulos pra aplicar uma ação em todos de uma vez">☑ Selecionar</button>
           <button className="btn btn-sm" onClick={pickRandom} disabled={filtered.length === 0} title="Abre um título ao acaso entre os que estão na lista (use os filtros pra escolher de onde sortear)">🎲 Sortear</button>
           <div className="view-toggle">
             <button className={`btn btn-icon btn-sm ${viewMode === 'grid' ? 'active' : ''}`} onClick={() => setViewMode('grid')}><IconGrid /></button>
@@ -373,10 +447,42 @@ export default function CatalogPage({ filmes, allFilmes = filmes, tags = [], tmd
         <div className={viewMode === 'grid' ? 'disc-grid' : 'disc-list'}>
           {filtered.map(f => (
             <DiscCard key={f.id} filme={f} viewMode={viewMode}
-              onClick={() => setDetail(f)} onEdit={() => onEdit(f)} onDelete={() => handleDelete(f)}
+              selected={selecting ? selectedIds.has(f.id) : undefined}
+              onClick={selecting ? () => toggleSelected(f.id) : () => setDetail(f)} onEdit={() => onEdit(f)} onDelete={() => handleDelete(f)}
               onToggleWatched={onToggleWatched} />
           ))}
         </div>
+      )}
+
+      {selecting && (
+        <div className="bulk-bar" role="toolbar" aria-label="Ações nos selecionados">
+          <span className="bulk-count" data-testid="bulk-count">
+            {selectedVisible.length === 0 ? 'Clique nos títulos pra selecionar' : plural(selectedVisible.length, 'selecionado', 'selecionados')}
+          </span>
+          <button className="btn btn-sm btn-ghost" onClick={toggleSelectAll} disabled={filtered.length === 0}>
+            {allVisibleSelected ? 'Desmarcar todos' : `Selecionar todos (${filtered.length})`}
+          </button>
+          <div className="bulk-actions">
+            <button className="btn btn-sm" disabled={bulkBusy || selectedVisible.length === 0} onClick={() => runBulk('watched')}>✓ Assistido</button>
+            <button className="btn btn-sm" disabled={bulkBusy || selectedVisible.length === 0} onClick={() => runBulk('unwatched')}>Não assistido</button>
+            <DropdownMenu up label="Coleção" disabled={bulkBusy || selectedVisible.length === 0}
+              items={collections.map(c => ({ label: c.name, onClick: () => runBulk('addColecao', c) }))} />
+            <DropdownMenu up label="Tag" disabled={bulkBusy || selectedVisible.length === 0}
+              items={tags.map(t => ({ label: t.name, onClick: () => runBulk('addTag', t) }))} />
+            <button className="btn btn-sm btn-danger" disabled={bulkBusy || selectedVisible.length === 0} onClick={() => setConfirmingBulkDelete(true)}>Remover</button>
+          </div>
+          <button className="btn btn-sm btn-primary" onClick={exitSelection}>Concluir</button>
+        </div>
+      )}
+
+      {confirmingBulkDelete && (
+        <ConfirmModal
+          title="Remover títulos"
+          message={`Tem certeza que quer remover ${plural(selectedVisible.length, 'título', 'títulos')} da sua coleção? Essa ação não pode ser desfeita.`}
+          confirmLabel="Remover"
+          onConfirm={() => runBulk('delete')}
+          onCancel={() => setConfirmingBulkDelete(false)}
+        />
       )}
 
       {detail && (

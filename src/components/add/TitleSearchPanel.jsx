@@ -56,7 +56,7 @@ export default function TitleSearchPanel({
         </button>
       </div>
       {hasAmbiguousResults && (
-        <div style={{ marginBottom: 10, padding: '8px 12px', background: 'rgba(234,179,8,0.08)', border: '1px solid rgba(234,179,8,0.3)', borderRadius: 8, fontSize: 12, color: '#f59e0b' }}>
+        <div style={{ marginBottom: 10, padding: '8px 12px', background: 'rgba(234,179,8,0.08)', border: '1px solid rgba(234,179,8,0.3)', borderRadius: 8, fontSize: 12, color: 'var(--amber)' }}>
           ⚠ Vários resultados com nome parecido — confira o ano e o pôster antes de escolher.
         </div>
       )}
@@ -89,7 +89,7 @@ export default function TitleSearchPanel({
                   </div>
                 </div>
                 {dupFound && (
-                  <span style={{ fontSize: 10, fontWeight: 600, color: '#f59e0b', background: 'rgba(234,179,8,0.12)', border: '1px solid rgba(234,179,8,0.3)', padding: '2px 7px', borderRadius: 99, whiteSpace: 'nowrap', alignSelf: 'center', flexShrink: 0 }}>
+                  <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--amber)', background: 'rgba(234,179,8,0.12)', border: '1px solid rgba(234,179,8,0.3)', padding: '2px 7px', borderRadius: 99, whiteSpace: 'nowrap', alignSelf: 'center', flexShrink: 0 }}>
                     Já na coleção
                   </span>
                 )}
@@ -108,7 +108,7 @@ export default function TitleSearchPanel({
         <div style={{ marginTop: 12, padding: '12px 14px', background: 'rgba(234,179,8,0.08)', border: '1px solid rgba(234,179,8,0.35)', borderRadius: 8, display: 'flex', gap: 10, alignItems: 'flex-start' }}>
           <span style={{ fontSize: 16, flexShrink: 0 }}>⚠️</span>
           <div style={{ flex: 1 }}>
-            <p style={{ fontSize: 13, fontWeight: 600, color: '#f59e0b', margin: '0 0 4px' }}>
+            <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--amber)', margin: '0 0 4px' }}>
               "{duplicateWarning.title}" já está na sua coleção
             </p>
             <p style={{ fontSize: 12, color: 'var(--text2)', margin: 0 }}>

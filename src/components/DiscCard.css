@@ -88,12 +88,26 @@
 
 .format-badge {
   font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 4px;
-  background: rgba(74,158,255,0.12); color: #4a9eff;
+  background: rgba(74,158,255,0.12); color: var(--blue);
 }
 .rating-badge {
-  font-size: 11px; font-weight: 600; color: var(--accent);
+  font-size: 11px; font-weight: 600; color: var(--accent-text);
   background: rgba(232,184,75,0.12); padding: 2px 6px; border-radius: 4px;
 }
-.watching-badge { background: rgba(74,158,255,0.15); color: #4a9eff; }
-.episode-badge { background: rgba(140,100,255,0.15); color: #a78bfa; }
-.new-season-badge { background: rgba(245,158,11,0.15); color: #f59e0b; }
+.watching-badge { background: rgba(74,158,255,0.15); color: var(--blue); }
+.episode-badge { background: rgba(140,100,255,0.15); color: var(--purple); }
+.new-season-badge { background: rgba(245,158,11,0.15); color: var(--amber); }
+
+/* Modo de seleção (ações em lote) */
+.select-check {
+  width: 22px; height: 22px; border-radius: 50%; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 700; color: transparent;
+  border: 2px solid rgba(255,255,255,0.7); background: rgba(0,0,0,0.45);
+}
+.disc-cover .select-check { position: absolute; top: 8px; right: 8px; z-index: 1; }
+.select-check--on { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.disc-list-item .select-check { border-color: var(--border2); background: var(--bg4); }
+.disc-list-item .select-check--on { background: var(--accent); border-color: var(--accent); }
+.disc-card.is-selected, .disc-list-item.is-selected { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.disc-card.selectable:hover { transform: none; }

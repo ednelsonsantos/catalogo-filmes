@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react'
+import React from 'react'
 import { parseProviders, providerLogo } from '../utils/providers.js'
+import { usePosterSrc } from '../utils/usePosterSrc.js'
 import './DiscCard.css'
 
 function ProviderLogos({ providers, max = 3 }) {
@@ -28,21 +29,12 @@ function getEpisodeInfo(filme) {
   return { label: `${watched}/${filme.episodes_aired} eps`, isNew, newSeason }
 }
 
-export default function DiscCard({ filme, viewMode, onClick, onEdit, onDelete, onToggleWatched }) {
-  const [coverSrc, setCoverSrc] = useState(null)
-
-  useEffect(() => {
-    let cancelled = false
-    const load = async () => {
-      if (filme.cover_path) {
-        const data = await window.api.readCover(filme.cover_path)
-        if (!cancelled && data) { setCoverSrc(data); return }
-      }
-      if (!cancelled && filme.poster_url && filme.poster_url !== 'N/A') setCoverSrc(filme.poster_url)
-    }
-    load()
-    return () => { cancelled = true }
-  }, [filme.cover_path, filme.poster_url])
+// selected: undefined fora do modo de seleção; true/false dentro dele (o clique marca em vez de abrir)
+export default function DiscCard({ filme, viewMode, onClick, onEdit, onDelete, onToggleWatched, selected }) {
+  const selecting = selected !== undefined
+  const check = selecting && <span className={`select-check ${selected ? 'select-check--on' : ''}`} aria-hidden="true">✓</span>
+  const selClass = selecting ? ` selectable${selected ? ' is-selected' : ''}` : ''
+  const coverSrc = usePosterSrc(filme)
 
   const formats = getFormats(filme)
   const episodeInfo = getEpisodeInfo(filme)
@@ -50,7 +42,8 @@ export default function DiscCard({ filme, viewMode, onClick, onEdit, onDelete, o
 
   if (viewMode === 'list') {
     return (
-      <div className="disc-list-item" onClick={onClick}>
+      <div className={`disc-list-item${selClass}`} onClick={onClick} aria-selected={selecting ? selected : undefined}>
+        {check}
         <div className="list-cover">
           {coverSrc ? <img src={coverSrc} alt={filme.title} /> : <DiscPlaceholder title={filme.title} />}
         </div>
@@ -60,14 +53,14 @@ export default function DiscCard({ filme, viewMode, onClick, onEdit, onDelete, o
             <div className="list-original">{filme.original_title}</div>
           )}
           <div className="list-meta">
-            {filme.category && <span style={{ fontSize: 10, fontWeight: 600, background: 'rgba(140,100,255,0.15)', color: '#a78bfa', padding: '1px 6px', borderRadius: 3 }}>{filme.category}</span>}
+            {filme.category && <span style={{ fontSize: 10, fontWeight: 600, background: 'rgba(140,100,255,0.15)', color: 'var(--purple)', padding: '1px 6px', borderRadius: 3 }}>{filme.category}</span>}
             {filme.year && <span>{filme.year}</span>}
             {filme.director && <><span className="dot">·</span><span>{filme.director}</span></>}
             {filme.genre && <><span className="dot">·</span><span>{filme.genre}</span></>}
             {filme.runtime && <><span className="dot">·</span><span>{filme.runtime}</span></>}
           </div>
         </div>
-        <div className="list-right" onClick={e => e.stopPropagation()}>
+        <div className="list-right" onClick={selecting ? undefined : e => e.stopPropagation()}>
           <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
             {!!filme.watching && <span className="format-badge watching-badge">Assistindo</span>}
             {episodeInfo?.newSeason && <span className="format-badge new-season-badge">📺 Nova temporada</span>}
@@ -79,7 +72,7 @@ export default function DiscCard({ filme, viewMode, onClick, onEdit, onDelete, o
             {formats.map(f => <span key={f} className="format-badge">{f}</span>)}
             <ProviderLogos providers={providers} />
           </div>
-          {onToggleWatched && (
+          {onToggleWatched && !selecting && (
             <button
               className={`watched-toggle watched-toggle--list ${filme.watched_at ? 'watched-toggle--on' : ''}`}
               title={filme.watched_at ? 'Marcar como não assistido' : 'Marcar como assistido'}
@@ -89,6 +82,7 @@ export default function DiscCard({ filme, viewMode, onClick, onEdit, onDelete, o
           {filme.imdb_rating && filme.imdb_rating !== 'N/A' && (
             <span className="rating-badge">★ {filme.imdb_rating}</span>
           )}
+          {!selecting && <>
           <button className="btn btn-icon btn-sm btn-ghost" onClick={onEdit} title="Editar">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
@@ -101,14 +95,16 @@ export default function DiscCard({ filme, viewMode, onClick, onEdit, onDelete, o
               <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
             </svg>
           </button>
+          </>}
         </div>
       </div>
     )
   }
 
   return (
-    <div className="disc-card" onClick={onClick}>
+    <div className={`disc-card${selClass}`} onClick={onClick} aria-selected={selecting ? selected : undefined}>
       <div className="disc-cover">
+        {check}
         {coverSrc ? <img src={coverSrc} alt={filme.title} /> : <DiscPlaceholder title={filme.title} />}
         <span className="format-badge-overlay">
           {[filme.category, ...formats].filter(Boolean).join(' · ') || '—'}
@@ -122,7 +118,7 @@ export default function DiscCard({ filme, viewMode, onClick, onEdit, onDelete, o
             )}
           </div>
         )}
-        {onToggleWatched && (
+        {onToggleWatched && !selecting && (
           <button
             className={`watched-toggle ${filme.watched_at ? 'watched-toggle--on' : ''}`}
             title={filme.watched_at ? 'Marcar como não assistido' : 'Marcar como assistido'}

@@ -47,7 +47,7 @@
   cursor: pointer; transition: all 0.12s; user-select: none;
 }
 .format-check:hover { border-color: var(--border2); color: var(--text); }
-.format-check.active { border-color: var(--accent); color: var(--accent); background: rgba(232,184,75,0.08); }
+.format-check.active { border-color: var(--accent); color: var(--accent-text); background: rgba(232,184,75,0.08); }
 
 /* Search */
 .search-section { display: flex; flex-direction: column; gap: 12px; }

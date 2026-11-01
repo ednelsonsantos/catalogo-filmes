@@ -1,5 +1,11 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react'
 import { WEEKDAY_INDEX } from '../constants.js'
+import { usePosterSrc } from '../utils/usePosterSrc.js'
+
+function Poster({ filme }) {
+  const src = usePosterSrc(filme)
+  return src ? <img src={src} alt={filme.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : null
+}
 
 function nextDateForWeekday(dayName) {
   const idx = WEEKDAY_INDEX[dayName]
@@ -123,7 +129,7 @@ export default function ContinuePage({ filmes, animeList, setAnimeList, onEdit, 
               }}>
                 <span style={{ fontSize: 16 }}>{item.kind === 'anime' ? '🎌' : '📺'}</span>
                 <span style={{ flex: 1, fontSize: 13, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.title}</span>
-                <span style={{ fontSize: 12, color: '#4a9eff', textTransform: 'capitalize', flexShrink: 0 }}>{formatDateLabel(item.date)}</span>
+                <span style={{ fontSize: 12, color: 'var(--blue)', textTransform: 'capitalize', flexShrink: 0 }}>{formatDateLabel(item.date)}</span>
               </div>
             ))}
           </div>
@@ -138,15 +144,15 @@ export default function ContinuePage({ filmes, animeList, setAnimeList, onEdit, 
           return (
             <div key={f.id} data-testid="continue-item" style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
               <div style={{ aspectRatio: '16/9', background: 'var(--bg4)', overflow: 'hidden' }}>
-                {f.poster_url && f.poster_url !== 'N/A' && <img src={f.poster_url} alt={f.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
+                <Poster filme={f} />
               </div>
               <div style={{ padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 6, flex: 1 }}>
                 <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.title}</div>
                 {!tracked && <div style={{ fontSize: 12, color: 'var(--text3)' }}>Sem acompanhamento de episódios</div>}
                 {tracked && !nextUp && loadingNextUp && <div style={{ fontSize: 12, color: 'var(--text3)' }}>Carregando…</div>}
-                {nextUp === 'caught_up' && <div style={{ fontSize: 12, color: '#4caf7d' }}>✓ Em dia</div>}
+                {nextUp === 'caught_up' && <div style={{ fontSize: 12, color: 'var(--green)' }}>✓ Em dia</div>}
                 {nextUp && nextUp !== 'caught_up' && (
-                  <div style={{ fontSize: 12, color: '#f59e0b' }}>Próximo: T{nextUp.season}E{nextUp.episode}</div>
+                  <div style={{ fontSize: 12, color: 'var(--amber)' }}>Próximo: T{nextUp.season}E{nextUp.episode}</div>
                 )}
                 <div style={{ display: 'flex', gap: 6, marginTop: 'auto' }}>
                   {nextUp && nextUp !== 'caught_up' && (
@@ -171,7 +177,7 @@ export default function ContinuePage({ filmes, animeList, setAnimeList, onEdit, 
               </div>
               <div style={{ padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 6, flex: 1 }}>
                 <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.node.title}</div>
-                <div style={{ fontSize: 12, color: '#f59e0b' }}>Episódio {current + 1}{total > 0 ? ` de ${total}` : ''}</div>
+                <div style={{ fontSize: 12, color: 'var(--amber)' }}>Episódio {current + 1}{total > 0 ? ` de ${total}` : ''}</div>
                 <div style={{ display: 'flex', gap: 6, marginTop: 'auto' }}>
                   <button className="btn btn-sm btn-primary" style={{ flex: 1 }} onClick={() => advanceAnime(a)}>✓ Visto</button>
                   <button className="btn btn-sm" onClick={() => setPage('animes')}>Ver</button>
