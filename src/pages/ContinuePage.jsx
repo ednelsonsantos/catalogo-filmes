@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react'
 import { WEEKDAY_INDEX } from '../constants.js'
 import { usePosterSrc } from '../utils/usePosterSrc.js'
+import AnimeStatusModal from '../components/anime/AnimeStatusModal.jsx'
 
 function Poster({ filme }) {
   const src = usePosterSrc(filme)
@@ -25,7 +26,7 @@ function formatDateLabel(iso) {
   return iso === today ? `hoje, ${d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}` : label
 }
 
-export default function ContinuePage({ filmes, animeList, setAnimeList, onEdit, onFilmeUpdated, setPage, showToast }) {
+export default function ContinuePage({ filmes, animeList, setAnimeList, onEdit, onFilmeUpdated, showToast }) {
   // Tudo que está "Assistindo" aparece aqui (é o que o contador do menu conta); só as séries ligadas à TMDB têm próximo episódio
   const watchingFilmes = useMemo(() => filmes.filter(f => !!f.watching), [filmes])
   const trackedFilmes = useMemo(() => watchingFilmes.filter(f => f.tmdb_id && f.tmdb_media_type === 'tv'), [watchingFilmes])
@@ -74,6 +75,20 @@ export default function ContinuePage({ filmes, animeList, setAnimeList, onEdit, 
       if (total > 0 && next >= total) showToast?.(`"${anime.node.title}" completo! Atualize o status no MAL.`, 'info')
     } catch {
       showToast?.('Erro ao marcar episódio no MAL.', 'error')
+    }
+  }, [setAnimeList, showToast])
+
+  // Animes vêm da lista do MAL: o "Editar" abre a mesma janela da página do MyAnimeList e salva lá
+  const [editAnime, setEditAnime] = useState(null)
+  const closeEditAnime = useCallback(() => setEditAnime(null), [])
+  const saveAnime = useCallback(async (animeId, patch) => {
+    try {
+      await window.api.malUpdateAnime({ animeId, patch })
+      setAnimeList(prev => prev.map(a => (a.node.id === animeId ? { ...a, list_status: { ...a.list_status, ...patch } } : a)))
+      showToast?.('Atualizado no MyAnimeList!', 'success')
+      setEditAnime(null)
+    } catch (e) {
+      showToast?.('Erro ao salvar: ' + e.message, 'error')
     }
   }, [setAnimeList, showToast])
 
@@ -169,7 +184,7 @@ export default function ContinuePage({ filmes, animeList, setAnimeList, onEdit, 
           const current = a.list_status?.num_episodes_watched || 0
           const total = a.node.num_episodes || 0
           return (
-            <div key={a.node.id} style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+            <div key={a.node.id} data-testid="continue-anime" style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
               <div style={{ aspectRatio: '16/9', background: 'var(--bg4)', overflow: 'hidden' }}>
                 {(a.node._cachedPoster || a.node.main_picture?.medium) && (
                   <img src={a.node._cachedPoster || a.node.main_picture?.medium} alt={a.node.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -180,13 +195,15 @@ export default function ContinuePage({ filmes, animeList, setAnimeList, onEdit, 
                 <div style={{ fontSize: 12, color: 'var(--amber)' }}>Episódio {current + 1}{total > 0 ? ` de ${total}` : ''}</div>
                 <div style={{ display: 'flex', gap: 6, marginTop: 'auto' }}>
                   <button className="btn btn-sm btn-primary" style={{ flex: 1 }} onClick={() => advanceAnime(a)}>✓ Visto</button>
-                  <button className="btn btn-sm" onClick={() => setPage('animes')}>Ver</button>
+                  <button className="btn btn-sm" onClick={() => setEditAnime(a)}>Editar</button>
                 </div>
               </div>
             </div>
           )
         })}
       </div>
+
+      {editAnime && <AnimeStatusModal anime={editAnime} mode="edit" onSave={saveAnime} onClose={closeEditAnime} />}
     </div>
   )
 }

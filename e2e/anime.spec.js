@@ -80,6 +80,23 @@ test('página do MyAnimeList: filtros, busca, ordenação, lista e edição salv
   expect(await malUpdates(electronApp)).toHaveLength(1)
 })
 
+test('tela Assistindo: anime do MAL tem "Editar" e salva no MAL como os títulos do catálogo', async ({ page, electronApp, userDataDir }) => {
+  await setupMal(page, electronApp, userDataDir)
+  await goTo(page, 'Assistindo')
+  const card = page.getByTestId('continue-anime').filter({ hasText: 'Bleach Novo' })
+  await expect(card).toContainText('Episódio 6 de 12')
+
+  await card.getByRole('button', { name: 'Editar' }).click()
+  const modal = page.getByRole('dialog')
+  await expect(modal.getByLabel('Episódios assistidos')).toHaveValue('5')
+  await modal.getByLabel('Episódios assistidos').fill('9')
+  await modal.getByRole('button', { name: 'Salvar no MAL' }).click()
+  await expect(page.getByText('Atualizado no MyAnimeList!')).toBeVisible()
+  await expect(modal).toHaveCount(0)
+  expect(await malUpdates(electronApp)).toEqual([{ animeId: 2, patch: { status: 'watching', score: 7, num_episodes_watched: 9 } }])
+  await expect(card).toContainText('Episódio 10 de 12')
+})
+
 test('adicionar anime: avisa o que já está na lista e adiciona o novo ao MAL', async ({ page, electronApp, userDataDir }) => {
   await setupMal(page, electronApp, userDataDir)
   await page.getByRole('button', { name: 'Adicionar Título' }).click()

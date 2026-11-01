@@ -265,7 +265,6 @@ export default function App() {
             setAnimeList={setAnimeList}
             onEdit={handleEdit}
             onFilmeUpdated={handleFilmeUpdated}
-            setPage={(p) => { setPage(p); if (p !== 'add') setEditFilme(null) }}
             showToast={showToast}
           />
         )}
