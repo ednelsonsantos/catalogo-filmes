@@ -27,6 +27,7 @@ Aplicativo desktop para catalogar sua coleção pessoal de filmes, séries, docu
 - **Aviso de ambiguidade na busca** — quando a busca retorna títulos muito parecidos, um aviso lembra de conferir o ano/pôster antes de escolher
 - **Onde assistir** — logos dos serviços de streaming por assinatura (Netflix, Globoplay, Prime Video...) disponíveis no Brasil, no card (grade e lista) e no modal de detalhes, via TMDB; filtro no catálogo por serviço, "em algum streaming" ou "em nenhum". Fica guardado no banco e é atualizado em segundo plano uma vez por semana
 - **Catálogo** com visualização em grade ou lista, busca por texto (Ctrl+F) e filtros combináveis: **status** (Não assistidos/Assistindo/Assistidos), **formato** (DVD/Blu-ray/4K UHD/VHS/Digital — o que você possui), **categoria**, **tag** e **onde assistir** — dá pra combinar, ex: só os não assistidos que estão na Netflix. Filtros, ordenação e grade/lista ficam como você deixou ao reabrir o app
+- **Ações em lote** — "☑ Selecionar" no catálogo: marque vários títulos (ou todos da lista filtrada, Ctrl+A) e aplique de uma vez: assistido, não assistido, colocar numa coleção ou tag, ou remover (com confirmação). A ação vale só para os selecionados que estão visíveis
 - **Sortear um título** — botão "🎲 Sortear" escolhe ao acaso entre os títulos da lista filtrada (ex: não assistidos na Netflix) e abre o detalhe
 - **Navegar no detalhe** — ← → (ou os botões ‹ ›) passam pro título anterior/próximo na ordem da lista, com a posição ("2 de 30")
 - **Aviso de duplicado ao salvar** — preencher manualmente (ou pela foto da capa) um título que já está no catálogo pede confirmação, sem diferenciar acento ou maiúscula; mesmo título de outro ano (refilmagem) passa direto
@@ -36,7 +37,9 @@ Aplicativo desktop para catalogar sua coleção pessoal de filmes, séries, docu
 - **Exportar** coleção para CSV, Excel ou JSON — exporta tudo ou apenas a coleção selecionada na sidebar
 - **Importar lista** — "Importar / Exportar" no topo do catálogo (ou Arquivo → Importar lista) aceita a exportação do **Letterboxd** (watched, diary, ratings, watchlist), do **IMDb** (ratings, watchlist), o CSV/Excel exportado pelo próprio app ou qualquer planilha com coluna de título. Mostra uma prévia (o que é novo e o que já está na coleção), converte estrelas do Letterboxd em nota 0–10, usa a data de quando assistiu e, opcionalmente, completa cada título com os dados da TMDB (pelo código do IMDb quando existe)
 - **Banco de dados local** SQLite — seus dados ficam no computador, sem nuvem
-- **Backup e restauração** — empacota banco de dados, capas, pôsteres de anime, cache e chaves de API num único `.zip`; restaurar substitui tudo e recarrega o app com os dados do backup
+- **Pôsteres guardados no computador** — os pôsteres da TMDB/OMDb são baixados em segundo plano (uma vez cada) e o app passa a mostrar o arquivo local: o catálogo aparece completo sem internet e o backup leva as imagens
+- **Tema claro ou escuro** — em Configurações → Aparência: Escuro (padrão), Claro ou Seguir o Windows (troca sozinho quando o Windows muda)
+- **Backup e restauração** — empacota banco de dados, capas, pôsteres, cache e chaves de API num único `.zip`; restaurar substitui tudo e recarrega o app com os dados do backup
 - **Backup automático** — toda semana, ligado por padrão, em "Documentos › Meu Catálogo › Backups" (ou outra pasta, ex: OneDrive ou pendrive); guarda os 5 últimos e nunca grava um catálogo vazio por cima dos bons
 - **Menu da janela em português** — Arquivo (adicionar, importar, exportar, backup, configurações), Editar, Exibir (Ctrl+1…4 pra trocar de tela, Ctrl+F, zoom, tela cheia) e Ajuda (verificar atualizações, novidades, sobre)
 - **Ícone personalizado** — logo do app no instalador, atalhos e barra de tarefas
@@ -55,7 +58,7 @@ Aplicativo desktop para catalogar sua coleção pessoal de filmes, séries, docu
 
 O app foi desenvolvido com práticas de segurança para aplicações Electron:
 
-- **API keys nunca cruzam o IPC** — as chaves OMDb e TMDB ficam exclusivamente no processo principal (`main.js`); o renderer nunca as recebe nem as envia
+- **API keys nunca cruzam o IPC** — as chaves OMDb e TMDB ficam exclusivamente no processo principal (`electron/settings.js`, em memória no `state.js`); o renderer nunca as recebe nem as envia
 - **Path traversal bloqueado** — leitura e gravação de capas validadas para ficarem estritamente dentro de `userData/covers/`
 - **Content Security Policy** — aplicada em produção para bloquear scripts e recursos não autorizados
 - **Allowlist de URLs externas** — `shell.openExternal` só aceita origens explicitamente permitidas, validadas por `URL.origin` (previne subdomain spoofing)
@@ -198,7 +201,21 @@ O comando (`scripts/publicar.js`): lê o `GH_TOKEN` (do terminal ou, se o termin
 ```
 catalogo-filmes/
 ├── electron/
-│   ├── main.js          # Processo principal: banco de dados, IPC, APIs, segurança
+│   ├── main.js          # Processo principal: só a inicialização (carrega os módulos abaixo)
+│   ├── state.js         # Estado compartilhado (banco, janela, preferências, chaves de API)
+│   ├── helpers.js       # Validações (IDs, caminhos, origens permitidas) — testadas em tests/
+│   ├── database.js      # Tabelas e migrações do SQLite
+│   ├── catalogo.js      # Títulos, ações em lote, coleções e tags
+│   ├── tmdb.js          # OMDb/TMDB: busca, "Onde assistir" e episódios
+│   ├── images.js        # Capas e pôsteres guardados no disco
+│   ├── export.js        # Importar lista e exportar (CSV, Excel, JSON)
+│   ├── backup.js        # Backup manual/automático e restauração
+│   ├── prefs.js         # Preferências e tema
+│   ├── settings.js      # Chaves de API
+│   ├── mal.js           # MyAnimeList (OAuth2, lista, busca)
+│   ├── window.js        # Janela (CSP, navegação bloqueada) e bandeja
+│   ├── menu.js          # Menu da janela
+│   ├── updater.js       # Atualização automática
 │   └── preload.js       # Bridge segura entre Electron e React (contextBridge)
 ├── src/
 │   ├── pages/
@@ -220,10 +237,12 @@ catalogo-filmes/
 │           ├── ProgressSelector.jsx   # "Próximo a assistir" (temporada/episódio)
 │           ├── CollectionsPicker.jsx  # Coleções com criação na hora
 │           ├── TagsPicker.jsx         # Tags com criação e remoção
-│           ├── AnimeSearchSection.jsx # Aba "Adicionar Anime" (busca no MAL)
-│           └── AnimeAddModal.jsx      # Status/nota/episódios ao adicionar anime no MAL
+│           └── AnimeSearchSection.jsx # Aba "Adicionar Anime" (busca no MAL)
+│       └── anime/              # Cartão/linha de anime e o modal de status/nota/episódios (editar e adicionar)
 │   └── utils/
 │       ├── titleMappers.js     # Converte respostas OMDb/TMDB no formato do app
+│       ├── usePosterSrc.js     # Capa própria > pôster salvo no disco > link do pôster
+│       ├── mal.js              # Status, cores e pôsteres do MyAnimeList
 │       └── ocr.js              # OCR local da capa (Tesseract) e leitura de arquivo
 ├── e2e/                   # Testes de interface (Playwright) — npm run test:ui
 ├── colecao.html           # Página standalone para publicar no site

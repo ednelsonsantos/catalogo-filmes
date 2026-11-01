@@ -605,6 +605,29 @@ A busca e a importação já avisavam "Já na coleção"; o "Preencher manualmen
 
 ---
 
+## Fase 17 — Dados mais seguros e manutenção (v1.15.0)
+
+### 17.1 Pôsteres guardados no disco ✓
+Todo pôster da TMDB/OMDb era só um link: sem internet o catálogo ficava sem imagens, e o backup não levava os pôsteres (se o link mudasse, a imagem se perdia). Agora cada um é baixado uma vez, em segundo plano, para `posters/<id>-<hash do link>.<ext>` — ao abrir, ao voltar pra janela e logo depois de salvar (juntando uma importação inteira numa passada só). Trocar o pôster baixa o novo e apaga o antigo; remover o título apaga o arquivo. Só baixa dos mesmos endereços que a CSP já deixa exibir; o arquivo é achado pelo id + link, nunca por um caminho vindo da página. Entra no backup (pasta `posters/`)
+
+### 17.2 Ações em lote ✓
+"☑ Selecionar" no catálogo liga o modo de seleção: o clique marca o título em vez de abrir; "Selecionar todos (N)" ou Ctrl+A pega a lista filtrada; Esc sai. Barra no rodapé com ✓ Assistido (quem já tinha data mantém; série da TMDB sincroniza os episódios, igual ao ✓ individual), Não assistido, Coleção ▾, Tag ▾ e Remover (com confirmação). A ação vale só para os selecionados **visíveis** — trocar o filtro não deixa nada escondido no lote. No processo principal é uma transação só, com IDs, ação e coleção/tag validados
+
+**Bug encontrado junto:** remover um título apagava só o vínculo com coleções — as tags e os episódios assistidos ficavam órfãos (a tag seguia contando o removido, e um título novo que reaproveitasse o id herdava tudo). Agora a remoção limpa tudo, e os órfãos de versões anteriores são apagados ao abrir
+
+### 17.3 Tema claro ✓
+Configurações → Aparência: Escuro (padrão), Claro ou Seguir o Windows. O processo principal define o `nativeTheme` (barra de título do Windows acompanha) e avisa a página, que marca `<html data-theme>`; com "Seguir o Windows" troca sozinho quando o Windows muda. As cores fixas espalhadas pelos componentes (âmbar, azul, verde, roxo, toasts, botão de perigo) viraram variáveis, com tons mais escuros no claro pra manter o contraste; o dourado como texto ganhou `--accent-text`
+
+### 17.4 Tela do MyAnimeList dividida ✓
+`AnimePage.jsx` tinha 764 linhas e 92 estilos inline. Virou: a página (só a lógica dela), `components/anime/AnimeCard.jsx` (cartão e linha), `AnimeStatusModal.jsx` e `anime.css`. O modal de editar (página do MAL) e o de adicionar (Adicionar → Anime) eram quase cópias — agora é um só, com `mode="edit|add"`. Status, cores e pôsteres do MAL ficam em `utils/mal.js` (estavam repetidos em três arquivos). Ganhou rótulos ligados aos campos e papel de diálogo (acessibilidade)
+
+### 17.5 Processo principal dividido em módulos ✓
+`electron/main.js` (1.800 linhas) virou 15 arquivos por assunto — banco, catálogo, TMDB, imagens, exportação, backup, preferências, chaves, MAL, janela, menu, atualização — e o `main.js` ficou só com a inicialização. O que mais de um módulo lê e troca (banco, janela, preferências, chaves) mora em `state.js`. A divisão foi feita por script e conferida linha a linha contra o original; junto, duas variáveis locais chamadas `state` no login do MAL foram renomeadas (sombreariam o estado compartilhado)
+
+**Testes:** 61 de interface (9 novos: pôsteres no disco, leitura de pôster só pelo id/link, 4 de ações em lote, tema, 2 da tela do MyAnimeList com a API do MAL simulada).
+
+---
+
 ## Backlog de ideias (não detalhadas ainda)
 
 - ~~**⚠ Risco:** categoria "Animação" tratada como série pra fins de episódios, mesmo quando é um filme avulso~~ — **corrigido na v1.3.1**, ver Fase 13.1
